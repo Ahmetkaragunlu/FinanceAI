@@ -1,5 +1,9 @@
 package com.ahmetkaragunlu.financeai.viewmodel
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ahmetkaragunlu.financeai.firebaseRepo.AuthRepository
@@ -60,7 +64,35 @@ class AuthViewModel @Inject constructor(
     }
 
     fun logOut() {
-        authRepository.logOut()
-        _authState.value = AuthState.EMPTY
+        viewModelScope.launch {
+            authRepository.logOut()
+            _authState.value = AuthState.EMPTY
+        }
+    }
+
+    var inputFirstName by mutableStateOf("")
+        private set
+    var inputEmail by mutableStateOf("")
+        private set
+    var inputPassword by mutableStateOf("")
+        private set
+    var inputLastName by mutableStateOf("")
+        private set
+    var iconVisibility by mutableStateOf(false)
+
+    fun updateFirstName(firstName: String) {
+        inputFirstName = firstName
+    }
+
+    fun updateLastName(lastName: String) {
+        inputLastName = lastName
+    }
+
+    fun updatePassword(password: String) {
+        inputPassword = password
+    }
+
+    fun updateEmail(email: String) {
+        inputEmail = email
     }
 }

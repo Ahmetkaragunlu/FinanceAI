@@ -23,7 +23,7 @@ class AuthRepositoryImpl @Inject constructor(
     override suspend fun signIn(email: String, password: String): AuthResult =
         auth.signInWithEmailAndPassword(email, password).await()
 
-    override fun logOut() {
+    override suspend fun logOut() {
         auth.signOut()
     }
 

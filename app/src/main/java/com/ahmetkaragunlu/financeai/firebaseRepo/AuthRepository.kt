@@ -9,5 +9,5 @@ interface AuthRepository {
     suspend fun signIn(email: String, password: String): AuthResult
     suspend fun saveUser(email: String, firstName: String, lastName: String, password: String)
     suspend fun saveUserFirestore(user: User)
-    fun logOut()
+    suspend fun logOut()
 }
