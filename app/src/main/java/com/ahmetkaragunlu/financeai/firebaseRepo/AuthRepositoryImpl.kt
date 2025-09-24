@@ -47,7 +47,7 @@ class AuthRepositoryImpl @Inject constructor(
             throw AuthException.EmailExists
         }
 
-        val uid = authResult.user?.uid ?: throw AuthException.UidNotFound
+        val uid = authResult.user?.uid?: throw AuthException.UidNotFound
         val user = User(firstName = firstName, lastName = lastName, email = email, uid = uid)
         saveUserFirestore(user)
     }

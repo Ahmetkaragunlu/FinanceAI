@@ -1,6 +1,6 @@
 package com.ahmetkaragunlu.financeai.screens.auth
 
-import android.annotation.SuppressLint
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -27,11 +27,14 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
@@ -40,13 +43,13 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.components.EditTextField
 import com.ahmetkaragunlu.financeai.navigation.Screens
 import com.ahmetkaragunlu.financeai.viewmodel.AuthViewModel
 
-@SuppressLint("ConfigurationScreenWidthHeight")
 @Composable
 fun SignUpScreen(
     modifier: Modifier = Modifier,
@@ -59,13 +62,72 @@ fun SignUpScreen(
         focusedIndicatorColor = Color.White,
         unfocusedIndicatorColor = Color.White,
         focusedLabelColor = Color.White
-
     )
+    val uiState by authViewModel.authState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+
+    LaunchedEffect(uiState) {
+        when (uiState) {
+            AuthState.SUCCESS -> {
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.account_created_successfully),
+                    Toast.LENGTH_SHORT
+                ).show()
+                navController.navigate(Screens.LoginScreen.route)
+            }
+
+            AuthState.FAILURE -> {
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.registration_failed),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+
+            AuthState.USER_ALREADY_EXISTS -> {
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.error_email_exists),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+
+            AuthState.USER_NAME_EXISTS -> {
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.error_name_exists),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+
+            AuthState.INVALID_CREDENTIALS -> {
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.user_not_found),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+
+            AuthState.INVALID_EMAIL_OR_PASSWORD -> {
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.invalid_email_or_password),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+
+            else -> {}
+        }
+        authViewModel.resetAuthState()
+
+    }
 
     Box(
         modifier =
             modifier
-                .fillMaxSize().verticalScroll(rememberScrollState())
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .background(
                     brush = Brush.linearGradient(
                         colors = listOf(
@@ -111,52 +173,68 @@ fun SignUpScreen(
                     keyboardOptions = KeyboardOptions.Default.copy(
                         imeAction = ImeAction.Next,
                     ),
-                    colors = whiteColors
+                    colors = whiteColors,
+                    supportingText = if (authViewModel.emailSupportingText()) R.string.error_email else null
                 )
                 EditTextField(
                     value = authViewModel.inputPassword,
-                    onValueChange = {authViewModel.updatePassword(it)},
+                    onValueChange = { authViewModel.updatePassword(it) },
                     label = R.string.password,
                     keyboardOptions = KeyboardOptions.Default.copy(
                         imeAction = ImeAction.Next,
                         keyboardType = KeyboardType.Number
                     ),
-                    visualTransformation = if(authViewModel.iconVisibility) VisualTransformation.None else PasswordVisualTransformation() ,
+                    visualTransformation = if (authViewModel.passwordVisibility) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
                         Icon(
-                            imageVector = if(authViewModel.iconVisibility) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                            imageVector = if (authViewModel.passwordVisibility) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSecondary,
-                            modifier = modifier.clickable{authViewModel.iconVisibility = !authViewModel.iconVisibility}
+                            modifier = modifier.clickable {
+                                authViewModel.passwordVisibility = !authViewModel.passwordVisibility
+                            }
                         )
                     },
-                    colors = whiteColors
+                    colors = whiteColors,
+                    supportingText = if (authViewModel.passwordSupportingText()) R.string.error_password else null
                 )
                 EditTextField(
                     value = authViewModel.inputFirstName,
-                    onValueChange = {authViewModel.updateFirstName(it)},
+                    onValueChange = { authViewModel.updateFirstName(it) },
                     label = R.string.first_name,
                     keyboardOptions = KeyboardOptions.Default.copy(
                         imeAction = ImeAction.Next,
                         keyboardType = KeyboardType.Text
                     ),
-                    colors = whiteColors
+                    colors = whiteColors,
+                    supportingText = if (authViewModel.firstNameSupportingText()) R.string.error_firstName else null
                 )
                 EditTextField(
                     value = authViewModel.inputLastName,
-                    onValueChange = {authViewModel.updateLastName(it)},
+                    onValueChange = { authViewModel.updateLastName(it) },
                     label = R.string.last_name,
                     keyboardOptions = KeyboardOptions.Default.copy(
                         imeAction = ImeAction.Done,
                         keyboardType = KeyboardType.Text
                     ),
-                    colors = whiteColors
+                    colors = whiteColors,
+                    supportingText = if (authViewModel.lastNameSupportingText()) R.string.error_lastName else null
                 )
                 Button(
-                    onClick = {},
+                    onClick = {
+                        if (authViewModel.isValid()) {
+                            authViewModel.saveUser()
+                        } else {
+                            Toast.makeText(
+                                context, context.getString(R.string.fill_all_fields_correctly),
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    },
                     modifier =
                         modifier
-                            .padding(top = 8.dp).width(280.dp)
+                            .padding(top = 8.dp)
+                            .width(280.dp)
                             .clip(shape = RoundedCornerShape(12.dp))
                             .background(
                                 brush = Brush.linearGradient(
@@ -166,23 +244,23 @@ fun SignUpScreen(
                                     )
                                 )
                             ),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
 
-                ) {
+                    ) {
                     Text(
                         text = stringResource(R.string.sign_up)
                     )
                 }
-               TextButton(
-                   onClick = {
-                       navController.navigate(Screens.LoginScreen.route)
-                   }
-               ) {
-                   Text(
-                       text = stringResource(R.string.already_have_an_account),
-                       color = MaterialTheme.colorScheme.onPrimary
-                   )
-               }
+                TextButton(
+                    onClick = {
+                        navController.navigate(Screens.LoginScreen.route)
+                    }
+                ) {
+                    Text(
+                        text = stringResource(R.string.already_have_an_account),
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
             }
 
         }

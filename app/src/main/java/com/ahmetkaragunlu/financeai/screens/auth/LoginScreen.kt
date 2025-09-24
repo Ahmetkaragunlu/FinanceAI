@@ -1,16 +1,15 @@
 package com.ahmetkaragunlu.financeai.screens.auth
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -23,45 +22,74 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextFieldColors
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavController
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.components.EditTextField
+import com.ahmetkaragunlu.financeai.navigation.Screens
 import com.ahmetkaragunlu.financeai.viewmodel.AuthViewModel
 
 @Composable
 fun LoginScreen(
     modifier: Modifier = Modifier,
-    authViewModel: AuthViewModel = hiltViewModel()
+    authViewModel: AuthViewModel = hiltViewModel(),
+    navController: NavController
 ) {
+    val context = LocalContext.current
+    val uiState by authViewModel.authState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(uiState) {
+        when (uiState) {
+            AuthState.FAILURE -> {
+                Toast.makeText(context, context.getString(R.string.failure), Toast.LENGTH_SHORT)
+                    .show()
+            }
+            AuthState.INVALID_EMAIL_OR_PASSWORD -> {
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.invalid_email_or_password),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+            AuthState.INVALID_CREDENTIALS -> {
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.user_not_found),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+            AuthState.SUCCESS -> {
+                navController.navigate(Screens.DashboardScreen.route)
+            }
+            else -> {}
+        }
+        authViewModel.resetAuthState()
+    }
+
     Box(
         modifier = modifier
-            .fillMaxSize().verticalScroll(rememberScrollState())
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .background(
                 brush = Brush.linearGradient(
                     colors = listOf(
@@ -116,15 +144,15 @@ fun LoginScreen(
                 },
                 trailingIcon = {
                     Icon(
-                        imageVector = if (authViewModel.iconVisibility) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                        imageVector = if (authViewModel.passwordVisibility) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                         contentDescription = null,
                         tint = Color(0xFFcfccf0),
                         modifier = modifier.clickable {
-                            authViewModel.iconVisibility = !authViewModel.iconVisibility
+                            authViewModel.passwordVisibility = !authViewModel.passwordVisibility
                         }
                     )
                 },
-                visualTransformation = if (authViewModel.iconVisibility) VisualTransformation.None else PasswordVisualTransformation()
+                visualTransformation = if (authViewModel.passwordVisibility) VisualTransformation.None else PasswordVisualTransformation()
 
             )
             Text(
@@ -134,7 +162,9 @@ fun LoginScreen(
                 textAlign = TextAlign.End
             )
             Button(
-                onClick = {},
+                onClick = {
+                    authViewModel.login()
+                },
                 modifier =
                     modifier
                         .width(280.dp)
@@ -155,7 +185,6 @@ fun LoginScreen(
                     text = stringResource(R.string.login)
                 )
             }
-
         }
     }
 }

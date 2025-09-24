@@ -12,15 +12,18 @@ import com.ahmetkaragunlu.financeai.screens.splash.SplashScreen
 @Composable
 fun FinanceNavigation() {
     val navController = rememberNavController()
-    NavHost(navController = navController, startDestination = Screens.SplashScreen.route) {
+    NavHost(navController = navController, startDestination = Screens.SignUpScreen.route) {
         composable(route = Screens.SplashScreen.route) {
             SplashScreen(navController = navController)
         }
         composable(route = Screens.LoginScreen.route) {
-            LoginScreen()
+            LoginScreen(navController = navController)
         }
         composable(route= Screens.SignUpScreen.route) {
             SignUpScreen(navController = navController)
+        }
+        composable(route = Screens.DashboardScreen.route) {
+
         }
     }
 
