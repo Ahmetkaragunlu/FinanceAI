@@ -1,11 +1,10 @@
 package com.ahmetkaragunlu.financeai.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.navigation.NavHost
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.ahmetkaragunlu.financeai.screens.auth.LoginScreen
+import com.ahmetkaragunlu.financeai.screens.auth.SignInScreen
 import com.ahmetkaragunlu.financeai.screens.auth.SignUpScreen
 import com.ahmetkaragunlu.financeai.screens.splash.SplashScreen
 
@@ -17,7 +16,7 @@ fun FinanceNavigation() {
             SplashScreen(navController = navController)
         }
         composable(route = Screens.LoginScreen.route) {
-            LoginScreen(navController = navController)
+            SignInScreen(navController = navController)
         }
         composable(route= Screens.SignUpScreen.route) {
             SignUpScreen(navController = navController)

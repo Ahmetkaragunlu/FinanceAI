@@ -1,12 +1,17 @@
 package com.ahmetkaragunlu.financeai.screens.auth
 
+import android.app.Activity
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -14,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBox
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
@@ -22,6 +28,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -48,15 +55,32 @@ import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.components.EditTextField
 import com.ahmetkaragunlu.financeai.navigation.Screens
 import com.ahmetkaragunlu.financeai.viewmodel.AuthViewModel
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.common.api.ApiException
 
 @Composable
-fun LoginScreen(
+fun SignInScreen(
     modifier: Modifier = Modifier,
     authViewModel: AuthViewModel = hiltViewModel(),
     navController: NavController
 ) {
     val context = LocalContext.current
     val uiState by authViewModel.authState.collectAsStateWithLifecycle()
+    val googleClient = authViewModel.getGoogleSignInClient()
+
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+            try {
+                val account = task.getResult(ApiException::class.java)
+                account?.let { authViewModel.signInWithGoogle(it) }
+            } catch (e: ApiException) {
+            }
+        }
+    }
+
 
     LaunchedEffect(uiState) {
         when (uiState) {
@@ -75,6 +99,20 @@ fun LoginScreen(
                 Toast.makeText(
                     context,
                     context.getString(R.string.user_not_found),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+            AuthState.USER_NOT_REGISTERED -> {
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.user_not_found),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+            AuthState.ID_TOKEN_IS_NULL ->{
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.failure),
                     Toast.LENGTH_SHORT
                 ).show()
             }
@@ -111,6 +149,7 @@ fun LoginScreen(
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onPrimary
             )
+
             EditTextField(
                 value = authViewModel.inputEmail,
                 onValueChange = { authViewModel.updateEmail(it) },
@@ -127,6 +166,7 @@ fun LoginScreen(
                 ),
                 colors = OutlinedTextFieldDefaults.colors(focusedLabelColor = Color.White)
             )
+
             EditTextField(
                 value = authViewModel.inputPassword,
                 onValueChange = { authViewModel.updatePassword(it) },
@@ -153,36 +193,62 @@ fun LoginScreen(
                     )
                 },
                 visualTransformation = if (authViewModel.passwordVisibility) VisualTransformation.None else PasswordVisualTransformation()
-
             )
+
             Text(
                 text = stringResource(R.string.forgot_password),
                 color = Color(0xFFaea0e4),
                 modifier = modifier.width(280.dp),
                 textAlign = TextAlign.End
             )
+
             Button(
                 onClick = {
                     authViewModel.login()
                 },
-                modifier =
-                    modifier
-                        .width(280.dp)
-                        .clip(shape = RoundedCornerShape(12.dp))
-                        .background(
-                            brush = Brush.linearGradient(
-                                colors = listOf(
-                                    Color(0xFF6A11CB),
-                                    Color(0xFF2575FC)
-                                )
+                modifier = modifier
+                    .width(280.dp)
+                    .clip(shape = RoundedCornerShape(12.dp))
+                    .background(
+                        brush = Brush.linearGradient(
+                            colors = listOf(
+                                Color(0xFF6A11CB),
+                                Color(0xFF2575FC)
                             )
-                        ),
+                        )
+                    ),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.Transparent
                 ),
             ) {
                 Text(
                     text = stringResource(R.string.login)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedButton(
+                onClick = {
+                    googleClient.signOut().addOnCompleteListener {
+                        launcher.launch(googleClient.signInIntent)
+                    }
+                },
+                modifier = modifier
+                    .width(280.dp)
+                    .clip(shape = RoundedCornerShape(12.dp)),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = Color.White
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.AccountBox,
+                    contentDescription = null,
+                    tint = Color.Unspecified
+                )
+                Text(
+                    text = "Sign in with Google",
+                    modifier = Modifier.padding(start = 8.dp)
                 )
             }
         }

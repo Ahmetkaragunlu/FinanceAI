@@ -1,5 +1,6 @@
 package com.ahmetkaragunlu.financeai.viewmodel
 
+import android.content.Intent
 import android.util.Log
 import android.util.Patterns
 import android.widget.Toast
@@ -12,6 +13,8 @@ import androidx.lifecycle.viewModelScope
 import com.ahmetkaragunlu.financeai.firebaseRepo.AuthRepository
 import com.ahmetkaragunlu.financeai.screens.auth.AuthException
 import com.ahmetkaragunlu.financeai.screens.auth.AuthState
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthInvalidUserException
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -23,7 +26,9 @@ import javax.inject.Inject
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val googleSignInClient: GoogleSignInClient
+
 ) : ViewModel() {
 
     private val _authState = MutableStateFlow(AuthState.EMPTY)
@@ -65,6 +70,23 @@ class AuthViewModel @Inject constructor(
             }
         }
     }
+    fun signInWithGoogle(account: GoogleSignInAccount) {
+        viewModelScope.launch {
+            _authState.value = try {
+                authRepository.signInWithGoogle(account)
+                AuthState.SUCCESS
+            } catch (e: Exception) {
+                when (e) {
+                    is AuthException.UserNotRegistered -> AuthState.USER_NOT_REGISTERED
+                    is AuthException.IdTokenIsNull -> AuthState.FAILURE
+                    else -> AuthState.FAILURE
+                }
+            }
+        }
+    }
+
+
+    fun getGoogleSignInClient(): GoogleSignInClient = googleSignInClient
 
     fun logOut() {
         viewModelScope.launch {
@@ -118,6 +140,8 @@ class AuthViewModel @Inject constructor(
     fun updateEmail(email: String) {
         inputEmail = email
     }
+
+
 
     fun isEmailValid() = Patterns.EMAIL_ADDRESS.matcher(inputEmail).matches()
     fun isValidPassword() = inputPassword.isNotBlank() && inputPassword.length >= 6
