@@ -9,6 +9,7 @@
     <string name="error_password">Password must be at least 6 digits long</string>
     <string name="sign_up">Sign Up</string>
     <string name="fill_all_fields_correctly">Please fill all fields correctly</string>
+    <string name="web_client_id">286334851267-0nn0v0ms9f62094u4odu874drlkj1ge9.apps.googleusercontent.com</string>
     <string name="failure">Failure</string>
     <string name="error_firstName">Must be at least 3 characters long</string>
     <string name="already_have_an_account">Already have an account?</string>
