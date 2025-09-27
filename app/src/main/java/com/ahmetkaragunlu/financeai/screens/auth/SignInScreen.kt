@@ -88,6 +88,7 @@ fun SignInScreen(
                 Toast.makeText(context, context.getString(R.string.failure), Toast.LENGTH_SHORT)
                     .show()
             }
+
             AuthState.INVALID_EMAIL_OR_PASSWORD -> {
                 Toast.makeText(
                     context,
@@ -95,6 +96,7 @@ fun SignInScreen(
                     Toast.LENGTH_SHORT
                 ).show()
             }
+
             AuthState.INVALID_CREDENTIALS -> {
                 Toast.makeText(
                     context,
@@ -102,6 +104,7 @@ fun SignInScreen(
                     Toast.LENGTH_SHORT
                 ).show()
             }
+
             AuthState.USER_NOT_REGISTERED -> {
                 Toast.makeText(
                     context,
@@ -109,16 +112,19 @@ fun SignInScreen(
                     Toast.LENGTH_SHORT
                 ).show()
             }
-            AuthState.ID_TOKEN_IS_NULL ->{
+
+            AuthState.ID_TOKEN_IS_NULL -> {
                 Toast.makeText(
                     context,
                     context.getString(R.string.failure),
                     Toast.LENGTH_SHORT
                 ).show()
             }
+
             AuthState.SUCCESS -> {
                 navController.navigate(Screens.DashboardScreen.route)
             }
+
             else -> {}
         }
         authViewModel.resetAuthState()
@@ -163,6 +169,7 @@ fun SignInScreen(
                 },
                 keyboardOptions = KeyboardOptions.Default.copy(
                     imeAction = ImeAction.Next,
+                    keyboardType = KeyboardType.Email
                 ),
                 colors = OutlinedTextFieldDefaults.colors(focusedLabelColor = Color.White)
             )
@@ -198,7 +205,9 @@ fun SignInScreen(
             Text(
                 text = stringResource(R.string.forgot_password),
                 color = Color(0xFFaea0e4),
-                modifier = modifier.width(280.dp),
+                modifier = modifier
+                    .width(280.dp)
+                    .clickable { navController.navigate(Screens.PasswordResetRequestScreen.route) },
                 textAlign = TextAlign.End
             )
 
@@ -226,9 +235,8 @@ fun SignInScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
 
-            OutlinedButton(
+            Button(
                 onClick = {
                     googleClient.signOut().addOnCompleteListener {
                         launcher.launch(googleClient.signInIntent)
@@ -236,19 +244,20 @@ fun SignInScreen(
                 },
                 modifier = modifier
                     .width(280.dp)
+                    .padding(top = 8.dp)
                     .clip(shape = RoundedCornerShape(12.dp)),
                 colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = Color.White
+                    containerColor = MaterialTheme.colorScheme.onPrimary
                 )
             ) {
                 Icon(
-                    imageVector = Icons.Default.AccountBox,
+                    painter = painterResource(R.drawable.google),
                     contentDescription = null,
                     tint = Color.Unspecified
                 )
                 Text(
-                    text = "Sign in with Google",
-                    modifier = Modifier.padding(start = 8.dp)
+                    text = stringResource(R.string.sign_in_with_Google),
+                    modifier = Modifier.padding(start = 8.dp),
                 )
             }
         }

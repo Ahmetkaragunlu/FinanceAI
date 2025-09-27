@@ -74,6 +74,50 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun sendPasswordResetEmail(
+        firstName: String,
+        lastName: String,
+        email: String
+    ) {
+        try {
+            val userQuery = firestore.collection("users")
+                .whereEqualTo("email", email)
+                .whereEqualTo("firstName", firstName)
+                .whereEqualTo("lastName", lastName)
+                .limit(1)
+                .get()
+                .await()
+
+            if (userQuery.isEmpty) {
+                throw AuthException.UserNotRegistered
+            }
+
+            auth.sendPasswordResetEmail(email).await()
+
+        } catch (e: AuthException.UserNotRegistered) {
+            throw e
+        } catch (e: Exception) {
+            throw AuthException.Unknown(e.message)
+        }
+    }
+
+    override suspend fun confirmPasswordReset(oobCode: String, newPassword: String) {
+        try {
+            auth.confirmPasswordReset(oobCode, newPassword).await()
+        } catch (e: Exception) {
+            when (e) {
+                is com.google.firebase.auth.FirebaseAuthInvalidCredentialsException -> {
+                    throw AuthException.InvalidOobCode
+                }
+
+                else -> {
+                    throw AuthException.Unknown(e.message)
+                }
+            }
+        }
+    }
+
+
     override suspend fun saveUserFirestore(user: User) {
         firestore.collection("users").document(user.uid).set(user).await()
     }

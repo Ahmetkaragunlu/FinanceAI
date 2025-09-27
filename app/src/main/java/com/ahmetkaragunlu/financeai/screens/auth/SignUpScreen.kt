@@ -39,8 +39,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -74,7 +72,7 @@ fun SignUpScreen(
                     context.getString(R.string.account_created_successfully),
                     Toast.LENGTH_SHORT
                 ).show()
-                navController.navigate(Screens.LoginScreen.route)
+                navController.navigate(Screens.SignInScreen.route)
             }
 
             AuthState.FAILURE -> {
@@ -172,6 +170,7 @@ fun SignUpScreen(
                     label = R.string.email,
                     keyboardOptions = KeyboardOptions.Default.copy(
                         imeAction = ImeAction.Next,
+                        keyboardType = KeyboardType.Email
                     ),
                     colors = whiteColors,
                     supportingText = if (authViewModel.emailSupportingText()) R.string.error_email else null
@@ -182,9 +181,8 @@ fun SignUpScreen(
                     label = R.string.password,
                     keyboardOptions = KeyboardOptions.Default.copy(
                         imeAction = ImeAction.Next,
-                        keyboardType = KeyboardType.Number
+                        keyboardType = KeyboardType.NumberPassword
                     ),
-                    visualTransformation = if (authViewModel.passwordVisibility) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
                         Icon(
                             imageVector = if (authViewModel.passwordVisibility) Icons.Default.Visibility else Icons.Default.VisibilityOff,
@@ -253,7 +251,7 @@ fun SignUpScreen(
                 }
                 TextButton(
                     onClick = {
-                        navController.navigate(Screens.LoginScreen.route)
+                        navController.navigate(Screens.SignInScreen.route)
                     }
                 ) {
                     Text(

@@ -1,6 +1,5 @@
 package com.ahmetkaragunlu.financeai.screens.splash
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -15,7 +14,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.NavController
 import com.ahmetkaragunlu.financeai.navigation.Screens
 import kotlinx.coroutines.delay
@@ -28,7 +26,7 @@ fun SplashScreen(
 ) {
     LaunchedEffect(key1 = Unit) {
         delay(3000)
-        navController.navigate(Screens.LoginScreen.route)
+        navController.navigate(Screens.SignInScreen.route)
     }
     Column(
         modifier = modifier

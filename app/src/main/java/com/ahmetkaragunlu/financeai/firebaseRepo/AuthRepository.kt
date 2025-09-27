@@ -12,4 +12,6 @@ interface AuthRepository {
     suspend fun signInWithGoogle(account: GoogleSignInAccount)
     suspend fun saveUserFirestore(user: User)
     suspend fun logOut()
+    suspend fun sendPasswordResetEmail(firstName: String, lastName: String, email: String)
+    suspend fun confirmPasswordReset(oobCode: String, newPassword: String)
 }
