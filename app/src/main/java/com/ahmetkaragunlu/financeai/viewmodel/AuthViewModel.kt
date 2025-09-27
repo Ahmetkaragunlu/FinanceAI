@@ -1,13 +1,9 @@
 package com.ahmetkaragunlu.financeai.viewmodel
 
-import android.content.Intent
-import android.util.Log
 import android.util.Patterns
-import android.widget.Toast
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ahmetkaragunlu.financeai.firebaseRepo.AuthRepository
@@ -85,8 +81,35 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-
     fun getGoogleSignInClient(): GoogleSignInClient = googleSignInClient
+
+    fun sendPasswordReset(firstName: String, lastName: String, email: String) {
+        viewModelScope.launch {
+            _authState.value = try {
+                authRepository.sendPasswordResetEmail(firstName, lastName, email)
+                AuthState.SUCCESS
+            } catch (e: Exception) {
+                when (e) {
+                    is AuthException.UserNotRegistered -> AuthState.USER_NOT_REGISTERED
+                    else -> AuthState.FAILURE
+                }
+            }
+        }
+    }
+
+    fun confirmPasswordReset(oobCode: String, newPassword: String) {
+        viewModelScope.launch {
+            _authState.value = try {
+                authRepository.confirmPasswordReset(oobCode, newPassword)
+                AuthState.SUCCESS
+            } catch (e: Exception) {
+                when (e) {
+                    is AuthException.InvalidOobCode -> AuthState.INVALID_OOB_CODE
+                    else -> AuthState.FAILURE
+                }
+            }
+        }
+    }
 
     fun logOut() {
         viewModelScope.launch {
@@ -124,6 +147,14 @@ class AuthViewModel @Inject constructor(
     var inputLastName by mutableStateOf("")
         private set
     var passwordVisibility by mutableStateOf(false)
+    var confirmPasswordVisibility by mutableStateOf(false)
+
+    var showDialog by mutableStateOf(false)
+
+    var inputNewPassword by mutableStateOf("")
+        private set
+    var inputConfirmPassword by mutableStateOf("")
+        private set
 
     fun updateFirstName(firstName: String) {
         inputFirstName = firstName
@@ -141,8 +172,17 @@ class AuthViewModel @Inject constructor(
         inputEmail = email
     }
 
+    fun updateNewPassword(newPassword : String) {
+        inputNewPassword = newPassword
+    }
+    fun updateConfirmPassword(confirmPassword : String) {
+        inputConfirmPassword = confirmPassword
+    }
 
 
+    fun checkPassword() = inputNewPassword == inputConfirmPassword
+    fun isValidNewPassword() = inputNewPassword.isNotBlank() && inputNewPassword.length>=6
+    fun isValidConfirmNewPassword() = inputConfirmPassword.isNotBlank() && inputConfirmPassword.length>=6
     fun isEmailValid() = Patterns.EMAIL_ADDRESS.matcher(inputEmail).matches()
     fun isValidPassword() = inputPassword.isNotBlank() && inputPassword.length >= 6
     fun isValidFirstName() = inputFirstName.trim().split("\\s+".toRegex()).all { it.length >= 3 }
@@ -152,8 +192,12 @@ class AuthViewModel @Inject constructor(
     fun passwordSupportingText() = !isValidPassword() && inputPassword.isNotBlank()
     fun firstNameSupportingText() = !isValidFirstName() && inputFirstName.isNotBlank()
     fun lastNameSupportingText() = !isValidLastName() && inputLastName.isNotBlank()
+    fun newPasswordSupportingText() = !isValidNewPassword() && inputNewPassword.isNotBlank()
+    fun confirmNewPasswordSupportingText() = !isValidConfirmNewPassword() && inputConfirmPassword.isNotBlank()
 
     fun isValid() = isValidPassword() && isValidLastName() && isValidFirstName() && isEmailValid()
+    fun isValidResetPassword() = isValidNewPassword() && isValidConfirmNewPassword()
+    fun isValidResetRequestPassword() = isValidLastName() && isValidFirstName() && isEmailValid()
 
 
 }

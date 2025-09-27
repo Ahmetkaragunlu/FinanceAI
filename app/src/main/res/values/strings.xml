@@ -3,14 +3,21 @@
     <string name="finance_ai">Finance AI</string>
     <string name="create_an_account">Create an account</string>
     <string name="password">Password</string>
+    <string name="new_password">New Password</string>
+    <string name="confirm_password">Confirm Password</string>
     <string name="email">Email</string>
     <string name="error_lastName">Must be at least 2 characters long</string>
     <string name="error_email">Enter a valid email address</string>
     <string name="error_password">Password must be at least 6 digits long</string>
     <string name="sign_up">Sign Up</string>
+    <string name="send_reset_request">Send reset request</string>
+    <string name="success">Success</string>
+    <string name="reset_request_sent">Password reset request sent. Please check your email.</string>
+    <string name="ok">OK</string>
     <string name="fill_all_fields_correctly">Please fill all fields correctly</string>
     <string name="web_client_id">286334851267-0nn0v0ms9f62094u4odu874drlkj1ge9.apps.googleusercontent.com</string>
     <string name="failure">Failure</string>
+    <string name="sign_in_with_Google">Sign in with Google</string>
     <string name="error_firstName">Must be at least 3 characters long</string>
     <string name="already_have_an_account">Already have an account?</string>
     <string name="first_name">First Name</string>
@@ -19,9 +26,12 @@
     <string name="user_not_found">User not found</string>
     <string name="invalid_email_or_password">Invalid email or password</string>
     <string name="forgot_password">Forgot Password?</string>
+    <string name="reset_password">Reset Password</string>
     <string name="error_email_exists">This email is already registered</string>
     <string name="error_name_exists">This name already exists</string>
     <string name="account_created_successfully">Account created successfully</string>
     <string name="registration_failed">Registration failed</string>
+    <string name="your_password_has_been_changed_successfully">Your password has been changed successfully</string>
+    <string name="your_link_has_expired">Your link has expired</string>
 
 </resources>

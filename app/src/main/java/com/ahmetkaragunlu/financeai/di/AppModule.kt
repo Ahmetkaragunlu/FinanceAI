@@ -50,22 +50,17 @@ object RepositoryModule {
 @InstallIn(SingletonComponent::class)
 @Module
 object SignInWithGoogle {
-    @InstallIn(SingletonComponent::class)
-    @Module
-    object SignInWithGoogle {
-        @Provides
-        @Singleton
-        fun provideGoogleSignInOptions(@ApplicationContext context: Context): GoogleSignInOptions {
-            return GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                .requestIdToken(context.getString(R.string.default_web_client_id))
-                .requestEmail()
-                .build()
-        }
+
+    @Provides
+    @Singleton
+    fun provideGoogleSignInOptions(@ApplicationContext context: Context): GoogleSignInOptions {
+        return GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(context.getString(R.string.default_web_client_id))
+            .requestEmail()
+            .build()
     }
 
-
-
-        @Provides
+    @Provides
     @Singleton
     fun provideGoogleSignInClient(
         @ApplicationContext context: Context,
