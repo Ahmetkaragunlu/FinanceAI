@@ -3,6 +3,7 @@ package com.ahmetkaragunlu.financeai.firebaseRepo
 import android.util.Log
 import com.ahmetkaragunlu.financeai.model.User
 import com.ahmetkaragunlu.financeai.screens.auth.AuthException
+import com.ahmetkaragunlu.financeai.screens.auth.AuthState
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.firebase.auth.AuthResult
 import com.google.firebase.auth.FirebaseAuth
@@ -23,8 +24,17 @@ class AuthRepositoryImpl @Inject constructor(
     override suspend fun signUp(email: String, password: String): AuthResult =
         auth.createUserWithEmailAndPassword(email, password).await()
 
-    override suspend fun signIn(email: String, password: String): AuthResult =
-        auth.signInWithEmailAndPassword(email, password).await()
+    override suspend fun signIn(email: String, password: String): AuthResult {
+        val authResult = auth.signInWithEmailAndPassword(email, password).await()
+        val user = authResult.user
+        if (user != null) {
+            if (!user.isEmailVerified) {
+                auth.signOut()
+                throw AuthException.EmailNotVerified
+            }
+        }
+        return authResult
+    }
 
     override suspend fun logOut() {
         auth.signOut()
@@ -60,17 +70,47 @@ class AuthRepositoryImpl @Inject constructor(
             }
             when (e) {
                 is AuthException.UserNotRegistered -> {
-                    throw e
+                     AuthState.USER_NOT_REGISTERED
                 }
 
                 is AuthException.IdTokenIsNull -> {
-                    throw e
+                    AuthState.ID_TOKEN_IS_NULL
                 }
 
                 else -> {
                     throw AuthException.Unknown(e.message)
                 }
             }
+        }
+    }
+
+    override suspend fun sendEmailVerification() {
+        try {
+            val user = auth.currentUser
+            if (user != null) {
+                user.sendEmailVerification().await()
+            } else {
+                throw AuthException.EmailVerificationSendFailed
+            }
+        } catch (e: Exception) {
+            throw AuthException.EmailVerificationSendFailed
+        }
+    }
+
+    override suspend fun checkEmailVerified(): Boolean {
+        val user = auth.currentUser
+        if (user != null) {
+            user.reload().await()
+            return user.isEmailVerified
+        }
+        return false
+    }
+
+    override suspend fun deleteUnverifiedUser() {
+        try {
+            val user = auth.currentUser
+            user?.delete()?.await()
+        } catch (e: Exception) {
         }
     }
 
@@ -128,15 +168,22 @@ class AuthRepositoryImpl @Inject constructor(
         lastName: String,
         password: String
     ) {
-
         val authResult = try {
             signUp(email = email, password = password)
         } catch (e: FirebaseAuthUserCollisionException) {
             throw AuthException.EmailExists
         }
-
         val uid = authResult.user?.uid ?: throw AuthException.UidNotFound
-        val user = User(firstName = firstName, lastName = lastName, email = email, uid = uid)
-        saveUserFirestore(user)
+        try {
+            sendEmailVerification()
+        } catch (e: Exception) {
+            try {
+                authResult.user?.delete()?.await()
+            } catch (deleteException: Exception) {
+                auth.signOut()
+            }
+            throw AuthException.EmailVerificationSendFailed
+        }
+
     }
 }

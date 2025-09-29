@@ -7,6 +7,8 @@ sealed class AuthException(message: String? = null): Exception(message) {
     object UserNotRegistered : AuthException ("User not registered")
     object IdTokenIsNull : AuthException("Id token is null")
     object InvalidOobCode : AuthException("The password reset link is invalid or expired")
+    object EmailVerificationSendFailed : AuthException("Failed to send email verification")
+    object EmailNotVerified : AuthException("Email not verified")
     class Unknown(message: String? = "Unknown error") : AuthException(message)
 
 }

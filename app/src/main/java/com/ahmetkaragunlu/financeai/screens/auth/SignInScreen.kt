@@ -2,6 +2,7 @@ package com.ahmetkaragunlu.financeai.screens.auth
 
 import android.app.Activity
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -9,9 +10,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -19,7 +18,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBox
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
@@ -28,9 +26,9 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -62,7 +60,7 @@ import com.google.android.gms.common.api.ApiException
 fun SignInScreen(
     modifier: Modifier = Modifier,
     authViewModel: AuthViewModel = hiltViewModel(),
-    navController: NavController
+    navController: NavController,
 ) {
     val context = LocalContext.current
     val uiState by authViewModel.authState.collectAsStateWithLifecycle()
@@ -80,7 +78,7 @@ fun SignInScreen(
             }
         }
     }
-
+    BackHandler {  }
 
     LaunchedEffect(uiState) {
         when (uiState) {
@@ -93,14 +91,6 @@ fun SignInScreen(
                 Toast.makeText(
                     context,
                     context.getString(R.string.invalid_email_or_password),
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
-
-            AuthState.INVALID_CREDENTIALS -> {
-                Toast.makeText(
-                    context,
-                    context.getString(R.string.user_not_found),
                     Toast.LENGTH_SHORT
                 ).show()
             }
@@ -122,7 +112,16 @@ fun SignInScreen(
             }
 
             AuthState.SUCCESS -> {
-                navController.navigate(Screens.DashboardScreen.route)
+                navController.navigate(Screens.DashboardScreen.route) {
+                    popUpTo(Screens.SignInScreen.route) {inclusive=true}
+                }
+            }
+            AuthState.EMAIL_NOT_VERIFIED -> {
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.please_verify_your_email),
+                    Toast.LENGTH_LONG
+                ).show()
             }
 
             else -> {}
@@ -207,7 +206,10 @@ fun SignInScreen(
                 color = Color(0xFFaea0e4),
                 modifier = modifier
                     .width(280.dp)
-                    .clickable { navController.navigate(Screens.PasswordResetRequestScreen.route) },
+                    .clickable {
+                        navController.navigate(Screens.PasswordResetRequestScreen.route)
+                        authViewModel.clearSignInFields()
+                               },
                 textAlign = TextAlign.End
             )
 
@@ -244,7 +246,7 @@ fun SignInScreen(
                 },
                 modifier = modifier
                     .width(280.dp)
-                    .padding(top = 8.dp)
+                    .padding(top = 8.dp, bottom = 36.dp)
                     .clip(shape = RoundedCornerShape(12.dp)),
                 colors = ButtonDefaults.outlinedButtonColors(
                     containerColor = MaterialTheme.colorScheme.onPrimary
@@ -260,6 +262,18 @@ fun SignInScreen(
                     modifier = Modifier.padding(start = 8.dp),
                 )
             }
+            TextButton(
+                onClick = {
+                    navController.navigate(Screens.SignUpScreen.route)
+                    authViewModel.clearSignInFields()
+                }
+            ) {
+                Text(
+                    text = stringResource(R.string.have_an_account_sign_up),
+                    color = Color(0xFFaea0e4),
+                )
+            }
+
         }
     }
 }

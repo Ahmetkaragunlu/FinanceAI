@@ -1,6 +1,7 @@
 package com.ahmetkaragunlu.financeai.screens.auth
 
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -45,6 +46,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.ahmetkaragunlu.financeai.R
+import com.ahmetkaragunlu.financeai.components.EditAlertDialog
 import com.ahmetkaragunlu.financeai.components.EditTextField
 import com.ahmetkaragunlu.financeai.navigation.Screens
 import com.ahmetkaragunlu.financeai.viewmodel.AuthViewModel
@@ -65,6 +67,13 @@ fun PasswordResetScreen(
     )
     val context = LocalContext.current
     val uiState by authViewModel.authState.collectAsStateWithLifecycle()
+
+    BackHandler {
+        navController.navigate(Screens.SignInScreen.route) {
+            popUpTo(Screens.PasswordResetScreen.route) { inclusive = true}
+            launchSingleTop = true
+        }
+    }
 
     LaunchedEffect(uiState) {
         when (uiState) {
@@ -196,24 +205,24 @@ fun PasswordResetScreen(
                 )
             }
             if (authViewModel.showDialog) {
-                AlertDialog(
-                    onDismissRequest = {  },
-                    title = { Text(text = stringResource(R.string.success)) },
-                    text = { Text(text = stringResource(R.string.your_password_has_been_changed_successfully)) },
-                    confirmButton = {
+                EditAlertDialog(
+                    title = R.string.success,
+                    text = R.string.your_password_has_been_changed_successfully,
+                    confirmButton =  {
                         TextButton(onClick = {
                             authViewModel.showDialog = false
-                            navController.navigate(Screens.SignInScreen.route)
+                            navController.navigate(Screens.SignInScreen.route) {
+                                popUpTo(Screens.PasswordResetScreen.route) {inclusive = true}
+                                launchSingleTop = true
+                            }
                         }) {
                             Text(text = stringResource(R.string.ok))
                         }
-                    }
+                    },
                 )
             }
 
         }
     }
-
-
 }
 

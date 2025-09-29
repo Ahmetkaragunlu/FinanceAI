@@ -17,11 +17,14 @@
     <string name="fill_all_fields_correctly">Please fill all fields correctly</string>
     <string name="web_client_id">286334851267-0nn0v0ms9f62094u4odu874drlkj1ge9.apps.googleusercontent.com</string>
     <string name="failure">Failure</string>
+    <string name="please_verify_your_email">Please verify your email</string>
     <string name="sign_in_with_Google">Sign in with Google</string>
     <string name="error_firstName">Must be at least 3 characters long</string>
     <string name="already_have_an_account">Already have an account?</string>
     <string name="first_name">First Name</string>
     <string name="last_name">Last Name</string>
+    <string name="email_verification_sent">Email Verification Sent</string>
+    <string name="email_diaolog">A verification link has been sent to your email address. Please check your email and click the verification link</string>
     <string name="login">Login</string>
     <string name="user_not_found">User not found</string>
     <string name="invalid_email_or_password">Invalid email or password</string>
@@ -33,5 +36,7 @@
     <string name="registration_failed">Registration failed</string>
     <string name="your_password_has_been_changed_successfully">Your password has been changed successfully</string>
     <string name="your_link_has_expired">Your link has expired</string>
+    <string name="have_an_account_sign_up">Don’t have an account? Sign up</string>
+
 
 </resources>

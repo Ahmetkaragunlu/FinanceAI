@@ -1,6 +1,7 @@
 package com.ahmetkaragunlu.financeai.screens.auth
 
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -19,6 +20,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -39,11 +41,14 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.ahmetkaragunlu.financeai.R
+import com.ahmetkaragunlu.financeai.components.EditAlertDialog
 import com.ahmetkaragunlu.financeai.components.EditTextField
 import com.ahmetkaragunlu.financeai.navigation.Screens
 import com.ahmetkaragunlu.financeai.viewmodel.AuthViewModel
@@ -63,6 +68,9 @@ fun SignUpScreen(
     )
     val uiState by authViewModel.authState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    BackHandler {
+        navController.popBackStack()
+    }
 
     LaunchedEffect(uiState) {
         when (uiState) {
@@ -91,28 +99,8 @@ fun SignUpScreen(
                 ).show()
             }
 
-            AuthState.USER_NAME_EXISTS -> {
-                Toast.makeText(
-                    context,
-                    context.getString(R.string.error_name_exists),
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
-
-            AuthState.INVALID_CREDENTIALS -> {
-                Toast.makeText(
-                    context,
-                    context.getString(R.string.user_not_found),
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
-
-            AuthState.INVALID_EMAIL_OR_PASSWORD -> {
-                Toast.makeText(
-                    context,
-                    context.getString(R.string.invalid_email_or_password),
-                    Toast.LENGTH_SHORT
-                ).show()
+            AuthState.EMAIL_VERIFICATION_SENT -> {
+                authViewModel.showDialog = true
             }
 
             else -> {}
@@ -120,6 +108,28 @@ fun SignUpScreen(
         authViewModel.resetAuthState()
 
     }
+    if (authViewModel.showDialog) {
+        EditAlertDialog(
+            text = R.string.email_diaolog,
+            title = R.string.email_verification_sent,
+            confirmButton =  {
+                TextButton(
+                    onClick = {
+                        authViewModel.showDialog = false
+                        navController.navigate(Screens.SignInScreen.route) {
+                            popUpTo(Screens.SignUpScreen.route) {
+                                inclusive=true
+                            }
+                            launchSingleTop = true
+                        }
+                    }
+                ) {
+                    Text(text = stringResource(R.string.ok))
+                }
+            }
+        )
+    }
+
 
     Box(
         modifier =
@@ -194,7 +204,8 @@ fun SignUpScreen(
                         )
                     },
                     colors = whiteColors,
-                    supportingText = if (authViewModel.passwordSupportingText()) R.string.error_password else null
+                    supportingText = if (authViewModel.passwordSupportingText()) R.string.error_password else null,
+                    visualTransformation = if (authViewModel.passwordVisibility) VisualTransformation.None else PasswordVisualTransformation()
                 )
                 EditTextField(
                     value = authViewModel.inputFirstName,
@@ -251,7 +262,8 @@ fun SignUpScreen(
                 }
                 TextButton(
                     onClick = {
-                        navController.navigate(Screens.SignInScreen.route)
+                        navController.popBackStack()
+
                     }
                 ) {
                     Text(

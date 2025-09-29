@@ -1,6 +1,7 @@
 package com.ahmetkaragunlu.financeai.screens.auth
 
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -39,6 +40,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.ahmetkaragunlu.financeai.R
+import com.ahmetkaragunlu.financeai.components.EditAlertDialog
 import com.ahmetkaragunlu.financeai.components.EditTextField
 import com.ahmetkaragunlu.financeai.navigation.Screens
 import com.ahmetkaragunlu.financeai.viewmodel.AuthViewModel
@@ -58,6 +60,7 @@ fun PasswordResetRequestScreen(
     )
     val context = LocalContext.current
     val uiState by authViewModel.authState.collectAsStateWithLifecycle()
+    BackHandler { navController.popBackStack() }
 
     LaunchedEffect(uiState) {
         when (uiState) {
@@ -174,18 +177,21 @@ fun PasswordResetRequestScreen(
                 )
             }
             if (authViewModel.showDialog) {
-                AlertDialog(
-                    onDismissRequest = {  },
-                    title = { Text(text = stringResource(R.string.success)) },
-                    text = { Text(text = stringResource(R.string.reset_request_sent)) },
+                EditAlertDialog(
+                    title = R.string.success,
+                    text = R.string.reset_request_sent,
                     confirmButton = {
                         TextButton(onClick = {
                             authViewModel.showDialog = false
-                            navController.navigate(Screens.SignInScreen.route)
+                            navController.navigate(Screens.SignInScreen.route) {
+                                popUpTo(Screens.PasswordResetRequestScreen.route) { inclusive = true }
+                                launchSingleTop = true
+                            }
                         }) {
                             Text(text = stringResource(R.string.ok))
                         }
-                    }
+                    },
+
                 )
             }
 
