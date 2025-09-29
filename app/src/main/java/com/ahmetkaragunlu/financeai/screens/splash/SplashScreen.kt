@@ -26,7 +26,10 @@ fun SplashScreen(
 ) {
     LaunchedEffect(key1 = Unit) {
         delay(3000)
-        navController.navigate(Screens.SignInScreen.route)
+        navController.navigate(Screens.SignInScreen.route) {
+            popUpTo(Screens.SplashScreen.route) { inclusive = true }
+        }
+
     }
     Column(
         modifier = modifier

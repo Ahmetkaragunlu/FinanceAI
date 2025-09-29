@@ -7,13 +7,16 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ahmetkaragunlu.financeai.firebaseRepo.AuthRepository
+import com.ahmetkaragunlu.financeai.model.User
 import com.ahmetkaragunlu.financeai.screens.auth.AuthException
 import com.ahmetkaragunlu.financeai.screens.auth.AuthState
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthInvalidUserException
+import com.google.firebase.auth.FirebaseUser
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -40,12 +43,11 @@ class AuthViewModel @Inject constructor(
                     lastName = lastName,
                     password = password
                 )
-                AuthState.SUCCESS
+                startEmailVerificationCheck(firstName, lastName, email)
+                AuthState.EMAIL_VERIFICATION_SENT
             } catch (e: Exception) {
                 when (e) {
-                    is AuthException.NameExists -> AuthState.USER_NAME_EXISTS
                     is AuthException.EmailExists -> AuthState.USER_ALREADY_EXISTS
-                    is AuthException.UidNotFound -> AuthState.FAILURE
                     else -> AuthState.FAILURE
                 }
             }
@@ -59,13 +61,38 @@ class AuthViewModel @Inject constructor(
                 AuthState.SUCCESS
             } catch (e: Exception) {
                 when (e) {
-                    is FirebaseAuthInvalidUserException -> AuthState.INVALID_CREDENTIALS
+                    is FirebaseAuthInvalidUserException -> AuthState.USER_NOT_REGISTERED
                     is FirebaseAuthInvalidCredentialsException -> AuthState.INVALID_EMAIL_OR_PASSWORD
+                    is AuthException.EmailNotVerified -> AuthState.EMAIL_NOT_VERIFIED
                     else -> AuthState.FAILURE
                 }
             }
         }
     }
+    private fun startEmailVerificationCheck(firstName: String, lastName: String, email: String) {
+        viewModelScope.launch {
+            repeat(2880) {
+                delay(30000)
+                try {
+                    val isVerified = authRepository.checkEmailVerified()
+                    if (isVerified) {
+                        val user = User(
+                            firstName = firstName,
+                            lastName = lastName,
+                            email = email,
+                            uid = authRepository.currentUser?.let { (it as FirebaseUser).uid } ?: ""
+                        )
+                        authRepository.saveUserFirestore(user)
+                        return@launch
+                    }
+                } catch (e: Exception) {
+                    return@launch
+                }
+            }
+            authRepository.deleteUnverifiedUser()
+        }
+    }
+
     fun signInWithGoogle(account: GoogleSignInAccount) {
         viewModelScope.launch {
             _authState.value = try {
@@ -110,6 +137,7 @@ class AuthViewModel @Inject constructor(
             }
         }
     }
+
 
     fun logOut() {
         viewModelScope.launch {
@@ -179,6 +207,10 @@ class AuthViewModel @Inject constructor(
         inputConfirmPassword = confirmPassword
     }
 
+    fun clearSignInFields() {
+        inputEmail = ""
+        inputPassword = ""
+    }
 
     fun checkPassword() = inputNewPassword == inputConfirmPassword
     fun isValidNewPassword() = inputNewPassword.isNotBlank() && inputNewPassword.length>=6

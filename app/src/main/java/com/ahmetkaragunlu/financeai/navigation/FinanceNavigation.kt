@@ -24,6 +24,7 @@ fun FinanceNavigation() {
         composable(route = Screens.SignInScreen.route) {
             SignInScreen(navController = navController)
         }
+
         composable(route= Screens.SignUpScreen.route) {
             SignUpScreen(navController = navController)
         }
