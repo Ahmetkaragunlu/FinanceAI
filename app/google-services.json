@@ -1,20 +1,20 @@
 {
   "project_info": {
-    "project_number": "286334851267",
-    "project_id": "financeai-af17d",
-    "storage_bucket": "financeai-af17d.firebasestorage.app"
+    "project_number": "1048183018405",
+    "project_id": "financeai-7e7bc",
+    "storage_bucket": "financeai-7e7bc.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:286334851267:android:7e6a9f34d3173f8d522a76",
+        "mobilesdk_app_id": "1:1048183018405:android:a8024344a1552fb3508e4c",
         "android_client_info": {
           "package_name": "com.ahmetkaragunlu.financeai"
         }
       },
       "oauth_client": [
         {
-          "client_id": "286334851267-2p2sl38acivgv2m6hjn44qhqcsjrla3i.apps.googleusercontent.com",
+          "client_id": "1048183018405-pgiip8gfvoj34fsfajb6e4d68nprluho.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.ahmetkaragunlu.financeai",
@@ -22,20 +22,20 @@
           }
         },
         {
-          "client_id": "286334851267-0nn0v0ms9f62094u4odu874drlkj1ge9.apps.googleusercontent.com",
+          "client_id": "1048183018405-9vic0j0akq3punlpeuc7926qq43erict.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyDmioE7AhAJvP0-60kL5HJe78SXqsveH8E"
+          "current_key": "AIzaSyAyannYcHUqse8hAu4xBo-p3PSyIeOLSCQ"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "286334851267-0nn0v0ms9f62094u4odu874drlkj1ge9.apps.googleusercontent.com",
+              "client_id": "1048183018405-9vic0j0akq3punlpeuc7926qq43erict.apps.googleusercontent.com",
               "client_type": 3
             }
           ]

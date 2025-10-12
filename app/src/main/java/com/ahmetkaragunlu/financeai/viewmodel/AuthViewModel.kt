@@ -7,34 +7,30 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ahmetkaragunlu.financeai.firebaseRepo.AuthRepository
-import com.ahmetkaragunlu.financeai.model.User
 import com.ahmetkaragunlu.financeai.screens.auth.AuthException
 import com.ahmetkaragunlu.financeai.screens.auth.AuthState
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
-import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
-import com.google.firebase.auth.FirebaseAuthInvalidUserException
-import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val authRepository: AuthRepository,
+    private val auth : FirebaseAuth,
     private val googleSignInClient: GoogleSignInClient
-
 ) : ViewModel() {
-
     private val _authState = MutableStateFlow(AuthState.EMPTY)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
 
 
-    fun signUp(email: String, firstName: String, lastName: String, password: String) {
+    fun signUp(email: String, password: String, firstName: String, lastName: String) {
         viewModelScope.launch {
             _authState.value = try {
                 authRepository.saveUser(
@@ -43,124 +39,111 @@ class AuthViewModel @Inject constructor(
                     lastName = lastName,
                     password = password
                 )
-                startEmailVerificationCheck(firstName, lastName, email)
-                AuthState.EMAIL_VERIFICATION_SENT
+                AuthState.VERIFICATION_EMAIL_SENT
+
             } catch (e: Exception) {
                 when (e) {
                     is AuthException.EmailExists -> AuthState.USER_ALREADY_EXISTS
+                    is AuthException.VerificationEmailFailed -> AuthState.VERIFICATION_EMAIL_FAILED
+                    else -> AuthState.FAILURE
+                }
+            }
+        }
+    }
+    fun signIn(email: String, password: String) {
+        viewModelScope.launch {
+            _authState.value = try {
+                authRepository.signIn(email, password)
+                auth.currentUser?.reload()?.await()
+                val user = auth.currentUser
+                if (user?.isEmailVerified == true) {
+                    AuthState.SUCCESS
+                } else {
+                    AuthState.EMAIL_NOT_VERIFIED
+                }
+            } catch (e: Exception) {
+                when (e) {
+                    is AuthException.InvalidCredentials -> AuthState.INVALID_CREDENTIALS
                     else -> AuthState.FAILURE
                 }
             }
         }
     }
 
-    fun signIn(email: String, password: String) {
+    fun login() {
+        if(inputEmail.isBlank() || inputPassword.isBlank()) {
+            _authState.value = AuthState.FAILURE
+            return
+        }
+        signIn(email = inputEmail, password = inputPassword)
+    }
+
+    fun saveUser() {
+     signUp(
+         email = inputEmail,
+         firstName = inputFirstName,
+         lastName = inputLastName,
+         password = inputPassword)
+    }
+
+    fun sendResetPasswordRequest() {
         viewModelScope.launch {
-            _authState.value = try {
-                authRepository.signIn(email = email, password = password)
-                AuthState.SUCCESS
-            } catch (e: Exception) {
-                when (e) {
-                    is FirebaseAuthInvalidUserException -> AuthState.USER_NOT_REGISTERED
-                    is FirebaseAuthInvalidCredentialsException -> AuthState.INVALID_EMAIL_OR_PASSWORD
-                    is AuthException.EmailNotVerified -> AuthState.EMAIL_NOT_VERIFIED
-                    else -> AuthState.FAILURE
+            try {
+                val result = authRepository.verifyUserAndSendResetEmail(inputEmail, inputFirstName, inputLastName)
+                if (result) {
+                    _authState.value = AuthState.SUCCESS
+                } else {
+                    _authState.value = AuthState.USER_NOT_FOUND
                 }
+            } catch (e: Exception) {
+                _authState.value = AuthState.FAILURE
             }
         }
     }
-    private fun startEmailVerificationCheck(firstName: String, lastName: String, email: String) {
+
+    fun resetPassword(oobCode: String) {
         viewModelScope.launch {
-            repeat(2880) {
-                delay(30000)
-                try {
-                    val isVerified = authRepository.checkEmailVerified()
-                    if (isVerified) {
-                        val user = User(
-                            firstName = firstName,
-                            lastName = lastName,
-                            email = email,
-                            uid = authRepository.currentUser?.let { (it as FirebaseUser).uid } ?: ""
-                        )
-                        authRepository.saveUserFirestore(user)
-                        return@launch
-                    }
-                } catch (e: Exception) {
-                    return@launch
-                }
+            try {
+                authRepository.confirmPasswordReset(oobCode, inputNewPassword)
+                _authState.value = AuthState.SUCCESS
+            } catch (e: Exception) {
+                _authState.value = AuthState.FAILURE
             }
-            authRepository.deleteUnverifiedUser()
         }
     }
 
     fun signInWithGoogle(account: GoogleSignInAccount) {
         viewModelScope.launch {
             _authState.value = try {
-                authRepository.signInWithGoogle(account)
-                AuthState.SUCCESS
-            } catch (e: Exception) {
-                when (e) {
-                    is AuthException.UserNotRegistered -> AuthState.USER_NOT_REGISTERED
-                    is AuthException.IdTokenIsNull -> AuthState.FAILURE
-                    else -> AuthState.FAILURE
+                googleSignInClient.signOut().await()
+                val email = account.email ?: throw Exception("Email not found")
+                val isRegistered = authRepository.isUserRegistered(email)
+
+                if (isRegistered) {
+                    authRepository.signInWithGoogle(account)
+                    AuthState.SUCCESS
+                } else {
+                    AuthState.USER_NOT_FOUND
                 }
+            } catch (e: Exception) {
+                AuthState.FAILURE
             }
         }
     }
-
-    fun getGoogleSignInClient(): GoogleSignInClient = googleSignInClient
-
-    fun sendPasswordReset(firstName: String, lastName: String, email: String) {
-        viewModelScope.launch {
-            _authState.value = try {
-                authRepository.sendPasswordResetEmail(firstName, lastName, email)
-                AuthState.SUCCESS
-            } catch (e: Exception) {
-                when (e) {
-                    is AuthException.UserNotRegistered -> AuthState.USER_NOT_REGISTERED
-                    else -> AuthState.FAILURE
-                }
-            }
-        }
-    }
-
-    fun confirmPasswordReset(oobCode: String, newPassword: String) {
-        viewModelScope.launch {
-            _authState.value = try {
-                authRepository.confirmPasswordReset(oobCode, newPassword)
-                AuthState.SUCCESS
-            } catch (e: Exception) {
-                when (e) {
-                    is AuthException.InvalidOobCode -> AuthState.INVALID_OOB_CODE
-                    else -> AuthState.FAILURE
-                }
-            }
-        }
-    }
+    fun getGoogleSignInIntent() = googleSignInClient.signInIntent
 
 
-    fun logOut() {
-        viewModelScope.launch {
-            authRepository.logOut()
-            _authState.value = AuthState.EMPTY
-        }
-    }
-    fun login() {
-        if(inputEmail.isBlank() || inputPassword.isBlank()) {
-            _authState.value = AuthState.FAILURE
-            return
-        }
-            signIn(email = inputEmail, password = inputPassword)
-    }
 
-    fun saveUser() {
-            signUp(
-                email = inputEmail,
-                firstName = inputFirstName,
-                lastName = inputLastName,
-                password = inputPassword
-            )
-    }
+
+
+
+
+
+
+
+
+
+
     fun resetAuthState() {
         _authState.value = AuthState.EMPTY
     }
@@ -227,7 +210,7 @@ class AuthViewModel @Inject constructor(
     fun newPasswordSupportingText() = !isValidNewPassword() && inputNewPassword.isNotBlank()
     fun confirmNewPasswordSupportingText() = !isValidConfirmNewPassword() && inputConfirmPassword.isNotBlank()
 
-    fun isValid() = isValidPassword() && isValidLastName() && isValidFirstName() && isEmailValid()
+    fun isValidUser() = isValidPassword() && isValidLastName() && isValidFirstName() && isEmailValid()
     fun isValidResetPassword() = isValidNewPassword() && isValidConfirmNewPassword()
     fun isValidResetRequestPassword() = isValidLastName() && isValidFirstName() && isEmailValid()
 
