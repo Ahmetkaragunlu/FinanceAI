@@ -54,6 +54,7 @@ import com.ahmetkaragunlu.financeai.components.EditTextField
 import com.ahmetkaragunlu.financeai.navigation.Screens
 import com.ahmetkaragunlu.financeai.viewmodel.AuthViewModel
 import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInStatusCodes
 import com.google.android.gms.common.api.ApiException
 
 @Composable
@@ -64,56 +65,34 @@ fun SignInScreen(
 ) {
     val context = LocalContext.current
     val uiState by authViewModel.authState.collectAsStateWithLifecycle()
-    val googleClient = authViewModel.getGoogleSignInClient()
+    BackHandler { }
 
-    val launcher = rememberLauncherForActivityResult(
+    val googleSignInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
-            try {
-                val account = task.getResult(ApiException::class.java)
-                account?.let { authViewModel.signInWithGoogle(it) }
-            } catch (e: ApiException) {
+        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+        try {
+            val account = task.getResult(ApiException::class.java)
+            account?.let {
+                authViewModel.signInWithGoogle(it)
             }
+        } catch (e: ApiException) {
+            if (e.statusCode != GoogleSignInStatusCodes.SIGN_IN_CANCELLED) {
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.something_went_wrong),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+
         }
     }
-    BackHandler {  }
 
     LaunchedEffect(uiState) {
         when (uiState) {
-            AuthState.FAILURE -> {
-                Toast.makeText(context, context.getString(R.string.failure), Toast.LENGTH_SHORT)
-                    .show()
-            }
-
-            AuthState.INVALID_EMAIL_OR_PASSWORD -> {
-                Toast.makeText(
-                    context,
-                    context.getString(R.string.invalid_email_or_password),
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
-
-            AuthState.USER_NOT_REGISTERED -> {
-                Toast.makeText(
-                    context,
-                    context.getString(R.string.user_not_found),
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
-
-            AuthState.ID_TOKEN_IS_NULL -> {
-                Toast.makeText(
-                    context,
-                    context.getString(R.string.failure),
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
-
             AuthState.SUCCESS -> {
                 navController.navigate(Screens.DashboardScreen.route) {
-                    popUpTo(Screens.SignInScreen.route) {inclusive=true}
+                    popUpTo(Screens.SignInScreen.route) { inclusive = true }
                 }
             }
             AuthState.EMAIL_NOT_VERIFIED -> {
@@ -122,6 +101,29 @@ fun SignInScreen(
                     context.getString(R.string.please_verify_your_email),
                     Toast.LENGTH_LONG
                 ).show()
+            }
+            AuthState.USER_NOT_FOUND -> {
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.user_not_found),
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+
+            AuthState.INVALID_CREDENTIALS -> {
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.invalid_email_or_password),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+            AuthState.FAILURE -> {
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.something_went_wrong),
+                    Toast.LENGTH_SHORT
+                ).show()
+
             }
 
             else -> {}
@@ -209,7 +211,7 @@ fun SignInScreen(
                     .clickable {
                         navController.navigate(Screens.PasswordResetRequestScreen.route)
                         authViewModel.clearSignInFields()
-                               },
+                    },
                 textAlign = TextAlign.End
             )
 
@@ -240,9 +242,8 @@ fun SignInScreen(
 
             Button(
                 onClick = {
-                    googleClient.signOut().addOnCompleteListener {
-                        launcher.launch(googleClient.signInIntent)
-                    }
+                    val signInIntent = authViewModel.getGoogleSignInIntent()
+                    googleSignInLauncher.launch(signInIntent)
                 },
                 modifier = modifier
                     .width(280.dp)

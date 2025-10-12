@@ -20,11 +20,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextFieldDefaults
@@ -51,6 +51,7 @@ import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.components.EditAlertDialog
 import com.ahmetkaragunlu.financeai.components.EditTextField
 import com.ahmetkaragunlu.financeai.navigation.Screens
+import com.ahmetkaragunlu.financeai.ui.theme.TextFieldStyles
 import com.ahmetkaragunlu.financeai.viewmodel.AuthViewModel
 
 @Composable
@@ -59,77 +60,51 @@ fun SignUpScreen(
     authViewModel: AuthViewModel = hiltViewModel(),
     navController: NavController
 ) {
-    val whiteColors = TextFieldDefaults.colors(
-        focusedContainerColor = Color.White,
-        unfocusedContainerColor = Color.White,
-        focusedIndicatorColor = Color.White,
-        unfocusedIndicatorColor = Color.White,
-        focusedLabelColor = Color.White
-    )
+
     val uiState by authViewModel.authState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+
     BackHandler {
         navController.popBackStack()
     }
 
     LaunchedEffect(uiState) {
-        when (uiState) {
-            AuthState.SUCCESS -> {
-                Toast.makeText(
-                    context,
-                    context.getString(R.string.account_created_successfully),
-                    Toast.LENGTH_SHORT
-                ).show()
-                navController.navigate(Screens.SignInScreen.route)
+        when(uiState) {
+            AuthState.FAILURE ->  {
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.something_went_wrong),
+                        Toast.LENGTH_SHORT
+                    ).show()
+            }
+            AuthState.VERIFICATION_EMAIL_SENT ->  {
+              authViewModel.showDialog = true
             }
 
-            AuthState.FAILURE -> {
+            AuthState.VERIFICATION_EMAIL_FAILED ->  {
                 Toast.makeText(
                     context,
-                    context.getString(R.string.registration_failed),
+                    context.getString(R.string.email_verification_could_not_be_sent),
                     Toast.LENGTH_SHORT
                 ).show()
             }
-
             AuthState.USER_ALREADY_EXISTS -> {
                 Toast.makeText(
                     context,
-                    context.getString(R.string.error_email_exists),
+                    context.getString(R.string.this_email_is_already_exists),
                     Toast.LENGTH_SHORT
                 ).show()
             }
-
-            AuthState.EMAIL_VERIFICATION_SENT -> {
-                authViewModel.showDialog = true
-            }
-
             else -> {}
+
         }
         authViewModel.resetAuthState()
-
-    }
-    if (authViewModel.showDialog) {
-        EditAlertDialog(
-            text = R.string.email_diaolog,
-            title = R.string.email_verification_sent,
-            confirmButton =  {
-                TextButton(
-                    onClick = {
-                        authViewModel.showDialog = false
-                        navController.navigate(Screens.SignInScreen.route) {
-                            popUpTo(Screens.SignUpScreen.route) {
-                                inclusive=true
-                            }
-                            launchSingleTop = true
-                        }
-                    }
-                ) {
-                    Text(text = stringResource(R.string.ok))
-                }
-            }
-        )
     }
 
+    ShowDialog(
+        authViewModel = authViewModel,
+        navController = navController
+    )
 
     Box(
         modifier =
@@ -182,7 +157,7 @@ fun SignUpScreen(
                         imeAction = ImeAction.Next,
                         keyboardType = KeyboardType.Email
                     ),
-                    colors = whiteColors,
+                    colors = TextFieldStyles.whiteTextFieldColors(),
                     supportingText = if (authViewModel.emailSupportingText()) R.string.error_email else null
                 )
                 EditTextField(
@@ -203,7 +178,7 @@ fun SignUpScreen(
                             }
                         )
                     },
-                    colors = whiteColors,
+                    colors = TextFieldStyles.whiteTextFieldColors(),
                     supportingText = if (authViewModel.passwordSupportingText()) R.string.error_password else null,
                     visualTransformation = if (authViewModel.passwordVisibility) VisualTransformation.None else PasswordVisualTransformation()
                 )
@@ -215,7 +190,7 @@ fun SignUpScreen(
                         imeAction = ImeAction.Next,
                         keyboardType = KeyboardType.Text
                     ),
-                    colors = whiteColors,
+                    colors = TextFieldStyles.whiteTextFieldColors(),
                     supportingText = if (authViewModel.firstNameSupportingText()) R.string.error_firstName else null
                 )
                 EditTextField(
@@ -226,12 +201,13 @@ fun SignUpScreen(
                         imeAction = ImeAction.Done,
                         keyboardType = KeyboardType.Text
                     ),
-                    colors = whiteColors,
+                    colors = TextFieldStyles.whiteTextFieldColors(),
                     supportingText = if (authViewModel.lastNameSupportingText()) R.string.error_lastName else null
                 )
                 Button(
                     onClick = {
-                        if (authViewModel.isValid()) {
+                        if (
+                            authViewModel.isValidUser()) {
                             authViewModel.saveUser()
                         } else {
                             Toast.makeText(
@@ -277,4 +253,40 @@ fun SignUpScreen(
 
     }
 }
+
+
+
+
+
+
+
+
+@Composable
+fun ShowDialog(
+    authViewModel: AuthViewModel = hiltViewModel(),
+    navController: NavController
+) {
+    if (authViewModel.showDialog) {
+        EditAlertDialog(
+            title =  R.string.email_verification_sent ,
+            text = (R.string.email_diaolog) ,
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        authViewModel.showDialog = false
+                        authViewModel.resetAuthState()
+                        navController.navigate(Screens.SignInScreen.route) {
+                            popUpTo(Screens.SignUpScreen.route) { inclusive = true }
+                        }
+                    }
+                ) {
+                    Text(text = stringResource(R.string.ok))
+                }
+            }
+        )
+    }
+}
+
+
+
 

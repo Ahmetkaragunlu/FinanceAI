@@ -67,16 +67,17 @@ fun PasswordResetRequestScreen(
             AuthState.SUCCESS -> {
                 authViewModel.showDialog = true
             }
-            AuthState.USER_NOT_REGISTERED -> {
-                Toast.makeText(context, context.getString(R.string.user_not_found), Toast.LENGTH_SHORT).show()
+            AuthState.USER_NOT_FOUND -> {
+                Toast.makeText(context, context.getString(R.string.user_not_found) ,Toast.LENGTH_SHORT).show()
             }
             AuthState.FAILURE -> {
-                Toast.makeText(context, context.getString(R.string.failure), Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.getString(R.string.something_went_wrong), Toast.LENGTH_SHORT).show()
             }
-            else -> Unit
+            else -> {}
         }
         authViewModel.resetAuthState()
     }
+
 
     Box (
         modifier =
@@ -144,11 +145,7 @@ fun PasswordResetRequestScreen(
             Button(
                 onClick = {
                     if (authViewModel.isValidResetRequestPassword()) {
-                        authViewModel.sendPasswordReset(
-                            email = authViewModel.inputEmail,
-                            firstName = authViewModel.inputFirstName,
-                            lastName = authViewModel.inputLastName
-                        )
+                      authViewModel.sendResetPasswordRequest()
                     } else {
                         Toast.makeText(
                             context, context.getString(R.string.fill_all_fields_correctly),

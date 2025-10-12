@@ -80,13 +80,11 @@ fun PasswordResetScreen(
             AuthState.SUCCESS -> {
                 authViewModel.showDialog = true
             }
-            AuthState.INVALID_OOB_CODE -> {
-                Toast.makeText(context, context.getString(R.string.your_link_has_expired), Toast.LENGTH_LONG).show()
-            }
             AuthState.FAILURE -> {
-                Toast.makeText(context, context.getString(R.string.failure), Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.getString(R.string.something_went_wrong), Toast.LENGTH_SHORT).show()
+                authViewModel.resetAuthState()
             }
-            else -> {}
+            else->{}
         }
         authViewModel.resetAuthState()
     }
@@ -176,7 +174,7 @@ fun PasswordResetScreen(
             Button(
                 onClick = {
                     if (authViewModel.checkPassword() && oobCode!=null && authViewModel.isValidResetPassword()) {
-                        authViewModel.confirmPasswordReset(oobCode = oobCode, newPassword = authViewModel.inputNewPassword)
+                        authViewModel.resetPassword(oobCode)
                     } else {
                         Toast.makeText(
                             context, context.getString(R.string.fill_all_fields_correctly),
