@@ -50,7 +50,5 @@ fun FinanceNavigation() {
             val oobCode = backStackEntry.arguments?.getString("oobCode")
             PasswordResetScreen(navController = navController, oobCode = oobCode)
         }
-
     }
-
 }

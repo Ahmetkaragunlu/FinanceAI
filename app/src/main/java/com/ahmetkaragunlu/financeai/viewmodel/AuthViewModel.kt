@@ -23,24 +23,17 @@ import javax.inject.Inject
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val authRepository: AuthRepository,
-    private val auth : FirebaseAuth,
+    private val auth: FirebaseAuth,
     private val googleSignInClient: GoogleSignInClient
 ) : ViewModel() {
+
     private val _authState = MutableStateFlow(AuthState.EMPTY)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
-
-
     fun signUp(email: String, password: String, firstName: String, lastName: String) {
         viewModelScope.launch {
             _authState.value = try {
-                authRepository.saveUser(
-                    email = email,
-                    firstName = firstName,
-                    lastName = lastName,
-                    password = password
-                )
+                authRepository.saveUser(email = email,password=password, firstName = firstName, lastName = lastName)
                 AuthState.VERIFICATION_EMAIL_SENT
-
             } catch (e: Exception) {
                 when (e) {
                     is AuthException.EmailExists -> AuthState.USER_ALREADY_EXISTS
@@ -55,6 +48,7 @@ class AuthViewModel @Inject constructor(
             _authState.value = try {
                 authRepository.signIn(email, password)
                 auth.currentUser?.reload()?.await()
+
                 val user = auth.currentUser
                 if (user?.isEmailVerified == true) {
                     AuthState.SUCCESS
@@ -69,38 +63,39 @@ class AuthViewModel @Inject constructor(
             }
         }
     }
-
     fun login() {
-        if(inputEmail.isBlank() || inputPassword.isBlank()) {
+        if (inputEmail.isBlank() || inputPassword.isBlank()) {
             _authState.value = AuthState.FAILURE
             return
         }
         signIn(email = inputEmail, password = inputPassword)
     }
-
-    fun saveUser() {
-     signUp(
-         email = inputEmail,
-         firstName = inputFirstName,
-         lastName = inputLastName,
-         password = inputPassword)
+    fun clearSignInFields() {
+        inputEmail = ""
+        inputPassword = ""
     }
-
+    fun saveUser() {
+        signUp(
+            email = inputEmail,
+            firstName = inputFirstName,
+            lastName = inputLastName,
+            password = inputPassword
+        )
+    }
     fun sendResetPasswordRequest() {
         viewModelScope.launch {
             try {
-                val result = authRepository.verifyUserAndSendResetEmail(inputEmail, inputFirstName, inputLastName)
-                if (result) {
-                    _authState.value = AuthState.SUCCESS
-                } else {
-                    _authState.value = AuthState.USER_NOT_FOUND
-                }
+                val result = authRepository.verifyUserAndSendResetEmail(
+                    inputEmail,
+                    inputFirstName,
+                    inputLastName
+                )
+                _authState.value = if (result) AuthState.SUCCESS else AuthState.USER_NOT_FOUND
             } catch (e: Exception) {
                 _authState.value = AuthState.FAILURE
             }
         }
     }
-
     fun resetPassword(oobCode: String) {
         viewModelScope.launch {
             try {
@@ -111,14 +106,13 @@ class AuthViewModel @Inject constructor(
             }
         }
     }
-
     fun signInWithGoogle(account: GoogleSignInAccount) {
         viewModelScope.launch {
             _authState.value = try {
                 googleSignInClient.signOut().await()
                 val email = account.email ?: throw Exception("Email not found")
-                val isRegistered = authRepository.isUserRegistered(email)
 
+                val isRegistered = authRepository.isUserRegistered(email)
                 if (isRegistered) {
                     authRepository.signInWithGoogle(account)
                     AuthState.SUCCESS
@@ -131,78 +125,49 @@ class AuthViewModel @Inject constructor(
         }
     }
     fun getGoogleSignInIntent() = googleSignInClient.signInIntent
-
-
-
-
-
-
-
-
-
-
-
-
-
     fun resetAuthState() {
         _authState.value = AuthState.EMPTY
     }
 
-
+    //  UI Input State Variables
     var inputFirstName by mutableStateOf("")
+        private set
+    var inputLastName by mutableStateOf("")
         private set
     var inputEmail by mutableStateOf("")
         private set
     var inputPassword by mutableStateOf("")
         private set
-    var inputLastName by mutableStateOf("")
-        private set
-    var passwordVisibility by mutableStateOf(false)
-    var confirmPasswordVisibility by mutableStateOf(false)
-
-    var showDialog by mutableStateOf(false)
-
     var inputNewPassword by mutableStateOf("")
         private set
     var inputConfirmPassword by mutableStateOf("")
         private set
 
-    fun updateFirstName(firstName: String) {
-        inputFirstName = firstName
-    }
 
-    fun updateLastName(lastName: String) {
-        inputLastName = lastName
-    }
+    //  UI Helper Variables (password visibility, dialog states)
+    var passwordVisibility by mutableStateOf(false)
+    var confirmPasswordVisibility by mutableStateOf(false)
+    var showDialog by mutableStateOf(false)
 
-    fun updatePassword(password: String) {
-        inputPassword = password
-    }
 
-    fun updateEmail(email: String) {
-        inputEmail = email
-    }
+    //  Update Input Fields
+    fun updateFirstName(firstName: String) { inputFirstName = firstName }
+    fun updateLastName(lastName: String) { inputLastName = lastName }
+    fun updateEmail(email: String) { inputEmail = email }
+    fun updatePassword(password: String) { inputPassword = password }
+    fun updateNewPassword(newPassword: String) { inputNewPassword = newPassword }
+    fun updateConfirmPassword(confirmPassword: String) { inputConfirmPassword = confirmPassword }
 
-    fun updateNewPassword(newPassword : String) {
-        inputNewPassword = newPassword
-    }
-    fun updateConfirmPassword(confirmPassword : String) {
-        inputConfirmPassword = confirmPassword
-    }
-
-    fun clearSignInFields() {
-        inputEmail = ""
-        inputPassword = ""
-    }
-
+    // Validation Functions (Form Validation)
     fun checkPassword() = inputNewPassword == inputConfirmPassword
-    fun isValidNewPassword() = inputNewPassword.isNotBlank() && inputNewPassword.length>=6
-    fun isValidConfirmNewPassword() = inputConfirmPassword.isNotBlank() && inputConfirmPassword.length>=6
+    fun isValidNewPassword() = inputNewPassword.isNotBlank() && inputNewPassword.length >= 6
+    fun isValidConfirmNewPassword() = inputConfirmPassword.isNotBlank() && inputConfirmPassword.length >= 6
     fun isEmailValid() = Patterns.EMAIL_ADDRESS.matcher(inputEmail).matches()
     fun isValidPassword() = inputPassword.isNotBlank() && inputPassword.length >= 6
     fun isValidFirstName() = inputFirstName.trim().split("\\s+".toRegex()).all { it.length >= 3 }
-    fun isValidLastName() = inputLastName.length >= 2 && inputLastName.isNotBlank()
+    fun isValidLastName() = inputLastName.isNotBlank() && inputLastName.length >= 2
 
+    //  Supporting Text States (For UI error messages)
     fun emailSupportingText() = !isEmailValid() && inputEmail.isNotBlank()
     fun passwordSupportingText() = !isValidPassword() && inputPassword.isNotBlank()
     fun firstNameSupportingText() = !isValidFirstName() && inputFirstName.isNotBlank()
@@ -210,9 +175,8 @@ class AuthViewModel @Inject constructor(
     fun newPasswordSupportingText() = !isValidNewPassword() && inputNewPassword.isNotBlank()
     fun confirmNewPasswordSupportingText() = !isValidConfirmNewPassword() && inputConfirmPassword.isNotBlank()
 
+    // General Form Validations (Used to enable/disable buttons)
     fun isValidUser() = isValidPassword() && isValidLastName() && isValidFirstName() && isEmailValid()
     fun isValidResetPassword() = isValidNewPassword() && isValidConfirmNewPassword()
     fun isValidResetRequestPassword() = isValidLastName() && isValidFirstName() && isEmailValid()
-
-
 }

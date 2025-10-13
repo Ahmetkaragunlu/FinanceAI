@@ -33,7 +33,7 @@ object FirebaseModule {
     @Singleton
     fun provideFirebaseStorage(): FirebaseStorage = FirebaseStorage.getInstance()
 
-}
+  }
 @InstallIn(SingletonComponent::class)
 @Module
 object RepositoryModule {
@@ -44,7 +44,7 @@ object RepositoryModule {
         firestore: FirebaseFirestore,
     ): AuthRepository =
         AuthRepositoryImpl(auth, firestore)
-}
+  }
 
 @InstallIn(SingletonComponent::class)
 @Module
@@ -55,11 +55,10 @@ object  SignInWithGoogle {
         @ApplicationContext context: Context
     ): GoogleSignInOptions {
         return GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken("1048183018405-9vic0j0akq3punlpeuc7926qq43erict.apps.googleusercontent.com")
+            .requestIdToken(context.getString(R.string.default_web_client_id))
             .requestEmail()
             .build()
     }
-
     @Provides
     @Singleton
     fun provideGoogleSignInClient(

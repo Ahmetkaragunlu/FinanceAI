@@ -15,18 +15,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AlternateEmail
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -49,6 +46,8 @@ import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.components.EditAlertDialog
 import com.ahmetkaragunlu.financeai.components.EditTextField
 import com.ahmetkaragunlu.financeai.navigation.Screens
+import com.ahmetkaragunlu.financeai.navigation.navigateSingleTopClear
+import com.ahmetkaragunlu.financeai.ui.theme.TextFieldStyles
 import com.ahmetkaragunlu.financeai.viewmodel.AuthViewModel
 
 @Composable
@@ -58,23 +57,11 @@ fun PasswordResetScreen(
     oobCode : String?,
     authViewModel: AuthViewModel = hiltViewModel()
 ) {
-    val whiteColors = TextFieldDefaults.colors(
-        focusedContainerColor = Color.White,
-        unfocusedContainerColor = Color.White,
-        focusedIndicatorColor = Color.White,
-        unfocusedIndicatorColor = Color.White,
-        focusedLabelColor = Color.White
-    )
     val context = LocalContext.current
     val uiState by authViewModel.authState.collectAsStateWithLifecycle()
-
     BackHandler {
-        navController.navigate(Screens.SignInScreen.route) {
-            popUpTo(Screens.PasswordResetScreen.route) { inclusive = true}
-            launchSingleTop = true
-        }
+      navController.navigateSingleTopClear(Screens.SignInScreen.route)
     }
-
     LaunchedEffect(uiState) {
         when (uiState) {
             AuthState.SUCCESS -> {
@@ -88,8 +75,6 @@ fun PasswordResetScreen(
         }
         authViewModel.resetAuthState()
     }
-
-
     Box (
         modifier =
             modifier.fillMaxSize().verticalScroll(rememberScrollState())
@@ -129,7 +114,7 @@ fun PasswordResetScreen(
                     keyboardType = KeyboardType.NumberPassword
                 ),
                 supportingText = if (authViewModel.newPasswordSupportingText()) R.string.error_password else null,
-                colors = whiteColors,
+                colors = TextFieldStyles.whiteTextFieldColors(),
                 trailingIcon = {
                     Icon(
                         imageVector = if (authViewModel.passwordVisibility) Icons.Default.Visibility else Icons.Default.VisibilityOff,
@@ -150,8 +135,8 @@ fun PasswordResetScreen(
                     imeAction = ImeAction.Done,
                     keyboardType = KeyboardType.NumberPassword
                 ),
-                supportingText = if (authViewModel.confirmNewPasswordSupportingText()) R.string.confirm_password else null,
-                colors = whiteColors,
+                supportingText = if (authViewModel.confirmNewPasswordSupportingText()) R.string.error_password else null,
+                colors = TextFieldStyles.whiteTextFieldColors(),
                 trailingIcon = {
                     Icon(
                         imageVector = if (authViewModel.confirmPasswordVisibility) Icons.Default.Visibility else Icons.Default.VisibilityOff,
@@ -202,25 +187,40 @@ fun PasswordResetScreen(
                     text = stringResource(R.string.reset_password)
                 )
             }
-            if (authViewModel.showDialog) {
-                EditAlertDialog(
-                    title = R.string.success,
-                    text = R.string.your_password_has_been_changed_successfully,
-                    confirmButton =  {
-                        TextButton(onClick = {
-                            authViewModel.showDialog = false
-                            navController.navigate(Screens.SignInScreen.route) {
-                                popUpTo(Screens.PasswordResetScreen.route) {inclusive = true}
-                                launchSingleTop = true
-                            }
-                        }) {
-                            Text(text = stringResource(R.string.ok))
-                        }
-                    },
-                )
-            }
-
+            ShowDialog(
+                navController = navController,
+                authViewModel = authViewModel
+            )
         }
+    }
+}
+
+
+
+
+
+
+
+
+@Composable
+private fun ShowDialog(
+    navController: NavController,
+    authViewModel: AuthViewModel = hiltViewModel()
+)
+{
+    if (authViewModel.showDialog) {
+        EditAlertDialog(
+            title = R.string.success,
+            text = R.string.your_password_has_been_changed_successfully,
+            confirmButton =  {
+                TextButton(onClick = {
+                    authViewModel.showDialog = false
+                   navController.navigateSingleTopClear(Screens.SignInScreen.route)
+                }) {
+                    Text(text = stringResource(R.string.ok))
+                }
+            },
+        )
     }
 }
 
