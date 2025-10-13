@@ -1,9 +1,7 @@
 package com.ahmetkaragunlu.financeai.firebaseRepo
 
-import android.util.Log
 import com.ahmetkaragunlu.financeai.model.User
 import com.ahmetkaragunlu.financeai.screens.auth.AuthException
-import com.ahmetkaragunlu.financeai.screens.auth.AuthState
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.firebase.auth.AuthResult
 import com.google.firebase.auth.FirebaseAuth
@@ -12,7 +10,6 @@ import com.google.firebase.auth.FirebaseAuthInvalidUserException
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
-
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
@@ -22,7 +19,6 @@ class AuthRepositoryImpl @Inject constructor(
 ) : AuthRepository {
 
     override val currentUser get() = auth.currentUser
-
     override suspend fun signUp(email: String, password: String): AuthResult =
         auth.createUserWithEmailAndPassword(email, password).await()
 
@@ -35,17 +31,12 @@ class AuthRepositoryImpl @Inject constructor(
                 is FirebaseAuthInvalidCredentialsException -> {
                     throw AuthException.InvalidCredentials
                 }
-                else -> {
-                    throw e
-                }
+                else -> throw e
             }
         }
-
-
     override suspend fun saveUserFirestore(user: User) {
         firestore.collection("users").document(user.uid).set(user).await()
     }
-
 
     override suspend fun saveUser(
         email: String,
@@ -64,12 +55,11 @@ class AuthRepositoryImpl @Inject constructor(
                 is FirebaseAuthUserCollisionException -> {
                     throw AuthException.EmailExists
                 }
-                else -> {
-                    throw e
-                }
+                else -> throw e
             }
         }
     }
+
     override suspend fun sendEmailVerification() {
         try {
             auth.currentUser?.sendEmailVerification()?.await()
@@ -77,7 +67,6 @@ class AuthRepositoryImpl @Inject constructor(
             throw AuthException.VerificationEmailFailed
         }
     }
-
 
     override suspend fun verifyUserAndSendResetEmail(
         email: String,
@@ -90,13 +79,10 @@ class AuthRepositoryImpl @Inject constructor(
             .whereEqualTo("lastName", lastName)
             .get()
             .await()
-
         return if (!snapshot.isEmpty) {
             auth.sendPasswordResetEmail(email).await()
             true
-        } else {
-            false
-        }
+        } else false
     }
 
     override suspend fun confirmPasswordReset(oobCode: String, newPassword: String) {
@@ -115,7 +101,4 @@ class AuthRepositoryImpl @Inject constructor(
             .await()
         return !snapshot.isEmpty
     }
-
-
-
 }

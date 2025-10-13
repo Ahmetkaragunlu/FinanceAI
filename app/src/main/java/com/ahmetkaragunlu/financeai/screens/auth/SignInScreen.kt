@@ -1,6 +1,5 @@
 package com.ahmetkaragunlu.financeai.screens.auth
 
-import android.app.Activity
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -10,6 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -52,6 +52,7 @@ import androidx.navigation.NavController
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.components.EditTextField
 import com.ahmetkaragunlu.financeai.navigation.Screens
+import com.ahmetkaragunlu.financeai.navigation.navigateSingleTopClear
 import com.ahmetkaragunlu.financeai.viewmodel.AuthViewModel
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInStatusCodes
@@ -202,18 +203,18 @@ fun SignInScreen(
                 },
                 visualTransformation = if (authViewModel.passwordVisibility) VisualTransformation.None else PasswordVisualTransformation()
             )
-
-            Text(
-                text = stringResource(R.string.forgot_password),
-                color = Color(0xFFaea0e4),
-                modifier = modifier
-                    .width(280.dp)
-                    .clickable {
-                        navController.navigate(Screens.PasswordResetRequestScreen.route)
-                        authViewModel.clearSignInFields()
-                    },
-                textAlign = TextAlign.End
-            )
+              Row(modifier = modifier.width(280.dp), horizontalArrangement = Arrangement.End) {
+                  Text(
+                      text = stringResource(R.string.forgot_password),
+                      color = Color(0xFFaea0e4),
+                      modifier = modifier
+                          .clickable {
+                              navController.navigateSingleTopClear(Screens.PasswordResetRequestScreen.route)
+                              authViewModel.clearSignInFields()
+                          },
+                      textAlign = TextAlign.End
+                  )
+              }
 
             Button(
                 onClick = {
@@ -238,8 +239,6 @@ fun SignInScreen(
                     text = stringResource(R.string.login)
                 )
             }
-
-
             Button(
                 onClick = {
                     val signInIntent = authViewModel.getGoogleSignInIntent()
@@ -265,7 +264,7 @@ fun SignInScreen(
             }
             TextButton(
                 onClick = {
-                    navController.navigate(Screens.SignUpScreen.route)
+                    navController.navigateSingleTopClear(Screens.SignUpScreen.route)
                     authViewModel.clearSignInFields()
                 }
             ) {
@@ -274,7 +273,6 @@ fun SignInScreen(
                     color = Color(0xFFaea0e4),
                 )
             }
-
         }
     }
 }

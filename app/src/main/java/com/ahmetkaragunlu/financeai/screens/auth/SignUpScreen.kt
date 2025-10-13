@@ -24,10 +24,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -51,6 +49,7 @@ import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.components.EditAlertDialog
 import com.ahmetkaragunlu.financeai.components.EditTextField
 import com.ahmetkaragunlu.financeai.navigation.Screens
+import com.ahmetkaragunlu.financeai.navigation.navigateSingleTopClear
 import com.ahmetkaragunlu.financeai.ui.theme.TextFieldStyles
 import com.ahmetkaragunlu.financeai.viewmodel.AuthViewModel
 
@@ -65,7 +64,7 @@ fun SignUpScreen(
     val context = LocalContext.current
 
     BackHandler {
-        navController.popBackStack()
+        navController.navigateSingleTopClear(Screens.SignInScreen.route)
     }
 
     LaunchedEffect(uiState) {
@@ -238,7 +237,7 @@ fun SignUpScreen(
                 }
                 TextButton(
                     onClick = {
-                        navController.popBackStack()
+                       navController.navigateSingleTopClear(Screens.SignInScreen.route)
 
                     }
                 ) {
@@ -262,7 +261,7 @@ fun SignUpScreen(
 
 
 @Composable
-fun ShowDialog(
+ private fun ShowDialog(
     authViewModel: AuthViewModel = hiltViewModel(),
     navController: NavController
 ) {
@@ -275,9 +274,7 @@ fun ShowDialog(
                     onClick = {
                         authViewModel.showDialog = false
                         authViewModel.resetAuthState()
-                        navController.navigate(Screens.SignInScreen.route) {
-                            popUpTo(Screens.SignUpScreen.route) { inclusive = true }
-                        }
+                      navController.navigateSingleTopClear(Screens.SignInScreen.route)
                     }
                 ) {
                     Text(text = stringResource(R.string.ok))

@@ -8,15 +8,11 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldColors
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.compose.material3.*
-import androidx.compose.ui.graphics.Color
 
 @Composable
 fun EditTextField(
@@ -49,8 +45,6 @@ fun EditTextField(
                     color = MaterialTheme.colorScheme.error
                 )
             }
-
         }
     )
-
 }
