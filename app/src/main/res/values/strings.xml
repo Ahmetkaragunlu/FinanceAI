@@ -6,6 +6,7 @@
     <string name="new_password">New Password</string>
     <string name="confirm_password">Confirm Password</string>
     <string name="email">Email</string>
+    <string name="analysis">Analysis</string>
     <string name="error_lastName">Must be at least 2 characters long</string>
     <string name="error_email">Enter a valid email address</string>
     <string name="error_password">Password must be at least 6 digits long</string>
@@ -14,6 +15,11 @@
     <string name="success">Success</string>
     <string name="reset_request_sent">Password reset request sent. Please check your email.</string>
     <string name="ok">OK</string>
+    <string name="home">Home</string>
+    <string name="ai_assistant">AI Assistant</string>
+    <string name="history">History</string>
+    <string name="add">Add Transaction</string>
+    <string name="welcome">Welcome,Ahmet</string>
     <string name="fill_all_fields_correctly">Please fill all fields correctly</string>
     <string name="web_client_id">286334851267-0nn0v0ms9f62094u4odu874drlkj1ge9.apps.googleusercontent.com</string>
     <string name="failure">Failure</string>

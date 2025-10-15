@@ -92,9 +92,7 @@ fun SignInScreen(
     LaunchedEffect(uiState) {
         when (uiState) {
             AuthState.SUCCESS -> {
-                navController.navigate(Screens.DashboardScreen.route) {
-                    popUpTo(Screens.SignInScreen.route) { inclusive = true }
-                }
+               navController.navigateSingleTopClear(route = Screens.MAIN_GRAPH.route)
             }
             AuthState.EMAIL_NOT_VERIFIED -> {
                 Toast.makeText(
