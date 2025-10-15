@@ -1,11 +1,14 @@
 package com.ahmetkaragunlu.financeai.navigation.bottomNavigation
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -14,6 +17,9 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -40,23 +46,45 @@ fun BottomBar(
                     selected = false,
                     onClick = {},
                     icon = {
-                        FloatingActionButton(
-                            onClick = {
-                                navController.navigateSingleTopClear(Screens.AddTransaction.route)
-                                      },
-                            shape = CircleShape,
-                            modifier = Modifier.offset(y = (-4).dp).size(70.dp),
+                        Box(
+                            modifier = Modifier
+                                .offset(y = (-4).dp)
+                                .background(
+                                    brush = Brush.linearGradient(
+                                        colors = listOf(
+                                            Color(0xFFb55ebf),
+                                            Color(0xFF36a2cc),
+                                        ),
+                                        start = Offset(0f, 0f),
+                                        end = Offset(250f, 0f)
+                                    ),
+                                    shape = CircleShape
+                                )
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Add,
-                                contentDescription = null
-                            )
+                            FloatingActionButton(
+                                onClick = {
+                                    navController.navigateSingleTopClear(Screens.AddTransaction.route)
+                                },
+                                modifier = Modifier.size(70.dp),
+                                containerColor = Color.Transparent,
+                                elevation = FloatingActionButtonDefaults.elevation(
+                                    defaultElevation = 0.dp,
+                                    pressedElevation = 0.dp,
+                                    focusedElevation = 0.dp,
+                                    hoveredElevation = 0.dp
+                                ),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = null,
+                                    tint = Color.White
+                                )
+                            }
                         }
                     },
                     label = null,
-                    colors = NavigationBarItemDefaults.colors(
-                        indicatorColor = colorResource(R.color.background)
-                    )
+                    colors = NavigationBarItemDefaults.colors(indicatorColor = Color.Transparent)
+
                 )
             } else {
                 NavigationBarItem(
