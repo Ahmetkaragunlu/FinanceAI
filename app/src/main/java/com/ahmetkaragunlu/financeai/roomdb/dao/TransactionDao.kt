@@ -21,6 +21,8 @@ interface TransactionDao {
     @Update
     suspend fun updateTransaction(transaction: TransactionEntity)
 
+    @Query("SELECT * FROM transaction_table ORDER BY date DESC")
+    fun getAllTransactions(): Flow<List<TransactionEntity>>
     @Query("SELECT * FROM transaction_table WHERE date BETWEEN :startDate AND :endDate ORDER BY date DESC")
     fun getAllTransactionsByDateRange(startDate: Long, endDate: Long): Flow<List<TransactionEntity>>
 
