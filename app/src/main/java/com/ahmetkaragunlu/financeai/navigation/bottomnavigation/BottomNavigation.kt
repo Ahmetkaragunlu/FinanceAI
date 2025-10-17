@@ -1,4 +1,4 @@
-package com.ahmetkaragunlu.financeai.navigation.bottomNavigation
+package com.ahmetkaragunlu.financeai.navigation.bottomnavigation
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box

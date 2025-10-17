@@ -21,7 +21,6 @@
     <string name="add">Add Transaction</string>
     <string name="welcome">Welcome,Ahmet</string>
     <string name="fill_all_fields_correctly">Please fill all fields correctly</string>
-    <string name="web_client_id">286334851267-0nn0v0ms9f62094u4odu874drlkj1ge9.apps.googleusercontent.com</string>
     <string name="failure">Failure</string>
     <string name="please_verify_your_email">Please verify your email</string>
     <string name="sign_in_with_Google">Sign in with Google</string>
