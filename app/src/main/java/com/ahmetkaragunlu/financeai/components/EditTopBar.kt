@@ -55,7 +55,7 @@ fun EditTopBar(
 
 
 @Composable
-fun topBarTitleForRoute(currentRoute: String): Int {
+private fun topBarTitleForRoute(currentRoute: String): Int {
     return when (currentRoute) {
         Screens.HomeScreen.route -> R.string.welcome
         Screens.HISTORY_SCREEN.route -> R.string.history
@@ -67,7 +67,7 @@ fun topBarTitleForRoute(currentRoute: String): Int {
 }
 
 @Composable
-fun TopBarActionForRoute(
+private fun TopBarActionForRoute(
     currentRoute: String,
     navController: NavHostController,
 ) {

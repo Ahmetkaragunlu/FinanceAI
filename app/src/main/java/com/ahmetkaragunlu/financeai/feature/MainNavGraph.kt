@@ -13,7 +13,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.ahmetkaragunlu.financeai.components.EditTopBar
 import com.ahmetkaragunlu.financeai.navigation.Screens
-import com.ahmetkaragunlu.financeai.navigation.bottomNavigation.BottomBar
+import com.ahmetkaragunlu.financeai.navigation.bottomnavigation.BottomBar
 import com.ahmetkaragunlu.financeai.screens.main.AddTransaction
 import com.ahmetkaragunlu.financeai.screens.main.AiChatScreen
 import com.ahmetkaragunlu.financeai.screens.main.AnalysisScreen

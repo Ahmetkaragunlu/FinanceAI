@@ -6,7 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ahmetkaragunlu.financeai.firebaseRepo.AuthRepository
+import com.ahmetkaragunlu.financeai.firebaserepo.AuthRepository
 import com.ahmetkaragunlu.financeai.screens.auth.AuthException
 import com.ahmetkaragunlu.financeai.screens.auth.AuthState
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount

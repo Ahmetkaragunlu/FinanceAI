@@ -1,6 +1,6 @@
-package com.ahmetkaragunlu.financeai.firebaseRepo
+package com.ahmetkaragunlu.financeai.firebaserepo
 
-import com.ahmetkaragunlu.financeai.model.User
+import com.ahmetkaragunlu.financeai.firebasemodel.User
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.firebase.auth.AuthResult
 

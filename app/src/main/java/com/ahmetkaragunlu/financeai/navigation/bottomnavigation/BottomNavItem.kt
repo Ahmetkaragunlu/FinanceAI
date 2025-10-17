@@ -1,4 +1,4 @@
-package com.ahmetkaragunlu.financeai.navigation.bottomNavigation
+package com.ahmetkaragunlu.financeai.navigation.bottomnavigation
 
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons

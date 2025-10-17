@@ -1,4 +1,4 @@
-package com.ahmetkaragunlu.financeai.model
+package com.ahmetkaragunlu.financeai.firebasemodel
 
 data class User(
     val firstName : String = "",

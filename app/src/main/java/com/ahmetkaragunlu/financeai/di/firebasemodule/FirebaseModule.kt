@@ -1,9 +1,10 @@
-package com.ahmetkaragunlu.financeai.di
+package com.ahmetkaragunlu.financeai.di.firebasemodule
+
 
 import android.content.Context
 import com.ahmetkaragunlu.financeai.R
-import com.ahmetkaragunlu.financeai.firebaseRepo.AuthRepository
-import com.ahmetkaragunlu.financeai.firebaseRepo.AuthRepositoryImpl
+import com.ahmetkaragunlu.financeai.firebaserepo.AuthRepository
+import com.ahmetkaragunlu.financeai.firebaserepo.AuthRepositoryImpl
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
@@ -33,7 +34,8 @@ object FirebaseModule {
     @Singleton
     fun provideFirebaseStorage(): FirebaseStorage = FirebaseStorage.getInstance()
 
-  }
+}
+
 @InstallIn(SingletonComponent::class)
 @Module
 object RepositoryModule {
@@ -44,7 +46,8 @@ object RepositoryModule {
         firestore: FirebaseFirestore,
     ): AuthRepository =
         AuthRepositoryImpl(auth, firestore)
-  }
+}
+
 
 @InstallIn(SingletonComponent::class)
 @Module
