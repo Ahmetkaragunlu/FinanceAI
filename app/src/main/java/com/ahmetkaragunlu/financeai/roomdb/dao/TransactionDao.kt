@@ -4,7 +4,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
-import com.ahmetkaragunlu.financeai.roomdb.model.TransactionEntity
+import com.ahmetkaragunlu.financeai.roomdb.entitiy.TransactionEntity
 import com.ahmetkaragunlu.financeai.roomdb.type.CategoryType
 import com.ahmetkaragunlu.financeai.roommodel.CategoryExpense
 import kotlinx.coroutines.flow.Flow
@@ -34,12 +34,16 @@ interface TransactionDao {
 
     @Query("SELECT SUM(amount) FROM transaction_table WHERE `transaction` = 'EXPENSE' AND date BETWEEN :startDate AND :endDate")
     fun getTotalExpenseByDateRange(startDate: Long, endDate: Long): Flow<Double?>
-
     @Query("""
-        SELECT category, SUM(amount) as totalAmount
-        FROM transaction_table
-        WHERE `transaction` = 'EXPENSE' AND date BETWEEN :startDate AND :endDate
-        GROUP BY category
-    """)
-    fun getCategoryExpensesByDateRange(startDate: Long, endDate: Long): Flow<List<CategoryExpense>>
+    SELECT category, SUM(amount) as totalAmount
+    FROM transaction_table
+    WHERE `transaction` = :transactionType AND date BETWEEN :startDate AND :endDate
+    GROUP BY category
+""")
+    fun getCategoryByTypeAndDateRange(
+        transactionType: String,
+        startDate: Long,
+        endDate: Long
+    ): Flow<List<CategoryExpense>>
+
 }

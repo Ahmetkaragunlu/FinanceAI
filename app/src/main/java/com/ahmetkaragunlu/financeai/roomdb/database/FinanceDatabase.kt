@@ -3,7 +3,7 @@ package com.ahmetkaragunlu.financeai.roomdb.database
 import TransactionDao
 import androidx.room.Database
 import androidx.room.RoomDatabase
-import com.ahmetkaragunlu.financeai.roomdb.model.TransactionEntity
+import com.ahmetkaragunlu.financeai.roomdb.entitiy.TransactionEntity
 
 
     @Database(

@@ -1,4 +1,4 @@
-package com.ahmetkaragunlu.financeai.roomdb.model
+package com.ahmetkaragunlu.financeai.roomdb.entitiy
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
