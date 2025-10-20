@@ -1,7 +1,7 @@
 package com.ahmetkaragunlu.financeai.roomrepository.financerepository
 
 import TransactionDao
-import com.ahmetkaragunlu.financeai.roomdb.model.TransactionEntity
+import com.ahmetkaragunlu.financeai.roomdb.entitiy.TransactionEntity
 import com.ahmetkaragunlu.financeai.roomdb.type.CategoryType
 import com.ahmetkaragunlu.financeai.roommodel.CategoryExpense
 import jakarta.inject.Inject
@@ -51,8 +51,13 @@ class FinanceRepositoryImpl @Inject constructor(
             .distinctUntilChanged()
             .flowOn(Dispatchers.IO)
 
-    override fun getCategoryExpensesByDateRange(startDate: Long, endDate: Long): Flow<List<CategoryExpense>> =
-        transactionDao.getCategoryExpensesByDateRange(startDate, endDate)
+    override fun getCategoryByTypeAndDateRange(
+        transactionType: String,
+        startDate: Long,
+        endDate: Long
+    ): Flow<List<CategoryExpense>> =
+        transactionDao.getCategoryByTypeAndDateRange(transactionType, startDate, endDate)
             .distinctUntilChanged()
             .flowOn(Dispatchers.IO)
+
 }

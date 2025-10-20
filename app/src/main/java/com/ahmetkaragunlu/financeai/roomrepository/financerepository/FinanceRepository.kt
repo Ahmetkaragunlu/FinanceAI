@@ -1,6 +1,6 @@
 package com.ahmetkaragunlu.financeai.roomrepository.financerepository
 
-import com.ahmetkaragunlu.financeai.roomdb.model.TransactionEntity
+import com.ahmetkaragunlu.financeai.roomdb.entitiy.TransactionEntity
 import com.ahmetkaragunlu.financeai.roomdb.type.CategoryType
 import com.ahmetkaragunlu.financeai.roommodel.CategoryExpense
 import kotlinx.coroutines.flow.Flow
@@ -24,5 +24,11 @@ interface FinanceRepository {
 
     fun getTotalExpenseByDateRange(startDate: Long, endDate: Long): Flow<Double?>
 
-    fun getCategoryExpensesByDateRange(startDate: Long, endDate: Long): Flow<List<CategoryExpense>>
+    fun getCategoryByTypeAndDateRange(
+        transactionType: String,
+        startDate: Long,
+        endDate: Long
+    ): Flow<List<CategoryExpense>>
+
+
 }
