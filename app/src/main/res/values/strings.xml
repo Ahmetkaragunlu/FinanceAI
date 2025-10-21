@@ -16,6 +16,10 @@
     <string name="reset_request_sent">Password reset request sent. Please check your email.</string>
     <string name="ok">OK</string>
     <string name="home">Home</string>
+    <string name="this_months_summary">This Month’s Summary</string>
+    <string name="ai_suggestion">AI Suggestion</string>
+    <string name="expense_categories">Expense Categories</string>
+    <string name="remaining_budget">Remaining Budget</string>
     <string name="ai_assistant">AI Assistant</string>
     <string name="history">History</string>
     <string name="add">Add Transaction</string>
