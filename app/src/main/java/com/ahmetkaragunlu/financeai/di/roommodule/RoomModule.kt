@@ -1,8 +1,10 @@
 package com.ahmetkaragunlu.financeai.di.roommodule
 
-import TransactionDao
+
+
 import android.content.Context
 import androidx.room.Room
+import com.ahmetkaragunlu.financeai.roomdb.dao.TransactionDao
 import com.ahmetkaragunlu.financeai.roomdb.database.FinanceDatabase
 import com.ahmetkaragunlu.financeai.roomrepository.financerepository.FinanceRepository
 import com.ahmetkaragunlu.financeai.roomrepository.financerepository.FinanceRepositoryImpl
@@ -13,11 +15,12 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
+
 @Module
 @InstallIn(SingletonComponent::class)
 object RoomModule {
 
-    // 1️⃣ Room Database instance
+    //  Room Database instance
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): FinanceDatabase {
@@ -33,10 +36,9 @@ object RoomModule {
     // DAO instance
     @Provides
     @Singleton
-    fun provideTransactionDao(database: FinanceDatabase): TransactionDao {
-        return database.TransactionDao()
+    fun provideTransactionDao(database: FinanceDatabase) : TransactionDao {
+        return database.transactionDao()
     }
-
     // Repository instance (Interface + Impl)
     @Provides
     @Singleton

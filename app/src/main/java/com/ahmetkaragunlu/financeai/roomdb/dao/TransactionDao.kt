@@ -1,3 +1,6 @@
+
+package com.ahmetkaragunlu.financeai.roomdb.dao
+
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert

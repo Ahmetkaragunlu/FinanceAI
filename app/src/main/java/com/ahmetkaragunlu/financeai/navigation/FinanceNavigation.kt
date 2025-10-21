@@ -13,7 +13,7 @@ fun FinanceNavigation() {
     val navController = rememberNavController()
     NavHost(
         navController = navController,
-        startDestination = Screens.SignInScreen.route
+        startDestination = Screens.MAIN_GRAPH.route
     ) {
         composable(Screens.SplashScreen.route) {
             SplashScreen(navController=navController)

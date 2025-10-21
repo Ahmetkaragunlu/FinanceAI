@@ -22,7 +22,7 @@ import com.ahmetkaragunlu.financeai.screens.main.HomeScreen
 
 fun NavGraphBuilder.mainNavGraph(navController: NavHostController) {
     composable(Screens.HomeScreen.route) {
-        HomeScreen(navController = navController)
+        HomeScreen()
     }
      composable(Screens.HISTORY_SCREEN.route) {
          HistoryScreen()

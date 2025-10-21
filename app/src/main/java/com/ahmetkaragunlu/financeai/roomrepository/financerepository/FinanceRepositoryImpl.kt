@@ -1,6 +1,6 @@
 package com.ahmetkaragunlu.financeai.roomrepository.financerepository
 
-import TransactionDao
+import com.ahmetkaragunlu.financeai.roomdb.dao.TransactionDao
 import com.ahmetkaragunlu.financeai.roomdb.entitiy.TransactionEntity
 import com.ahmetkaragunlu.financeai.roomdb.type.CategoryType
 import com.ahmetkaragunlu.financeai.roommodel.CategoryExpense
@@ -9,6 +9,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOn
+
 
 class FinanceRepositoryImpl @Inject constructor(
     private val transactionDao: TransactionDao
