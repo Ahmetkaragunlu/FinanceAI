@@ -1,9 +1,8 @@
+
 package com.ahmetkaragunlu.financeai.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ahmetkaragunlu.financeai.roomdb.entitiy.TransactionEntity
-import com.ahmetkaragunlu.financeai.roomdb.type.CategoryType
 import com.ahmetkaragunlu.financeai.roomdb.type.TransactionType
 import com.ahmetkaragunlu.financeai.roommodel.CategoryExpense
 import com.ahmetkaragunlu.financeai.roomrepository.financerepository.FinanceRepository
@@ -14,64 +13,15 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.util.Calendar
 import java.util.Locale
 import javax.inject.Inject
 
 @HiltViewModel
-class FinanceViewModel @Inject constructor(
+class HomeViewModel @Inject constructor(
     private val repository: FinanceRepository
 ) : ViewModel() {
-
-
-    val allTransactions: StateFlow<List<TransactionEntity>> =
-        repository.getAllTransactions()
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5_000),
-                initialValue = emptyList()
-            )
-
-    fun getTransactionsByDateRange(startDate: Long, endDate: Long): Flow<List<TransactionEntity>> =
-        repository.getAllTransactionsByDateRange(startDate, endDate)
-
-    fun getTransactionsByCategoryAndDate(
-        category: CategoryType,
-        startDate: Long,
-        endDate: Long
-    ): Flow<List<TransactionEntity>> =
-        repository.getTransactionsByCategoryAndDate(category, startDate, endDate)
-
-    fun getTotalIncome(startDate: Long, endDate: Long): Flow<Double> =
-        repository.getTotalIncomeByDateRange(startDate, endDate)
-            .map { it ?: 0.0 }
-
-    fun getTotalExpense(startDate: Long, endDate: Long): Flow<Double> =
-        repository.getTotalExpenseByDateRange(startDate, endDate)
-            .map { it ?: 0.0 }
-
-    fun getCategoryExpenses(
-        transactionType: String,
-        startDate: Long,
-        endDate: Long
-    ): Flow<List<CategoryExpense>> =
-        repository.getCategoryByTypeAndDateRange(transactionType, startDate, endDate)
-
-    fun insertTransaction(transaction: TransactionEntity) = viewModelScope.launch {
-        repository.insertTransaction(transaction)
-    }
-
-    fun deleteTransaction(transaction: TransactionEntity) = viewModelScope.launch {
-        repository.deleteTransaction(transaction)
-    }
-
-    fun updateTransaction(transaction: TransactionEntity) = viewModelScope.launch {
-        repository.updateTransaction(transaction)
-    }
-
-
 
 
     // LAST MONTH FINANCIAL DATA
@@ -86,7 +36,7 @@ class FinanceViewModel @Inject constructor(
         startDate to endDate
     }
 
-    private val currencyFormat = NumberFormat.getCurrencyInstance(Locale("tr", "TR"))
+    private val currencyFormat = NumberFormat.getCurrencyInstance(Locale.getDefault())
 
     private fun Flow<Double?>.toFormattedCurrency(): StateFlow<String> =
         this.map { currencyFormat.format(it ?: 0.0) }
