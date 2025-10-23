@@ -1,5 +1,6 @@
 package com.ahmetkaragunlu.financeai.components
 
+import android.graphics.Paint
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -15,16 +16,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.roomdb.type.CategoryType
 import com.ahmetkaragunlu.financeai.roommodel.CategoryExpense
 import java.text.NumberFormat
 import java.util.*
 import kotlin.math.cos
 import kotlin.math.sin
-
 @Composable
 fun ExpensePieChart(
     categoryExpenses: List<CategoryExpense>,
@@ -45,7 +47,24 @@ fun ExpensePieChart(
 
     val displayTotal = if (total <= 0) 4.0 else total
 
-    // Her kategori için renk ata
+    // String resource'ları Composable içinde al
+    val categoryDisplayNames = mapOf(
+        CategoryType.FOOD to stringResource(R.string.category_food),
+        CategoryType.GROCERIES to stringResource(R.string.category_groceries),
+        CategoryType.COFFEE_TEA to stringResource(R.string.category_coffee_tea),
+        CategoryType.DESSERT_SWEETS to stringResource(R.string.category_dessert_sweets),
+        CategoryType.TRANSPORT to stringResource(R.string.category_transport),
+        CategoryType.RENT to stringResource(R.string.category_rent),
+        CategoryType.ENTERTAINMENT to stringResource(R.string.category_entertainment),
+        CategoryType.HEALTH to stringResource(R.string.category_health),
+        CategoryType.BILLS to stringResource(R.string.category_bills),
+        CategoryType.CLOTHING to stringResource(R.string.category_clothing),
+        CategoryType.EDUCATION to stringResource(R.string.category_education),
+        CategoryType.HOME_DECORATION to stringResource(R.string.category_home_decoration),
+        CategoryType.GIFTS_DONATION to stringResource(R.string.category_gifts_donation),
+        CategoryType.OTHER to stringResource(R.string.category_other)
+    )
+
     val categoryData = remember(displayData) {
         displayData.mapIndexed { index, expense ->
             val categoryType = try {
@@ -100,17 +119,24 @@ fun ExpensePieChart(
                 val labelY = centerY + (labelDistance * sin(angleInRadians)).toFloat()
 
                 drawContext.canvas.nativeCanvas.apply {
-                    val paint = android.graphics.Paint().apply {
+                    val paint = Paint().apply {
                         isAntiAlias = true
                     }
 
                     val isLeftSide = labelX < centerX
+                    val categoryColor = categoryData[index].third
 
-                    // Renkli kare arka plan
                     val squareSize = 12f
                     val squareLeft = if (isLeftSide) labelX + 30f else labelX - 30f
                     val squareTop = labelY - 8f
-                    paint.color = categoryData[index].third.hashCode()
+
+                    paint.color = android.graphics.Color.argb(
+                        (categoryColor.alpha * 255).toInt(),
+                        (categoryColor.red * 255).toInt(),
+                        (categoryColor.green * 255).toInt(),
+                        (categoryColor.blue * 255).toInt()
+                    )
+
                     drawRect(
                         squareLeft,
                         squareTop,
@@ -120,21 +146,24 @@ fun ExpensePieChart(
                     )
 
                     paint.color = android.graphics.Color.WHITE
-                    paint.textSize = 28f
+                    paint.textSize = 36f
                     paint.isFakeBoldText = false
 
+                    val categoryName = categoryDisplayNames[categoryData[index].first]
+                        ?: categoryData[index].first.name
+
                     if (isLeftSide) {
-                        paint.textAlign = android.graphics.Paint.Align.RIGHT
+                        paint.textAlign = Paint.Align.RIGHT
                         drawText(
-                            getCategoryDisplayName(categoryData[index].first),
+                            categoryName,
                             squareLeft - 8f,
                             labelY + 6f,
                             paint
                         )
                     } else {
-                        paint.textAlign = android.graphics.Paint.Align.LEFT
+                        paint.textAlign = Paint.Align.LEFT
                         drawText(
-                            getCategoryDisplayName(categoryData[index].first),
+                            categoryName,
                             squareLeft + squareSize + 8f,
                             labelY + 6f,
                             paint
@@ -158,7 +187,6 @@ fun ExpensePieChart(
     }
 }
 
-
 private fun getCategoryColor(index: Int): Color {
     val colors = listOf(
         Color(0xFF4DD0E1),
@@ -178,27 +206,9 @@ private fun getCategoryColor(index: Int): Color {
     )
     return colors[index % colors.size]
 }
-private fun getCategoryDisplayName(category: CategoryType): String {
-    return when (category) {
-        CategoryType.FOOD -> CategoryType.FOOD.name
-        CategoryType.GROCERIES -> CategoryType.GROCERIES.name
-        CategoryType.COFFEE_TEA -> CategoryType.COFFEE_TEA.name
-        CategoryType.DESSERT_SWEETS -> CategoryType.DESSERT_SWEETS.name
-        CategoryType.TRANSPORT -> CategoryType.TRANSPORT.name
-        CategoryType.RENT -> CategoryType.RENT.name
-        CategoryType.ENTERTAINMENT -> CategoryType.ENTERTAINMENT.name
-        CategoryType.HEALTH -> CategoryType.HEALTH.name
-        CategoryType.BILLS -> CategoryType.BILLS.name
-        CategoryType.CLOTHING -> CategoryType.CLOTHING.name
-        CategoryType.EDUCATION -> CategoryType.EDUCATION.name
-        CategoryType.HOME_DECORATION -> CategoryType.HOME_DECORATION.name
-        CategoryType.GIFTS_DONATION -> CategoryType.GIFTS_DONATION.name
-        CategoryType.OTHER -> CategoryType.OTHER.name
-        else -> CategoryType.OTHER.name
-    }
-}
 
 private fun formatCurrency(amount: Double): String {
-    val formatter = NumberFormat.getCurrencyInstance(Locale("tr", "TR"))
+    val systemLocale = Locale.getDefault()
+    val formatter = NumberFormat.getCurrencyInstance(systemLocale)
     return formatter.format(amount)
 }
