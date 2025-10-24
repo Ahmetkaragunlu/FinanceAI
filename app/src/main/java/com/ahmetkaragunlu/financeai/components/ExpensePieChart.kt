@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.sp
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.roomdb.type.CategoryType
 import com.ahmetkaragunlu.financeai.roommodel.CategoryExpense
+import com.ahmetkaragunlu.financeai.util.formatAsCurrency
 import java.text.NumberFormat
 import java.util.*
 import kotlin.math.cos
@@ -111,12 +112,17 @@ fun ExpensePieChart(
                     style = Stroke(width = strokeWidth, cap = StrokeCap.Butt)
                 )
 
-                val middleAngle = startAngle + (sweepAngle / 2)
+                val middleAngle = if (displayData.size == 1) {
+                    -45f
+                } else {
+                    startAngle + (sweepAngle / 2)
+                }
                 val angleInRadians = Math.toRadians(middleAngle.toDouble())
 
                 val labelDistance = radius + strokeWidth + 45f
                 val labelX = centerX + (labelDistance * cos(angleInRadians)).toFloat()
                 val labelY = centerY + (labelDistance * sin(angleInRadians)).toFloat()
+
 
                 drawContext.canvas.nativeCanvas.apply {
                     val paint = Paint().apply {
@@ -179,7 +185,7 @@ fun ExpensePieChart(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = formatCurrency(total),
+                text = total.formatAsCurrency(),
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onPrimary
             )
@@ -207,8 +213,4 @@ private fun getCategoryColor(index: Int): Color {
     return colors[index % colors.size]
 }
 
-private fun formatCurrency(amount: Double): String {
-    val systemLocale = Locale.getDefault()
-    val formatter = NumberFormat.getCurrencyInstance(systemLocale)
-    return formatter.format(amount)
-}
+

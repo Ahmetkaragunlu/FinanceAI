@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -35,6 +36,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
@@ -111,12 +113,7 @@ fun SignUpScreen(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .background(
-                    brush = Brush.linearGradient(
-                        colors = listOf(
-                            Color(0xFF278ae1),
-                            Color(0xFF2acbc0)
-                        )
-                    )
+                 color = colorResource(R.color.background)
                 )
     ) {
         Column(
@@ -217,14 +214,14 @@ fun SignUpScreen(
                     },
                     modifier =
                         modifier
-                            .padding(top = 8.dp)
-                            .width(280.dp)
+                            .padding(top = 8.dp).widthIn(max = 380.dp)
+                            .fillMaxWidth().padding(horizontal = 48.dp)
                             .clip(shape = RoundedCornerShape(12.dp))
                             .background(
                                 brush = Brush.linearGradient(
                                     colors = listOf(
-                                        Color(0xFFf88b76),
-                                        Color(0xFFfea35e)
+                                        Color(0xFF6A11CB),
+                                        Color(0xFF2575FC)
                                     )
                                 )
                             ),

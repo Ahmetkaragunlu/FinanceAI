@@ -11,8 +11,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -38,6 +40,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
@@ -135,12 +138,7 @@ fun SignInScreen(
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .background(
-                brush = Brush.linearGradient(
-                    colors = listOf(
-                        Color(0xFF4F46E5),
-                        Color(0xFF9333EA)
-                    ),
-                )
+                color = colorResource(R.color.background)
             )
     ) {
         Column(
@@ -164,14 +162,14 @@ fun SignInScreen(
                     Icon(
                         imageVector = Icons.Default.Email,
                         contentDescription = null,
-                        tint = Color(0xFFcfccf0)
+                        tint = MaterialTheme.colorScheme.onPrimary
                     )
                 },
                 keyboardOptions = KeyboardOptions.Default.copy(
                     imeAction = ImeAction.Next,
                     keyboardType = KeyboardType.Email
                 ),
-                colors = OutlinedTextFieldDefaults.colors(focusedLabelColor = Color.White)
+                colors = OutlinedTextFieldDefaults.colors(focusedLabelColor = Color.White, focusedTextColor = Color.White, focusedBorderColor = Color.White)
             )
 
             EditTextField(
@@ -186,31 +184,35 @@ fun SignInScreen(
                     Icon(
                         imageVector = Icons.Default.Lock,
                         contentDescription = null,
-                        tint = Color(0xFFcfccf0)
+                        tint = MaterialTheme.colorScheme.onPrimary
                     )
                 },
                 trailingIcon = {
                     Icon(
                         imageVector = if (authViewModel.passwordVisibility) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                         contentDescription = null,
-                        tint = Color(0xFFcfccf0),
+                        tint = MaterialTheme.colorScheme.onPrimary,
                         modifier = modifier.clickable {
                             authViewModel.passwordVisibility = !authViewModel.passwordVisibility
                         }
                     )
                 },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                    focusedTextColor = MaterialTheme.colorScheme.onPrimary,
+                    focusedBorderColor = MaterialTheme.colorScheme.onPrimary),
                 visualTransformation = if (authViewModel.passwordVisibility) VisualTransformation.None else PasswordVisualTransformation()
             )
-              Row(modifier = modifier.width(280.dp), horizontalArrangement = Arrangement.End) {
+              Row(modifier = modifier.widthIn(max = 380.dp).fillMaxWidth().padding(end = 48.dp), horizontalArrangement = Arrangement.End) {
                   Text(
                       text = stringResource(R.string.forgot_password),
-                      color = Color(0xFFaea0e4),
+                      color = MaterialTheme.colorScheme.onPrimary,
+                      style = MaterialTheme.typography.labelLarge,
                       modifier = modifier
                           .clickable {
                               navController.navigateSingleTopClear(Screens.PasswordResetRequestScreen.route)
                               authViewModel.clearSignInFields()
                           },
-                      textAlign = TextAlign.End
                   )
               }
 
@@ -219,7 +221,7 @@ fun SignInScreen(
                     authViewModel.login()
                 },
                 modifier = modifier
-                    .width(280.dp)
+                    .widthIn(max =400.dp).fillMaxWidth().padding(horizontal = 56.dp)
                     .clip(shape = RoundedCornerShape(12.dp))
                     .background(
                         brush = Brush.linearGradient(
@@ -243,7 +245,7 @@ fun SignInScreen(
                     googleSignInLauncher.launch(signInIntent)
                 },
                 modifier = modifier
-                    .width(280.dp)
+                    .widthIn(max = 400.dp).fillMaxWidth().padding(horizontal = 56.dp)
                     .padding(top = 8.dp, bottom = 36.dp)
                     .clip(shape = RoundedCornerShape(12.dp)),
                 colors = ButtonDefaults.outlinedButtonColors(
@@ -268,7 +270,7 @@ fun SignInScreen(
             ) {
                 Text(
                     text = stringResource(R.string.have_an_account_sign_up),
-                    color = Color(0xFFaea0e4),
+                    color = MaterialTheme.colorScheme.onPrimary
                 )
             }
         }
