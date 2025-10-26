@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -52,7 +51,7 @@ import com.ahmetkaragunlu.financeai.components.EditAlertDialog
 import com.ahmetkaragunlu.financeai.components.EditTextField
 import com.ahmetkaragunlu.financeai.navigation.Screens
 import com.ahmetkaragunlu.financeai.navigation.navigateSingleTopClear
-import com.ahmetkaragunlu.financeai.ui.theme.TextFieldStyles
+import com.ahmetkaragunlu.financeai.ui.theme.SignUpTextFieldStyles
 import com.ahmetkaragunlu.financeai.viewmodel.AuthViewModel
 
 @Composable
@@ -153,7 +152,7 @@ fun SignUpScreen(
                         imeAction = ImeAction.Next,
                         keyboardType = KeyboardType.Email
                     ),
-                    colors = TextFieldStyles.whiteTextFieldColors(),
+                    colors = SignUpTextFieldStyles.whiteTextFieldColors(),
                     supportingText = if (authViewModel.emailSupportingText()) R.string.error_email else null
                 )
                 EditTextField(
@@ -174,7 +173,7 @@ fun SignUpScreen(
                             }
                         )
                     },
-                    colors = TextFieldStyles.whiteTextFieldColors(),
+                    colors = SignUpTextFieldStyles.whiteTextFieldColors(),
                     supportingText = if (authViewModel.passwordSupportingText()) R.string.error_password else null,
                     visualTransformation = if (authViewModel.passwordVisibility) VisualTransformation.None else PasswordVisualTransformation()
                 )
@@ -186,7 +185,7 @@ fun SignUpScreen(
                         imeAction = ImeAction.Next,
                         keyboardType = KeyboardType.Text
                     ),
-                    colors = TextFieldStyles.whiteTextFieldColors(),
+                    colors = SignUpTextFieldStyles.whiteTextFieldColors(),
                     supportingText = if (authViewModel.firstNameSupportingText()) R.string.error_firstName else null
                 )
                 EditTextField(
@@ -197,7 +196,7 @@ fun SignUpScreen(
                         imeAction = ImeAction.Done,
                         keyboardType = KeyboardType.Text
                     ),
-                    colors = TextFieldStyles.whiteTextFieldColors(),
+                    colors = SignUpTextFieldStyles.whiteTextFieldColors(),
                     supportingText = if (authViewModel.lastNameSupportingText()) R.string.error_lastName else null
                 )
                 Button(

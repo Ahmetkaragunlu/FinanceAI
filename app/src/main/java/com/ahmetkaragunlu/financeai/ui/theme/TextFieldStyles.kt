@@ -6,7 +6,7 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-object TextFieldStyles {
+object SignUpTextFieldStyles {
     @Composable
     fun whiteTextFieldColors() = TextFieldDefaults.colors(
         focusedContainerColor = MaterialTheme.colorScheme.onPrimary,
@@ -25,6 +25,7 @@ object AddTransactionScreenTextFieldStyles {
         focusedPlaceholderColor = MaterialTheme.colorScheme.onPrimary,
         unfocusedPlaceholderColor = MaterialTheme.colorScheme.onPrimary,
         focusedTextColor = MaterialTheme.colorScheme.onPrimary,
+        unfocusedTextColor = MaterialTheme.colorScheme.onPrimary,
         focusedBorderColor = Color(0xFF404349),
         unfocusedBorderColor = Color(0xFF404349),
         focusedLabelColor = MaterialTheme.colorScheme.onPrimary,

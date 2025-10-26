@@ -59,15 +59,21 @@ dependencies {
     ksp("androidx.room:room-compiler:2.8.0")
     implementation("androidx.room:room-ktx:2.8.0")
     implementation("androidx.room:room-runtime:2.8.0")
+
     //DI
     implementation("com.google.dagger:hilt-android:2.57.1")
     ksp("com.google.dagger:hilt-android-compiler:2.57.1")
     implementation("androidx.hilt:hilt-navigation-compose:1.3.0")
+
+    //WorkManager
+    implementation("androidx.work:work-runtime-ktx:2.11.0")
+
     //Navigation
     implementation("androidx.navigation:navigation-compose:2.9.4")
+
     //ViewModel
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.4")
-
+     //Icons
     implementation("androidx.compose.material:material-icons-extended:1.7.8")
 
     implementation(libs.androidx.core.ktx)

@@ -32,7 +32,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.colorResource
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -132,7 +131,7 @@ fun AddTransaction(
                 onToggleDropdown = { viewModel.toggleDropdown() },
                 onDismissDropdown = { viewModel.dismissDropdown() },
                 modifier = Modifier
-                    .widthIn(max = 450.dp).padding(bottom = 10.dp)
+                    .widthIn(max = 450.dp).padding(bottom = 14.dp)
                     .fillMaxWidth()
             )
 
@@ -143,7 +142,7 @@ fun AddTransaction(
                     imeAction = ImeAction.Done,
                     keyboardType = KeyboardType.Text
                 ),
-                label = R.string.enter_your_note,
+                placeholder = R.string.enter_your_note,
                 modifier = modifier.widthIn(max = 450.dp).fillMaxWidth(),
                 colors = AddTransactionScreenTextFieldStyles.textFieldColors()
             )
@@ -151,6 +150,15 @@ fun AddTransaction(
         }
     }
 }
+
+
+
+
+
+
+
+
+
 
 
 
@@ -177,7 +185,7 @@ fun CategoryDropdownMenu(
             placeholder = {
                 Text(
                     text = stringResource(R.string.select_category),
-                    color = MaterialTheme.colorScheme.onPrimary,
+                    color = Color.Gray,
                     style = MaterialTheme.typography.labelLarge
                 )
             },

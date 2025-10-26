@@ -42,7 +42,7 @@ import com.ahmetkaragunlu.financeai.components.EditAlertDialog
 import com.ahmetkaragunlu.financeai.components.EditTextField
 import com.ahmetkaragunlu.financeai.navigation.Screens
 import com.ahmetkaragunlu.financeai.navigation.navigateSingleTopClear
-import com.ahmetkaragunlu.financeai.ui.theme.TextFieldStyles
+import com.ahmetkaragunlu.financeai.ui.theme.SignUpTextFieldStyles
 import com.ahmetkaragunlu.financeai.viewmodel.AuthViewModel
 
 @Composable
@@ -110,7 +110,7 @@ fun PasswordResetRequestScreen(
                     keyboardType = KeyboardType.Email
                 ),
                 supportingText = if (authViewModel.emailSupportingText()) R.string.error_email else null,
-                colors = TextFieldStyles.whiteTextFieldColors()
+                colors = SignUpTextFieldStyles.whiteTextFieldColors()
             )
             EditTextField(
                 value = authViewModel.inputFirstName,
@@ -121,7 +121,7 @@ fun PasswordResetRequestScreen(
                     keyboardType = KeyboardType.Text
                 ),
                 supportingText = if (authViewModel.firstNameSupportingText()) R.string.error_firstName else null,
-                colors = TextFieldStyles.whiteTextFieldColors()
+                colors = SignUpTextFieldStyles.whiteTextFieldColors()
             )
             EditTextField(
                 value = authViewModel.inputLastName,
@@ -132,7 +132,7 @@ fun PasswordResetRequestScreen(
                     keyboardType = KeyboardType.Text
                 ),
                 supportingText = if (authViewModel.lastNameSupportingText()) R.string.error_lastName else null,
-                colors = TextFieldStyles.whiteTextFieldColors()
+                colors = SignUpTextFieldStyles.whiteTextFieldColors()
             )
             Button(
                 onClick = {

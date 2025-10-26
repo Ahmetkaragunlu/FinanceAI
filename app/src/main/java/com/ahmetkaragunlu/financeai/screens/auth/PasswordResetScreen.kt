@@ -47,7 +47,7 @@ import com.ahmetkaragunlu.financeai.components.EditAlertDialog
 import com.ahmetkaragunlu.financeai.components.EditTextField
 import com.ahmetkaragunlu.financeai.navigation.Screens
 import com.ahmetkaragunlu.financeai.navigation.navigateSingleTopClear
-import com.ahmetkaragunlu.financeai.ui.theme.TextFieldStyles
+import com.ahmetkaragunlu.financeai.ui.theme.SignUpTextFieldStyles
 import com.ahmetkaragunlu.financeai.viewmodel.AuthViewModel
 
 @Composable
@@ -114,7 +114,7 @@ fun PasswordResetScreen(
                     keyboardType = KeyboardType.NumberPassword
                 ),
                 supportingText = if (authViewModel.newPasswordSupportingText()) R.string.error_password else null,
-                colors = TextFieldStyles.whiteTextFieldColors(),
+                colors = SignUpTextFieldStyles.whiteTextFieldColors(),
                 trailingIcon = {
                     Icon(
                         imageVector = if (authViewModel.passwordVisibility) Icons.Default.Visibility else Icons.Default.VisibilityOff,
@@ -136,7 +136,7 @@ fun PasswordResetScreen(
                     keyboardType = KeyboardType.NumberPassword
                 ),
                 supportingText = if (authViewModel.confirmNewPasswordSupportingText()) R.string.error_password else null,
-                colors = TextFieldStyles.whiteTextFieldColors(),
+                colors = SignUpTextFieldStyles.whiteTextFieldColors(),
                 trailingIcon = {
                     Icon(
                         imageVector = if (authViewModel.confirmPasswordVisibility) Icons.Default.Visibility else Icons.Default.VisibilityOff,

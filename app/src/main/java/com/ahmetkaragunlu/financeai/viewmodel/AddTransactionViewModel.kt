@@ -6,11 +6,16 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import com.ahmetkaragunlu.financeai.roomdb.type.CategoryType
 import com.ahmetkaragunlu.financeai.roomdb.type.TransactionType
+import com.ahmetkaragunlu.financeai.roomrepository.financerepository.FinanceRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 
 @HiltViewModel
-class AddTransactionViewModel @Inject constructor() : ViewModel() {
+class AddTransactionViewModel @Inject constructor(
+    private val repo : FinanceRepository
+) : ViewModel() {
+
+
 
     var selectedTransactionType by mutableStateOf(TransactionType.EXPENSE)
 
@@ -30,8 +35,6 @@ class AddTransactionViewModel @Inject constructor() : ViewModel() {
 
 
 
-
-
     fun updateInputNote(note : String) {
         inputNote = note
     }
@@ -42,6 +45,8 @@ class AddTransactionViewModel @Inject constructor() : ViewModel() {
     fun updateTransactionType(type: TransactionType) {
         selectedTransactionType = type
         selectedCategory = null
+        inputNote = ""
+        inputAmount = ""
     }
 
     fun updateCategory(category: CategoryType) {
