@@ -1,6 +1,8 @@
 package com.ahmetkaragunlu.financeai.roomrepository.financerepository
 
+import com.ahmetkaragunlu.financeai.roomdb.dao.ScheduledTransactionDao
 import com.ahmetkaragunlu.financeai.roomdb.dao.TransactionDao
+import com.ahmetkaragunlu.financeai.roomdb.entitiy.ScheduledTransactionEntity
 import com.ahmetkaragunlu.financeai.roomdb.entitiy.TransactionEntity
 import com.ahmetkaragunlu.financeai.roomdb.type.CategoryType
 import com.ahmetkaragunlu.financeai.roommodel.CategoryExpense
@@ -12,8 +14,12 @@ import kotlinx.coroutines.flow.flowOn
 
 
 class FinanceRepositoryImpl @Inject constructor(
-    private val transactionDao: TransactionDao
+    private val transactionDao: TransactionDao,
+    private val scheduledTransactionDao: ScheduledTransactionDao
 ) : FinanceRepository {
+
+
+    //Transaction
     override suspend fun insertTransaction(transaction: TransactionEntity) =
         transactionDao.insertTransaction(transaction)
 
@@ -58,6 +64,26 @@ class FinanceRepositoryImpl @Inject constructor(
         endDate: Long
     ): Flow<List<CategoryExpense>> =
         transactionDao.getCategoryByTypeAndDateRange(transactionType, startDate, endDate)
+            .distinctUntilChanged()
+            .flowOn(Dispatchers.IO)
+
+
+
+
+    //ScheduledTransaction
+    override suspend fun insertScheduledTransaction(transaction: ScheduledTransactionEntity) =
+        scheduledTransactionDao.insertScheduledTransaction(transaction)
+
+    override suspend fun deleteScheduledTransaction(transaction: ScheduledTransactionEntity) =
+        scheduledTransactionDao.deleteScheduledTransaction(transaction)
+
+    override fun getAllScheduledTransactions(): Flow<List<ScheduledTransactionEntity>> =
+        scheduledTransactionDao.getAllScheduledTransactions()
+            .distinctUntilChanged()
+            .flowOn(Dispatchers.IO)
+
+    override fun getPendingScheduledTransactions(currentTime: Long): Flow<List<ScheduledTransactionEntity>> =
+        scheduledTransactionDao.getPendingScheduledTransactions(currentTime)
             .distinctUntilChanged()
             .flowOn(Dispatchers.IO)
 

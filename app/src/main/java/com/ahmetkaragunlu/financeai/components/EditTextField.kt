@@ -10,6 +10,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.Placeholder
@@ -41,7 +42,7 @@ fun EditTextField(
         singleLine = true,
         trailingIcon = trailingIcon,
         leadingIcon = leadingIcon,
-        placeholder = placeholder?.let { { Text(text = stringResource(it), style = MaterialTheme.typography.labelLarge) } },
+        placeholder = placeholder?.let { { Text(text = stringResource(it), style = MaterialTheme.typography.labelLarge, color = Color.Gray) } },
         modifier = modifier,
         shape = shape,
         colors = colors ?: OutlinedTextFieldDefaults.colors(),

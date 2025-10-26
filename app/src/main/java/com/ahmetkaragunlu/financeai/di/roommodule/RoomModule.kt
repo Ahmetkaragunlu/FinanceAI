@@ -4,6 +4,7 @@ package com.ahmetkaragunlu.financeai.di.roommodule
 
 import android.content.Context
 import androidx.room.Room
+import com.ahmetkaragunlu.financeai.roomdb.dao.ScheduledTransactionDao
 import com.ahmetkaragunlu.financeai.roomdb.dao.TransactionDao
 import com.ahmetkaragunlu.financeai.roomdb.database.FinanceDatabase
 import com.ahmetkaragunlu.financeai.roomrepository.financerepository.FinanceRepository
@@ -39,12 +40,19 @@ object RoomModule {
     fun provideTransactionDao(database: FinanceDatabase) : TransactionDao {
         return database.transactionDao()
     }
+    @Provides
+    @Singleton
+    fun provideScheduledTransactionDao(database: FinanceDatabase) : ScheduledTransactionDao {
+        return  database.scheduledTransactionDao()
+    }
+
     // Repository instance (Interface + Impl)
     @Provides
     @Singleton
     fun provideFinanceRepository(
-        transactionDao: TransactionDao
+        transactionDao: TransactionDao,
+        scheduledTransactionDao: ScheduledTransactionDao
     ): FinanceRepository {
-        return FinanceRepositoryImpl(transactionDao)
+        return FinanceRepositoryImpl(transactionDao,scheduledTransactionDao)
     }
 }

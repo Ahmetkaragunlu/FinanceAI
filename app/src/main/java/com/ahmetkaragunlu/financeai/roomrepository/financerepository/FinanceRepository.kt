@@ -1,11 +1,14 @@
 package com.ahmetkaragunlu.financeai.roomrepository.financerepository
 
+import com.ahmetkaragunlu.financeai.roomdb.entitiy.ScheduledTransactionEntity
 import com.ahmetkaragunlu.financeai.roomdb.entitiy.TransactionEntity
 import com.ahmetkaragunlu.financeai.roomdb.type.CategoryType
 import com.ahmetkaragunlu.financeai.roommodel.CategoryExpense
 import kotlinx.coroutines.flow.Flow
 
 interface FinanceRepository {
+
+    //Transaction
     suspend fun insertTransaction(transaction: TransactionEntity)
     suspend fun deleteTransaction(transaction: TransactionEntity)
     suspend fun updateTransaction(transaction: TransactionEntity)
@@ -29,6 +32,13 @@ interface FinanceRepository {
         startDate: Long,
         endDate: Long
     ): Flow<List<CategoryExpense>>
+
+
+                     //Scheduled Transaction
+    suspend fun insertScheduledTransaction(transaction: ScheduledTransactionEntity)
+    suspend fun deleteScheduledTransaction(transaction: ScheduledTransactionEntity)
+    fun getAllScheduledTransactions(): Flow<List<ScheduledTransactionEntity>>
+    fun getPendingScheduledTransactions(currentTime: Long): Flow<List<ScheduledTransactionEntity>>
 
 
 }
