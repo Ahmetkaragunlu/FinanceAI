@@ -15,10 +15,12 @@
     <string name="success">Success</string>
     <string name="reset_request_sent">Password reset request sent. Please check your email.</string>
     <string name="ok">OK</string>
+    <string name="cancel">Cancel</string>
     <string name="home">Home</string>
     <string name="income">Income</string>
     <string name="enter_your_note">Enter your note</string>
     <string name="enter_amount">Enter Amount</string>
+    <string name="notification_channel_description">Reminders for scheduled transactions</string>
     <string name="expense">Expense</string>
    <string name="category_food">Food</string>
 <string name="category_groceries">Groceries</string>
@@ -69,6 +71,37 @@
     <string name="your_password_has_been_changed_successfully">Your password has been changed successfully</string>
     <string name="your_link_has_expired">Your link has expired</string>
     <string name="have_an_account_sign_up">Don’t have an account? Sign up</string>
+
+
+
+    <!-- Mevcut string'leriniz... -->
+
+    <!-- YENİ: Tarih ve hatırlatıcı için string'ler -->
+    <string name="select_date">Tarih Seçin</string>
+
+    //..
+    <string name="reminder_switch_title">Hatırlatıcı Olarak Kaydet</string>
+    <string name="reminder_enabled_desc">Gelecek tarihte bildirim gönderilecek</string>
+
+    <string name="reminder_disabled_desc">İşlem hemen kaydedilecek</string>
+
+    //..
+    <string name="save_button">Kaydet</string>
+    <string name="create_reminder_button">Hatırlatıcı Oluştur</string>
+    //..
+    <string name="date_past_future">Geçmiş/Bugün</string>
+    <string name="date_future_only">Gelecek</string>
+
+    <!-- Hata mesajları -->
+    <string name="error_invalid_amount">Lütfen geçerli bir tutar girin</string>
+    <string name="error_no_category">Lütfen bir kategori seçin</string>
+
+
+    <!-- Başarı mesajları. -->
+    <string name="success_transaction_saved">İşlem başarıyla kaydedildi</string>
+
+    <string name="transaction_confirmed">İşlem başarıyla kaydedildi!</string>
+    <string name="transaction_pending">İşlem beklemede kaldı</string>
 
 
 </resources>

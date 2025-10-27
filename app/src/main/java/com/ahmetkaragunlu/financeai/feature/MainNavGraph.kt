@@ -14,11 +14,11 @@ import androidx.navigation.compose.rememberNavController
 import com.ahmetkaragunlu.financeai.components.EditTopBar
 import com.ahmetkaragunlu.financeai.navigation.Screens
 import com.ahmetkaragunlu.financeai.navigation.bottomnavigation.BottomBar
-import com.ahmetkaragunlu.financeai.screens.main.AddTransaction
 import com.ahmetkaragunlu.financeai.screens.main.AiChatScreen
 import com.ahmetkaragunlu.financeai.screens.main.AnalysisScreen
 import com.ahmetkaragunlu.financeai.screens.main.HistoryScreen
 import com.ahmetkaragunlu.financeai.screens.main.HomeScreen
+import com.ahmetkaragunlu.financeai.screens.transaction.AddTransactionScreen
 
 fun NavGraphBuilder.mainNavGraph(navController: NavHostController) {
     composable(Screens.HomeScreen.route) {
@@ -34,7 +34,7 @@ fun NavGraphBuilder.mainNavGraph(navController: NavHostController) {
         AnalysisScreen()
     }
     composable(route = Screens.AddTransaction.route) {
-        AddTransaction()
+        AddTransactionScreen()
     }
 
 

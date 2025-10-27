@@ -1,4 +1,4 @@
-package com.ahmetkaragunlu.financeai.di.firebasemodule
+ package com.ahmetkaragunlu.financeai.di.firebasemodule
 
 
 import android.content.Context
