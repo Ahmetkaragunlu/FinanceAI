@@ -1,13 +1,18 @@
-package com.ahmetkaragunlu.financeai.components
+package com.ahmetkaragunlu.financeai.utils
+
 
 import android.graphics.Paint
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -17,17 +22,13 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.roomdb.type.CategoryType
 import com.ahmetkaragunlu.financeai.roommodel.CategoryExpense
-import com.ahmetkaragunlu.financeai.util.formatAsCurrency
-import java.text.NumberFormat
-import java.util.*
 import kotlin.math.cos
 import kotlin.math.sin
+
 @Composable
 fun ExpensePieChart(
     categoryExpenses: List<CategoryExpense>,
@@ -35,29 +36,26 @@ fun ExpensePieChart(
 ) {
     val total = categoryExpenses.sumOf { it.totalAmount }
 
-    val displayData = if (categoryExpenses.isEmpty()) {
+    val displayData = categoryExpenses.ifEmpty {
         listOf(
             CategoryExpense(CategoryType.FOOD.name, 0.0),
             CategoryExpense(CategoryType.TRANSPORT.name, 0.0),
             CategoryExpense(CategoryType.GROCERIES.name, 0.0),
             CategoryExpense(CategoryType.ENTERTAINMENT.name, 0.0)
         )
-    } else {
-        categoryExpenses
     }
 
     val displayTotal = if (total <= 0) 4.0 else total
 
-    // String resource'ları Composable içinde al
     val categoryDisplayNames = mapOf(
         CategoryType.FOOD to stringResource(R.string.category_food),
         CategoryType.GROCERIES to stringResource(R.string.category_groceries),
+        CategoryType.HEALTH to stringResource(R.string.category_health),
         CategoryType.COFFEE_TEA to stringResource(R.string.category_coffee_tea),
         CategoryType.DESSERT_SWEETS to stringResource(R.string.category_dessert_sweets),
         CategoryType.TRANSPORT to stringResource(R.string.category_transport),
         CategoryType.RENT to stringResource(R.string.category_rent),
         CategoryType.ENTERTAINMENT to stringResource(R.string.category_entertainment),
-        CategoryType.HEALTH to stringResource(R.string.category_health),
         CategoryType.BILLS to stringResource(R.string.category_bills),
         CategoryType.CLOTHING to stringResource(R.string.category_clothing),
         CategoryType.EDUCATION to stringResource(R.string.category_education),

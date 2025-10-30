@@ -2,13 +2,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- İzinler -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+
 
     <application
         android:allowBackup="true"
@@ -44,7 +44,6 @@
             </intent-filter>
         </activity>
 
-        <!-- BroadcastReceiver: exported=false olmalı (güvenlik) -->
         <receiver
             android:name=".worker.NotificationActionReceiver"
             android:exported="false"
@@ -55,14 +54,12 @@
             </intent-filter>
         </receiver>
 
-        <!-- WorkManager InitializationProvider: node="remove" olmalı -->
-        <!-- Çünkü Configuration.Provider ile manuel initialize ediyoruz -->
+
         <provider
             android:name="androidx.startup.InitializationProvider"
             android:authorities="${applicationId}.androidx-startup"
             android:exported="false"
             tools:node="remove">
-            <!-- Meta-data kaldırıldı çünkü manuel initialize ediyoruz -->
         </provider>
 
     </application>

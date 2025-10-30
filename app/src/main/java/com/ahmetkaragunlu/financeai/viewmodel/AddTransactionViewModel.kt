@@ -1,11 +1,8 @@
-
-// ============================================
-// 3. AddTransactionViewModel.kt
-// ============================================
 package com.ahmetkaragunlu.financeai.viewmodel
 
-import android.util.Log
+import android.content.Context
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
@@ -13,6 +10,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.workDataOf
+import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.roomdb.entitiy.ScheduledTransactionEntity
 import com.ahmetkaragunlu.financeai.roomdb.entitiy.TransactionEntity
 import com.ahmetkaragunlu.financeai.roomdb.type.CategoryType
@@ -20,6 +18,7 @@ import com.ahmetkaragunlu.financeai.roomdb.type.TransactionType
 import com.ahmetkaragunlu.financeai.roomrepository.financerepository.FinanceRepository
 import com.ahmetkaragunlu.financeai.worker.NotificationWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -30,12 +29,9 @@ import javax.inject.Inject
 @HiltViewModel
 class AddTransactionViewModel @Inject constructor(
     private val repo: FinanceRepository,
-    private val workManager: WorkManager
+    private val workManager: WorkManager,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
-
-    companion object {
-        private const val TAG = "AddTransactionVM"
-    }
 
     var selectedTransactionType by mutableStateOf(TransactionType.EXPENSE)
     var selectedCategory by mutableStateOf<CategoryType?>(null)
@@ -48,36 +44,13 @@ class AddTransactionViewModel @Inject constructor(
         private set
     var inputNote by mutableStateOf("")
         private set
-    var selectedDate by mutableStateOf(System.currentTimeMillis())
-        private set
+    var selectedDate by mutableLongStateOf(System.currentTimeMillis())
+
     var isReminderEnabled by mutableStateOf(false)
-        private set
+
     var isDatePickerOpen by mutableStateOf(false)
-        private set
 
-    val minSelectableDate: Long
-        get() {
-            if (isReminderEnabled) {
-                return Calendar.getInstance().apply {
-                    add(Calendar.DAY_OF_YEAR, 1)
-                    set(Calendar.HOUR_OF_DAY, 0)
-                    set(Calendar.MINUTE, 0)
-                    set(Calendar.SECOND, 0)
-                    set(Calendar.MILLISECOND, 0)
-                }.timeInMillis
-            } else {
-                return 0L
-            }
-        }
 
-    val maxSelectableDate: Long
-        get() {
-            if (isReminderEnabled) {
-                return Long.MAX_VALUE
-            } else {
-                return System.currentTimeMillis()
-            }
-        }
 
     fun updateInputNote(note: String) {
         inputNote = note
@@ -92,6 +65,9 @@ class AddTransactionViewModel @Inject constructor(
         selectedCategory = null
         inputNote = ""
         inputAmount = ""
+        selectedDate = System.currentTimeMillis()
+        isReminderEnabled = false
+
     }
 
     fun updateCategory(category: CategoryType) {
@@ -142,7 +118,7 @@ class AddTransactionViewModel @Inject constructor(
         }.timeInMillis
 
         return if (isReminderEnabled) {
-            timestamp > today
+            timestamp >= today
         } else {
             timestamp <= System.currentTimeMillis()
         }
@@ -150,11 +126,11 @@ class AddTransactionViewModel @Inject constructor(
 
     fun saveTransaction(onSuccess: () -> Unit, onError: (String) -> Unit) {
         if (inputAmount.isBlank() || inputAmount.toDoubleOrNull() == null) {
-            onError("Lütfen geçerli bir tutar girin")
+            onError(context.getString(R.string.error_invalid_amount))
             return
         }
         if (selectedCategory == null) {
-            onError("Lütfen bir kategori seçin")
+            onError(context.getString(R.string.error_select_category))
             return
         }
 
@@ -163,58 +139,34 @@ class AddTransactionViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 if (isReminderEnabled) {
-                    Log.d(TAG, "🔔 Hatırlatıcı modu aktif")
-
-                    // TEST: 5 saniye sonra bildirim (gerçek kullanımda selectedDate kullanılacak)
-                    val testScheduledTime = System.currentTimeMillis() + 5000
-                    Log.d(TAG, "⏰ Planlanan zaman: $testScheduledTime (5 saniye sonra)")
-
                     val scheduledTransaction = ScheduledTransactionEntity(
                         amount = amount,
                         type = selectedTransactionType,
                         category = selectedCategory!!,
-                        note = inputNote.ifBlank { null },
-                        scheduledDate = testScheduledTime,
-                        isConfirmed = false,
+                        note = inputNote.ifBlank { "" },
+                        scheduledDate = selectedDate,
                         notificationSent = false,
-                        expirationNotificationSent = false // YENİ ALAN
+                        expirationNotificationSent = false
                     )
-
-                    // Transaction'ı kaydet
-                    Log.d(TAG, "💾 Transaction kaydediliyor...")
                     repo.insertScheduledTransaction(scheduledTransaction)
-                    Log.d(TAG, "✅ Transaction kaydedildi")
-
-                    // Kısa bekleyip ID'yi bul
-                    Log.d(TAG, "⏳ 150ms bekleniyor...")
                     delay(150)
 
                     val allTransactions = repo.getAllScheduledTransactions().first()
-                    Log.d(TAG, "📊 Toplam scheduled transaction: ${allTransactions.size}")
 
                     val insertedTransaction = allTransactions
                         .filter {
-                            it.scheduledDate == testScheduledTime &&
+                            it.scheduledDate == selectedDate &&
                                     it.amount == amount &&
                                     !it.notificationSent
                         }
                         .maxByOrNull { it.id }
 
-                    Log.d(TAG, "🔍 Bulunan transaction ID: ${insertedTransaction?.id}")
-
                     if (insertedTransaction != null) {
-                        Log.d(TAG, "🚀 WorkManager ile bildirim planlanıyor - ID: ${insertedTransaction.id}")
-                        scheduleNotification(insertedTransaction.id, 5)
-                        Log.d(TAG, "✅ WorkManager request kuyruğa eklendi")
+                        scheduleFirstNotification(insertedTransaction.id)
                         clearForm()
                         onSuccess()
                     } else {
-                        Log.e(TAG, "❌ Transaction bulunamadı!")
-                        Log.e(TAG, "Aranan: time=$testScheduledTime, amount=$amount")
-                        allTransactions.forEach {
-                            Log.e(TAG, "Mevcut: id=${it.id}, time=${it.scheduledDate}, amount=${it.amount}, sent=${it.notificationSent}")
-                        }
-                        onError("Hatırlatıcı oluşturulamadı")
+                        onError(context.getString(R.string.error_reminder_not_created))
                     }
 
                 } else {
@@ -230,16 +182,14 @@ class AddTransactionViewModel @Inject constructor(
                     onSuccess()
                 }
             } catch (e: Exception) {
-                onError("İşlem kaydedilemedi: ${e.message}")
+                onError(context.getString(R.string.error_transaction_save_failed, e.message ?: ""))
             }
         }
     }
 
-    private fun scheduleNotification(transactionId: Long, delaySeconds: Long) {
-        Log.d(TAG, "📱 scheduleNotification çağrıldı - ID: $transactionId, Delay: $delaySeconds saniye")
-
+    private fun scheduleFirstNotification(transactionId: Long) {
         val workRequest = OneTimeWorkRequestBuilder<NotificationWorker>()
-            .setInitialDelay(delaySeconds, TimeUnit.SECONDS)
+            .setInitialDelay(5, TimeUnit.SECONDS)
             .setInputData(
                 workDataOf(
                     NotificationWorker.TRANSACTION_ID_KEY to transactionId
@@ -249,7 +199,6 @@ class AddTransactionViewModel @Inject constructor(
             .build()
 
         workManager.enqueue(workRequest)
-        Log.d(TAG, "✅ WorkRequest ID: ${workRequest.id}")
     }
 
     private fun clearForm() {

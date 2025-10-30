@@ -1,43 +1,70 @@
 package com.ahmetkaragunlu.financeai.screens.transaction
 
+import android.widget.Toast
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material3.*
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDefaults
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SelectableDates
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavHostController
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.components.EditTextField
-import com.ahmetkaragunlu.financeai.roomdb.type.CategoryType
+import com.ahmetkaragunlu.financeai.navigation.Screens
+import com.ahmetkaragunlu.financeai.navigation.navigateSingleTopClear
 import com.ahmetkaragunlu.financeai.roomdb.type.TransactionType
 import com.ahmetkaragunlu.financeai.ui.theme.AddTransactionScreenTextFieldStyles
-import com.ahmetkaragunlu.financeai.util.getCurrencySymbol
+import com.ahmetkaragunlu.financeai.utils.CategoryDropdownMenu
+import com.ahmetkaragunlu.financeai.utils.DatePickerField
+import com.ahmetkaragunlu.financeai.utils.ReminderSwitch
+import com.ahmetkaragunlu.financeai.utils.getCurrencySymbol
 import com.ahmetkaragunlu.financeai.viewmodel.AddTransactionViewModel
-import java.text.SimpleDateFormat
-import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddTransactionScreen(
     modifier: Modifier = Modifier,
-    viewModel: AddTransactionViewModel = hiltViewModel()
+    viewModel: AddTransactionViewModel = hiltViewModel(),
+    navController: NavHostController
 ) {
+    val context = LocalContext.current
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
@@ -138,6 +165,7 @@ fun AddTransactionScreen(
             DatePickerField(
                 selectedDate = viewModel.selectedDate,
                 onDateClick = { viewModel.openDatePicker() },
+                isRemenderEnabled = viewModel.isReminderEnabled,
                 modifier = Modifier
                     .widthIn(max = 450.dp)
                     .padding(bottom = 14.dp)
@@ -153,11 +181,81 @@ fun AddTransactionScreen(
                     .fillMaxWidth()
             )
 
+            Row(
+                modifier = modifier
+                    .widthIn(max = 450.dp)
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+            ) {
+                Card(
+                    onClick = {  },
+                    modifier = modifier
+                        .weight(1f)
+                        .height(56.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color(0xFF404349)),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = null,
+                            tint = Color.Gray,
+                            modifier = modifier.padding(start = 8.dp)
+                        )
+                        Spacer(modifier = modifier.width(4.dp))
+                        Text(
+                            text = stringResource(R.string.location_optional),
+                            color = Color.Gray,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+                 Spacer(modifier = modifier.width(8.dp))
+                Card(
+                    onClick = {  },
+                    modifier = modifier
+                        .weight(1f)
+                        .height(56.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color(0xFF404349)),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PhotoCamera,
+                            contentDescription = null,
+                            tint = Color.Gray,
+                            modifier = modifier.padding(start = 12.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = stringResource(R.string.photo_optional),
+                            color = Color.Gray,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            }
+
+
             Button(
                 onClick = {
                     viewModel.saveTransaction(
-                        onSuccess = {},
-                        onError = {}
+                        onSuccess = {
+                            navController.navigateSingleTopClear(Screens.HomeScreen.route)
+                            Toast.makeText(
+                                context,context.getString(R.string.success), Toast.LENGTH_SHORT).show()
+                                    },
+                        onError = { errorMessage ->
+                            Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+                        }
                     )
                 },
                 modifier = Modifier
@@ -170,7 +268,7 @@ fun AddTransactionScreen(
                 Text(
                     stringResource(
                         id = if (viewModel.isReminderEnabled)
-                        R.string.create_reminder_button else R.string.save_button
+                            R.string.create_reminder_button else R.string.save_button
                     ),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onPrimary
@@ -179,20 +277,19 @@ fun AddTransactionScreen(
         }
     }
 
-    // DatePicker
     if (viewModel.isDatePickerOpen) {
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = viewModel.selectedDate
+            initialSelectedDateMillis = viewModel.selectedDate,
+            selectableDates = object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                    return viewModel.isDateValid(utcTimeMillis)
+                }
+            }
         )
 
         DatePickerDialog(
             onDismissRequest = { viewModel.closeDatePicker() },
-            colors = DatePickerDefaults.colors(
-                containerColor = colorResource(R.color.background),
-                dayInSelectionRangeContainerColor = Color.Red
-
-
-            ),
+            colors = DatePickerDefaults.colors(containerColor = Color(0xFF2B2D31)),
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -206,162 +303,34 @@ fun AddTransactionScreen(
                 ) {
                     Text(
                         stringResource(R.string.ok),
-                        color = Color.Red
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
             },
             dismissButton = {
                 TextButton(onClick = { viewModel.closeDatePicker() }) {
                     Text(stringResource(id = R.string.cancel),
-                        color = Color.Red)
+                        color = MaterialTheme.colorScheme.onPrimary)
                 }
             }
         ) {
-
             DatePicker(
                 state = datePickerState,
+                colors = DatePickerDefaults.colors(
+                    containerColor = Color(0xFF2B2D31),
+                    dayContentColor = MaterialTheme.colorScheme.onPrimary,
+                    disabledDayContentColor = Color.Gray,
+                    weekdayContentColor = MaterialTheme.colorScheme.onPrimary,
+                    dividerColor = Color(0xFF2B2D31),
+                    navigationContentColor =  MaterialTheme.colorScheme.onPrimary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    headlineContentColor =  MaterialTheme.colorScheme.onPrimary,
+                    selectedDayContainerColor = Color.Gray,
+                      todayDateBorderColor = Color.Gray,
+                    todayContentColor = Color.Gray
+                )
             )
         }
     }
 }
 
-
-
-
-
-
-
-@Composable
-fun DatePickerField(
-    selectedDate: Long,
-    onDateClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val dateFormat = SimpleDateFormat("dd MMMM yyyy, EEEE", Locale.getDefault())
-    val formattedDate = dateFormat.format(Date(selectedDate))
-    OutlinedTextField(
-        value = formattedDate,
-        onValueChange = {},
-        readOnly = true,
-        leadingIcon = {
-            Icon(
-                imageVector = Icons.Default.CalendarMonth,
-                contentDescription = null,
-                tint = Color.Gray
-            )
-        },
-        modifier = modifier.clickable { onDateClick() },
-        colors = OutlinedTextFieldDefaults.colors(
-            disabledContainerColor = Color(0xFF404349),
-            disabledTextColor = MaterialTheme.colorScheme.onPrimary
-        ),
-        enabled = false,
-        shape = RoundedCornerShape(12.dp)
-    )
-}
-
-@Composable
-fun ReminderSwitch(
-    isEnabled: Boolean,
-    onToggle: (Boolean) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier
-            .background(color = Color(0xFF404349), shape = RoundedCornerShape(12.dp))
-            .padding(16.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(stringResource(R.string.reminder_switch_title), color = MaterialTheme.colorScheme.onPrimary)
-            Text(
-                text = stringResource(
-                    id = if (isEnabled) R.string.reminder_enabled_desc
-                 else R.string.reminder_disabled_desc),
-                color = Color.Gray,
-                style = MaterialTheme.typography.bodySmall
-            )
-        }
-        Switch(
-            checked = isEnabled,
-            onCheckedChange = onToggle,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = Color.White,
-                checkedTrackColor = Color(0xFF26b7c3),
-                uncheckedThumbColor = Color.Gray,
-                uncheckedTrackColor = Color(0xFF2C2F33)
-            )
-        )
-    }
-}
-
-
-
-
-
-
-
-
-@Composable
-fun CategoryDropdownMenu(
-    selectedCategory: CategoryType?,
-    availableCategories: List<CategoryType>,
-    expanded: Boolean,
-    onCategorySelected: (CategoryType) -> Unit,
-    onToggleDropdown: () -> Unit,
-    onDismissDropdown: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(modifier = modifier) {
-        OutlinedTextField(
-            value = selectedCategory?.name?.replace("_", " ") ?: "",
-            onValueChange = {},
-            readOnly = true,
-            placeholder = {
-                Text(
-                    text = stringResource(R.string.select_category),
-                    color = Color.Gray
-                )
-            },
-            trailingIcon = {
-                Icon(
-                    imageVector = Icons.Default.ArrowDropDown,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.clickable { onToggleDropdown() }
-                )
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onToggleDropdown() },
-            colors = OutlinedTextFieldDefaults.colors(
-                disabledContainerColor = Color(0xFF404349),
-                disabledTextColor = MaterialTheme.colorScheme.onPrimary
-            ),
-            enabled = false,
-            shape = RoundedCornerShape(12.dp)
-        )
-
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = onDismissDropdown,
-            modifier = Modifier.background(colorResource(R.color.background))
-        ) {
-            availableCategories.forEach { category ->
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            text = category.name.replace("_", " "),
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                    },
-                    onClick = {
-                        onCategorySelected(category)
-                        onDismissDropdown()
-                    }
-                )
-            }
-        }
-    }
-}

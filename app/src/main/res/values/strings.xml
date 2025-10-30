@@ -15,10 +15,12 @@
     <string name="success">Success</string>
     <string name="reset_request_sent">Password reset request sent. Please check your email.</string>
     <string name="ok">OK</string>
+    <string name="location_optional">Location (Optional)</string>
+    <string name="photo_optional">Photo (Optional)</string>
     <string name="cancel">Cancel</string>
     <string name="home">Home</string>
     <string name="income">Income</string>
-    <string name="enter_your_note">Enter your note</string>
+    <string name="enter_your_note">Enter your note (Optional)</string>
     <string name="enter_amount">Enter Amount</string>
     <string name="notification_channel_description">Reminders for scheduled transactions</string>
     <string name="expense">Expense</string>
@@ -67,41 +69,45 @@
     <string name="registration_failed">Registration failed</string>
     <string name="something_went_wrong">Something went wrong</string>
     <string name="email_verification_could_not_be_sent">Email verification could not be sent</string>
-
     <string name="your_password_has_been_changed_successfully">Your password has been changed successfully</string>
     <string name="your_link_has_expired">Your link has expired</string>
     <string name="have_an_account_sign_up">Don’t have an account? Sign up</string>
-
-
-
-    <!-- Mevcut string'leriniz... -->
-
-    <!-- YENİ: Tarih ve hatırlatıcı için string'ler -->
-    <string name="select_date">Tarih Seçin</string>
-
-    //..
-    <string name="reminder_switch_title">Hatırlatıcı Olarak Kaydet</string>
-    <string name="reminder_enabled_desc">Gelecek tarihte bildirim gönderilecek</string>
-
-    <string name="reminder_disabled_desc">İşlem hemen kaydedilecek</string>
-
-    //..
-    <string name="save_button">Kaydet</string>
-    <string name="create_reminder_button">Hatırlatıcı Oluştur</string>
-    //..
-    <string name="date_past_future">Geçmiş/Bugün</string>
-    <string name="date_future_only">Gelecek</string>
-
-    <!-- Hata mesajları -->
-    <string name="error_invalid_amount">Lütfen geçerli bir tutar girin</string>
-    <string name="error_no_category">Lütfen bir kategori seçin</string>
-
-
-    <!-- Başarı mesajları. -->
-    <string name="success_transaction_saved">İşlem başarıyla kaydedildi</string>
-
-    <string name="transaction_confirmed">İşlem başarıyla kaydedildi!</string>
-    <string name="transaction_pending">İşlem beklemede kaldı</string>
+    <string name="notification_channel_name">Scheduled Transactions</string>
+    <string name="reminder_switch_title">Save as reminder</string>
+    <string name="reminder_enabled_desc">Notification will be sent on a future date</string>
+    <string name="reminder_disabled_desc">The transaction will be recorded immediately</string>
+    <string name="save_button">Save</string>
+    <string name="create_reminder_button">Create Reminder</string>
+    <string name="error_invalid_amount">Please enter a valid amount</string>
+    <string name="error_select_category">Please select a category</string>
+    <string name="error_reminder_not_created">Reminder could not be created</string>
+    <string name="error_transaction_save_failed">Transaction could not be saved: %1$s</string>
+    <string name="error_transaction_confirm_failed">Transaction could not be confirmed: %1$s</string>
+    <string name="error_transaction_delete_failed">Transaction could not be deleted: %1$s</string>
+    <string name="toast_transaction_saved_success">Transaction saved successfully!</string>
+    <string name="toast_error_with_message">Error: %1$s</string>
+    <string name="notification_income_title">💰 Income Reminder</string>
+    <string name="notification_income_message">Did you receive your %2$s income of %1$s (%3$s)?</string>
+    <string name="notification_expense_title">💳 Expense Reminder</string>
+    <string name="notification_expense_message">Did you make your %2$s payment of %1$s (%3$s)?</string>
+    <string name="notification_default_title">Transaction Reminder</string>
+    <string name="notification_default_message">Did you complete your transaction?</string>
+    <string name="notification_income_expired_title">⏰ Income Reminder Expired</string>
+    <string name="notification_income_expired_message">The scheduled date (%3$s) for your %2$s income of %1$s has passed. The reminder has been automatically cancelled.</string>
+    <string name="notification_expense_expired_title">⏰ Expense Reminder Expired</string>
+    <string name="notification_expense_expired_message">The scheduled date (%3$s) for your %2$s payment of %1$s has passed. The reminder has been automatically cancelled.</string>
+    <string name="notification_default_expired_title">⏰ Reminder Expired</string>
+    <string name="notification_default_expired_message">The scheduled date has passed. The reminder has been automatically cancelled.</string>
+    <string name="notification_action_yes">YES</string>
+    <string name="notification_action_no">NO</string>
+    <string name="category_salary">Salary</string>
+    <string name="category_scholarship">Scholarship</string>
+    <string name="category_freelance">Freelance</string>
+    <string name="category_investment_income">Investment Income</string>
+    <string name="category_rental_income">Rental Income</string>
+    <string name="category_gifts">Gifts</string>
+    <string name="category_sales_income">Sales Income</string>
+    <string name="category_other_income">Other Income</string>
 
 
 </resources>

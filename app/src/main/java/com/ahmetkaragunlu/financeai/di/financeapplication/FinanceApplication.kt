@@ -8,7 +8,6 @@ import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.*
 import com.ahmetkaragunlu.financeai.worker.NotificationWorker
 import dagger.hilt.android.HiltAndroidApp
-import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 @HiltAndroidApp
@@ -23,7 +22,6 @@ class FinanceApplication : Application(), Configuration.Provider {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
-        scheduleNotificationWork()
     }
 
     override val workManagerConfiguration: Configuration
@@ -34,10 +32,10 @@ class FinanceApplication : Application(), Configuration.Provider {
     private fun createNotificationChannel() {
         val channel = NotificationChannel(
             NotificationWorker.CHANNEL_ID,
-            NotificationWorker.CHANNEL_NAME,
+            getString(R.string.notification_channel_name),
             NotificationManager.IMPORTANCE_HIGH
         ).apply {
-            description = getString(R.string.enter_amount)
+            description = getString(R.string.notification_channel_description)
             enableVibration(true)
         }
 
@@ -45,24 +43,5 @@ class FinanceApplication : Application(), Configuration.Provider {
         notificationManager?.createNotificationChannel(channel)
     }
 
-    private fun scheduleNotificationWork() {
-        val immediateWork = OneTimeWorkRequestBuilder<NotificationWorker>()
-            .build()
 
-        workManager.enqueueUniqueWork(
-            "notification_immediate",
-            ExistingWorkPolicy.REPLACE,
-            immediateWork
-        )
-
-        val periodicWork = PeriodicWorkRequestBuilder<NotificationWorker>(
-            15, TimeUnit.MINUTES
-        ).build()
-
-        workManager.enqueueUniquePeriodicWork(
-            "notification_periodic",
-            ExistingPeriodicWorkPolicy.KEEP,
-            periodicWork
-        )
-    }
 }
