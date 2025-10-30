@@ -20,6 +20,6 @@ interface ScheduledTransactionDao {
     @Query("SELECT * FROM scheduled_transactions_table ORDER BY scheduledDate ASC")
     fun getAllScheduledTransactions(): Flow<List<ScheduledTransactionEntity>>
 
-    @Query("SELECT * FROM scheduled_transactions_table WHERE scheduledDate <= :currentTime AND isConfirmed = 0")
+    @Query("SELECT * FROM scheduled_transactions_table WHERE scheduledDate <= :currentTime")
     fun getPendingScheduledTransactions(currentTime: Long): Flow<List<ScheduledTransactionEntity>>
 }

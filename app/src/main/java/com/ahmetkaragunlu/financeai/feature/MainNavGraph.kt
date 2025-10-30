@@ -34,7 +34,7 @@ fun NavGraphBuilder.mainNavGraph(navController: NavHostController) {
         AnalysisScreen()
     }
     composable(route = Screens.AddTransaction.route) {
-        AddTransactionScreen()
+        AddTransactionScreen(navController = navController)
     }
 
 

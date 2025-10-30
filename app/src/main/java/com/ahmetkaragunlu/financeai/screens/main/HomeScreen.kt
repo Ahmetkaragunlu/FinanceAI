@@ -32,7 +32,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.ahmetkaragunlu.financeai.R
-import com.ahmetkaragunlu.financeai.components.ExpensePieChart
+import com.ahmetkaragunlu.financeai.utils.ExpensePieChart
 import com.ahmetkaragunlu.financeai.viewmodel.HomeViewModel
 
 @Composable

@@ -17,7 +17,5 @@ data class ScheduledTransactionEntity(
 
     val scheduledDate: Long,
     val expirationNotificationSent: Boolean = false,
-
-    val isConfirmed: Boolean = false,
     val notificationSent: Boolean = false
 )
