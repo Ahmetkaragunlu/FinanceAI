@@ -1,6 +1,5 @@
 package com.ahmetkaragunlu.financeai.worker
 
-import android.annotation.SuppressLint
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
@@ -10,11 +9,11 @@ import androidx.hilt.work.HiltWorker
 import androidx.work.*
 import com.ahmetkaragunlu.financeai.MainActivity
 import com.ahmetkaragunlu.financeai.R
+import com.ahmetkaragunlu.financeai.components.formatAsCurrency
+import com.ahmetkaragunlu.financeai.components.formatAsShortDate
 import com.ahmetkaragunlu.financeai.roomdb.entitiy.ScheduledTransactionEntity
 import com.ahmetkaragunlu.financeai.roomdb.type.TransactionType
 import com.ahmetkaragunlu.financeai.roomrepository.financerepository.FinanceRepository
-import com.ahmetkaragunlu.financeai.utils.formatAsCurrency
-import com.ahmetkaragunlu.financeai.utils.formatAsShortDate
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
@@ -84,12 +83,7 @@ class NotificationWorker @AssistedInject constructor(
             .addTag("scheduled_notification_$transactionId")
             .build()
 
-        WorkManager.getInstance(appContext)
-            .enqueueUniqueWork(
-                "notification_$transactionId",
-                ExistingWorkPolicy.REPLACE,
-                workRequest
-            )
+        WorkManager.getInstance(appContext).enqueue(workRequest)
     }
 
     private fun scheduleDeleteExpiredTransaction(transactionId: Long) {
@@ -136,7 +130,11 @@ class NotificationWorker @AssistedInject constructor(
 
     private fun sendReminderNotification(transaction: ScheduledTransactionEntity) {
         val formattedAmount = transaction.amount.formatAsCurrency()
-        val categoryName = appContext.getString(transaction.category.getDisplayNameRes())
+
+        val categoryName = transaction.category.name.replace("_", " ").lowercase()
+            .split(" ")
+            .joinToString(" ") { it.replaceFirstChar { char -> char.uppercase() } }
+
         val formattedDate = transaction.scheduledDate.formatAsShortDate()
 
         val (title, message) = when (transaction.type) {
@@ -182,17 +180,11 @@ class NotificationWorker @AssistedInject constructor(
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val openAppIntent = Intent(appContext, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or
-                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                    Intent.FLAG_ACTIVITY_SINGLE_TOP
-            putExtra(TRANSACTION_ID_KEY, transaction.id)
-            putExtra("FROM_NOTIFICATION", true)
-        }
-        val openAppPendingIntent = PendingIntent.getActivity(
+        val mainIntent = Intent(appContext, MainActivity::class.java)
+        val mainPendingIntent = PendingIntent.getActivity(
             appContext,
-            transaction.id.toInt() + 30000,
-            openAppIntent,
+            0,
+            mainIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
@@ -203,8 +195,7 @@ class NotificationWorker @AssistedInject constructor(
             .setStyle(NotificationCompat.BigTextStyle().bigText(message))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
-            .setContentIntent(openAppPendingIntent)
-            .setDeleteIntent(cancelPendingIntent)
+            .setContentIntent(mainPendingIntent)
             .addAction(
                 R.drawable.ic_launcher_foreground,
                 appContext.getString(R.string.notification_action_yes),
@@ -220,9 +211,14 @@ class NotificationWorker @AssistedInject constructor(
         val notificationManager = appContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.notify(transaction.id.toInt(), notification)
     }
+
     private fun sendExpirationNotification(transaction: ScheduledTransactionEntity) {
         val formattedAmount = transaction.amount.formatAsCurrency()
-        val categoryName = appContext.getString(transaction.category.getDisplayNameRes())
+
+        val categoryName = transaction.category.name.replace("_", " ").lowercase()
+            .split(" ")
+            .joinToString(" ") { it.replaceFirstChar { char -> char.uppercase() } }
+
         val formattedDate = transaction.scheduledDate.formatAsShortDate()
 
         val (title, message) = when (transaction.type) {

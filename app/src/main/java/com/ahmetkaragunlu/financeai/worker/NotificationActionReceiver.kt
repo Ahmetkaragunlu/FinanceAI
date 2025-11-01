@@ -48,11 +48,15 @@ class NotificationActionReceiver : BroadcastReceiver() {
                                 transaction = scheduled.type,
                                 note = scheduled.note ?: "",
                                 date = System.currentTimeMillis(),
-                                category = scheduled.category
+                                category = scheduled.category,
+                                photoUri = scheduled.photoUri
                             )
+
                             repository.insertTransaction(transaction)
                             repository.deleteScheduledTransaction(scheduled)
                             cancelAllPendingNotifications(context, transactionId)
+
+
                         }
                     } catch (e: Exception) {
                         e.printStackTrace()
@@ -62,9 +66,6 @@ class NotificationActionReceiver : BroadcastReceiver() {
 
             ACTION_CANCEL -> {
             }
-
-
-            }
         }
     }
 
@@ -72,4 +73,4 @@ class NotificationActionReceiver : BroadcastReceiver() {
         WorkManager.getInstance(context).cancelAllWorkByTag("scheduled_notification_$transactionId")
         WorkManager.getInstance(context).cancelAllWorkByTag("delete_expired_$transactionId")
     }
-
+}

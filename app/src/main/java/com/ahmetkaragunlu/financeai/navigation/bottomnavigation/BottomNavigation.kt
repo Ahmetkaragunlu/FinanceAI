@@ -35,6 +35,7 @@ fun BottomBar(
     currentRoute: String,
     modifier: Modifier = Modifier,
 ) {
+    val isOnAddTransactionScreen = currentRoute == Screens.AddTransaction.route
     NavigationBar(
         containerColor = colorResource(R.color.background),
         tonalElevation = 8.dp,
@@ -63,7 +64,9 @@ fun BottomBar(
                         ) {
                             FloatingActionButton(
                                 onClick = {
-                                    navController.navigateSingleTopClear(Screens.AddTransaction.route)
+                                    if (!isOnAddTransactionScreen) {
+                                        navController.navigateSingleTopClear(Screens.AddTransaction.route)
+                                    }
                                 },
                                 modifier = Modifier.size(70.dp),
                                 containerColor = Color.Transparent,

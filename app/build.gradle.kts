@@ -1,3 +1,4 @@
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
@@ -55,10 +56,6 @@ dependencies {
     implementation("com.google.android.gms:play-services-auth:21.4.0")
     implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
 
-    implementation("androidx.compose.material3:material3:1.3.0")
-
-
-
     //Room
     ksp("androidx.room:room-compiler:2.8.0")
     implementation("androidx.room:room-ktx:2.8.0")
@@ -79,9 +76,28 @@ dependencies {
 
     //ViewModel
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.4")
+
      //Icons
     implementation("androidx.compose.material:material-icons-extended:1.7.8")
 
+    // Coil - Image loading library
+    implementation("io.coil-kt:coil-compose:2.6.0")
+
+    // Activity Compose - For activity result contracts
+    implementation("androidx.activity:activity-compose:1.8.2")
+
+    // Google Play Services - Location
+    implementation("com.google.android.gms:play-services-location:21.3.0")
+
+    // Google Maps Compose
+    implementation("com.google.maps.android:maps-compose:4.3.3")
+    implementation("com.google.android.gms:play-services-maps:19.0.0")
+
+    // Google Places API
+    implementation("com.google.android.libraries.places:places:3.5.0")
+
+
+    implementation("androidx.compose.material3:material3:1.3.0")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
