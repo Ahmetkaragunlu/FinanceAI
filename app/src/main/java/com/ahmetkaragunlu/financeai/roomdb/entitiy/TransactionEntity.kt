@@ -13,7 +13,12 @@ data class TransactionEntity(
     val transaction : TransactionType,
     val note : String = "",
     val date : Long = System.currentTimeMillis(),
-    val category: CategoryType
+    val category: CategoryType,
+    val photoUri: String? = null,
+    val locationFull: String? = null,
+    val locationShort: String? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null
 )
 
 

@@ -12,7 +12,7 @@ import com.ahmetkaragunlu.financeai.roomdb.entitiy.TransactionEntity
 
 @Database(
     entities = [TransactionEntity::class, ScheduledTransactionEntity::class],
-    version = 3,
+    version = 5,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

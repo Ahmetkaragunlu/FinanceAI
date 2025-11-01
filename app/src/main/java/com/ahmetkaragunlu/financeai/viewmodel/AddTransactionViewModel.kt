@@ -1,6 +1,7 @@
 package com.ahmetkaragunlu.financeai.viewmodel
 
 import android.content.Context
+import android.net.Uri
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -11,6 +12,10 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.workDataOf
 import com.ahmetkaragunlu.financeai.R
+import com.ahmetkaragunlu.financeai.location.LocationData
+import com.ahmetkaragunlu.financeai.location.LocationUtil
+import com.ahmetkaragunlu.financeai.photo.CameraHelper
+import com.ahmetkaragunlu.financeai.photo.PhotoStorageUtil
 import com.ahmetkaragunlu.financeai.roomdb.entitiy.ScheduledTransactionEntity
 import com.ahmetkaragunlu.financeai.roomdb.entitiy.TransactionEntity
 import com.ahmetkaragunlu.financeai.roomdb.type.CategoryType
@@ -22,6 +27,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.io.File
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -47,10 +53,15 @@ class AddTransactionViewModel @Inject constructor(
     var selectedDate by mutableLongStateOf(System.currentTimeMillis())
 
     var isReminderEnabled by mutableStateOf(false)
-
     var isDatePickerOpen by mutableStateOf(false)
 
+    var selectedPhotoUri by mutableStateOf<Uri?>(null)
+    var tempCameraPhotoPath by mutableStateOf<String?>(null)
+    var showPhotoBottomSheet by mutableStateOf(false)
 
+    var selectedLocation by mutableStateOf<LocationData?>(null)
+    var showLocationPicker by mutableStateOf(false)
+    var cameraHelperRef  by mutableStateOf<CameraHelper?>(null)
 
     fun updateInputNote(note: String) {
         inputNote = note
@@ -61,13 +72,15 @@ class AddTransactionViewModel @Inject constructor(
     }
 
     fun updateTransactionType(type: TransactionType) {
+        if (selectedTransactionType == type) return
         selectedTransactionType = type
         selectedCategory = null
         inputNote = ""
         inputAmount = ""
         selectedDate = System.currentTimeMillis()
         isReminderEnabled = false
-
+        clearPhoto()
+        clearLocation()
     }
 
     fun updateCategory(category: CategoryType) {
@@ -124,6 +137,58 @@ class AddTransactionViewModel @Inject constructor(
         }
     }
 
+    fun onPhotoSelected(uri: Uri) {
+        selectedPhotoUri = uri
+    }
+
+    fun prepareCameraPhoto(): Pair<File, Uri>? {
+        val result = PhotoStorageUtil.createTempPhotoFile(context)
+        result?.let { (file, uri) ->
+            tempCameraPhotoPath = file.absolutePath
+        }
+        return result
+    }
+
+    fun onCameraPhotoTaken() {
+        tempCameraPhotoPath?.let { path ->
+            selectedPhotoUri = Uri.fromFile(File(path))
+        }
+    }
+
+    fun clearPhoto() {
+        selectedPhotoUri = null
+        tempCameraPhotoPath?.let { path ->
+            PhotoStorageUtil.deletePhoto(path)
+        }
+        tempCameraPhotoPath = null
+    }
+
+    fun clearTempCameraPhoto() {
+        tempCameraPhotoPath?.let { path ->
+            PhotoStorageUtil.deletePhoto(path)
+        }
+        tempCameraPhotoPath = null
+    }
+
+    fun onLocationSelected(latitude: Double, longitude: Double) {
+        viewModelScope.launch {
+            try {
+                val locationData = LocationUtil.getAddressFromLocation(
+                    context,
+                    latitude,
+                    longitude
+                )
+                selectedLocation = locationData
+            } catch (e: Exception) {
+
+            }
+        }
+    }
+
+    fun clearLocation() {
+        selectedLocation = null
+    }
+
     fun saveTransaction(onSuccess: () -> Unit, onError: (String) -> Unit) {
         if (inputAmount.isBlank() || inputAmount.toDoubleOrNull() == null) {
             onError(context.getString(R.string.error_invalid_amount))
@@ -138,6 +203,14 @@ class AddTransactionViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
+                val savedPhotoPath = selectedPhotoUri?.let { uri ->
+                    if (tempCameraPhotoPath != null) {
+                        PhotoStorageUtil.saveTempPhotoAsPermanent(context, tempCameraPhotoPath!!)
+                    } else {
+                        PhotoStorageUtil.savePhotoToInternalStorage(context, uri)
+                    }
+                }
+
                 if (isReminderEnabled) {
                     val scheduledTransaction = ScheduledTransactionEntity(
                         amount = amount,
@@ -146,7 +219,12 @@ class AddTransactionViewModel @Inject constructor(
                         note = inputNote.ifBlank { "" },
                         scheduledDate = selectedDate,
                         notificationSent = false,
-                        expirationNotificationSent = false
+                        expirationNotificationSent = false,
+                        photoUri = savedPhotoPath,
+                        locationFull = selectedLocation?.addressFull,
+                        locationShort = selectedLocation?.addressShort,
+                        latitude = selectedLocation?.latitude,
+                        longitude = selectedLocation?.longitude
                     )
                     repo.insertScheduledTransaction(scheduledTransaction)
                     delay(150)
@@ -166,6 +244,7 @@ class AddTransactionViewModel @Inject constructor(
                         clearForm()
                         onSuccess()
                     } else {
+                        savedPhotoPath?.let { PhotoStorageUtil.deletePhoto(it) }
                         onError(context.getString(R.string.error_reminder_not_created))
                     }
 
@@ -175,7 +254,12 @@ class AddTransactionViewModel @Inject constructor(
                         transaction = selectedTransactionType,
                         note = inputNote,
                         date = selectedDate,
-                        category = selectedCategory!!
+                        category = selectedCategory!!,
+                        photoUri = savedPhotoPath,
+                        locationFull = selectedLocation?.addressFull,
+                        locationShort = selectedLocation?.addressShort,
+                        latitude = selectedLocation?.latitude,
+                        longitude = selectedLocation?.longitude
                     )
                     repo.insertTransaction(transaction)
                     clearForm()
@@ -207,5 +291,7 @@ class AddTransactionViewModel @Inject constructor(
         selectedCategory = null
         selectedDate = System.currentTimeMillis()
         isReminderEnabled = false
+        clearPhoto()
+        clearLocation()
     }
 }
