@@ -1,3 +1,4 @@
+
 package com.ahmetkaragunlu.financeai.roomrepository.financerepository
 
 import com.ahmetkaragunlu.financeai.roomdb.dao.ScheduledTransactionDao
@@ -6,21 +7,19 @@ import com.ahmetkaragunlu.financeai.roomdb.entitiy.ScheduledTransactionEntity
 import com.ahmetkaragunlu.financeai.roomdb.entitiy.TransactionEntity
 import com.ahmetkaragunlu.financeai.roomdb.type.CategoryType
 import com.ahmetkaragunlu.financeai.roommodel.CategoryExpense
-import jakarta.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOn
-
+import javax.inject.Inject
 
 class FinanceRepositoryImpl @Inject constructor(
     private val transactionDao: TransactionDao,
     private val scheduledTransactionDao: ScheduledTransactionDao
 ) : FinanceRepository {
 
-
-    //Transaction
-    override suspend fun insertTransaction(transaction: TransactionEntity) =
+    // Transaction
+    override suspend fun insertTransaction(transaction: TransactionEntity): Long =
         transactionDao.insertTransaction(transaction)
 
     override suspend fun deleteTransaction(transaction: TransactionEntity) =
@@ -67,12 +66,20 @@ class FinanceRepositoryImpl @Inject constructor(
             .distinctUntilChanged()
             .flowOn(Dispatchers.IO)
 
+    override suspend fun getTransactionByFirestoreId(firestoreId: String): TransactionEntity? =
+        transactionDao.getTransactionByFirestoreId(firestoreId)
 
+    override fun getUnsyncedTransactions(): Flow<List<TransactionEntity>> =
+        transactionDao.getUnsyncedTransactions()
+            .distinctUntilChanged()
+            .flowOn(Dispatchers.IO)
 
-
-    //ScheduledTransaction
-    override suspend fun insertScheduledTransaction(transaction: ScheduledTransactionEntity) =
+    // Scheduled Transaction
+    override suspend fun insertScheduledTransaction(transaction: ScheduledTransactionEntity): Long =
         scheduledTransactionDao.insertScheduledTransaction(transaction)
+
+    override suspend fun updateScheduledTransaction(transaction: ScheduledTransactionEntity) =
+        scheduledTransactionDao.updateScheduledTransaction(transaction)
 
     override suspend fun deleteScheduledTransaction(transaction: ScheduledTransactionEntity) =
         scheduledTransactionDao.deleteScheduledTransaction(transaction)
@@ -87,4 +94,17 @@ class FinanceRepositoryImpl @Inject constructor(
             .distinctUntilChanged()
             .flowOn(Dispatchers.IO)
 
+    override suspend fun getScheduledTransactionByFirestoreId(firestoreId: String): ScheduledTransactionEntity? =
+        scheduledTransactionDao.getScheduledTransactionByFirestoreId(firestoreId)
+
+    override suspend fun getScheduledTransactionById(localId: Long): ScheduledTransactionEntity? =
+        scheduledTransactionDao.getScheduledTransactionById(localId)
+
+    override suspend fun deleteScheduledTransactionByFirestoreId(firestoreId: String) =
+        scheduledTransactionDao.deleteByFirestoreId(firestoreId)
+
+    override fun getUnsyncedScheduledTransactions(): Flow<List<ScheduledTransactionEntity>> =
+        scheduledTransactionDao.getUnsyncedScheduledTransactions()
+            .distinctUntilChanged()
+            .flowOn(Dispatchers.IO)
 }

@@ -55,6 +55,7 @@ dependencies {
     implementation("androidx.credentials:credentials-play-services-auth:1.5.0")
     implementation("com.google.android.gms:play-services-auth:21.4.0")
     implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
+    implementation(libs.androidx.lifecycle.process)
 
     //Room
     ksp("androidx.room:room-compiler:2.8.0")
@@ -95,6 +96,8 @@ dependencies {
 
     // Google Places API
     implementation("com.google.android.libraries.places:places:3.5.0")
+
+
 
 
     implementation("androidx.compose.material3:material3:1.3.0")

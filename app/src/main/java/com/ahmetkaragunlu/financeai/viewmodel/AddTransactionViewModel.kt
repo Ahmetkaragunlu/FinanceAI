@@ -2,6 +2,7 @@ package com.ahmetkaragunlu.financeai.viewmodel
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -12,6 +13,7 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.workDataOf
 import com.ahmetkaragunlu.financeai.R
+import com.ahmetkaragunlu.financeai.firebaserepo.FirebaseSyncService
 import com.ahmetkaragunlu.financeai.location.LocationData
 import com.ahmetkaragunlu.financeai.location.LocationUtil
 import com.ahmetkaragunlu.financeai.photo.CameraHelper
@@ -25,7 +27,6 @@ import com.ahmetkaragunlu.financeai.worker.NotificationWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.io.File
 import java.util.Calendar
@@ -36,8 +37,13 @@ import javax.inject.Inject
 class AddTransactionViewModel @Inject constructor(
     private val repo: FinanceRepository,
     private val workManager: WorkManager,
+    private val firebaseSyncService: FirebaseSyncService,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
+
+    companion object {
+        private const val TAG = "AddTransactionVM"
+    }
 
     var selectedTransactionType by mutableStateOf(TransactionType.EXPENSE)
     var selectedCategory by mutableStateOf<CategoryType?>(null)
@@ -61,7 +67,7 @@ class AddTransactionViewModel @Inject constructor(
 
     var selectedLocation by mutableStateOf<LocationData?>(null)
     var showLocationPicker by mutableStateOf(false)
-    var cameraHelperRef  by mutableStateOf<CameraHelper?>(null)
+    var cameraHelperRef by mutableStateOf<CameraHelper?>(null)
 
     fun updateInputNote(note: String) {
         inputNote = note
@@ -180,7 +186,7 @@ class AddTransactionViewModel @Inject constructor(
                 )
                 selectedLocation = locationData
             } catch (e: Exception) {
-
+                Log.e(TAG, "Error getting location", e)
             }
         }
     }
@@ -212,6 +218,7 @@ class AddTransactionViewModel @Inject constructor(
                 }
 
                 if (isReminderEnabled) {
+                    // Hatırlatıcı açık - Scheduled Transaction
                     val scheduledTransaction = ScheduledTransactionEntity(
                         amount = amount,
                         type = selectedTransactionType,
@@ -224,31 +231,41 @@ class AddTransactionViewModel @Inject constructor(
                         locationFull = selectedLocation?.addressFull,
                         locationShort = selectedLocation?.addressShort,
                         latitude = selectedLocation?.latitude,
-                        longitude = selectedLocation?.longitude
+                        longitude = selectedLocation?.longitude,
+                        syncedToFirebase = false
                     )
-                    repo.insertScheduledTransaction(scheduledTransaction)
+
+                    // Önce local'e kaydet
+                    val localId = repo.insertScheduledTransaction(scheduledTransaction)
                     delay(150)
 
-                    val allTransactions = repo.getAllScheduledTransactions().first()
-
-                    val insertedTransaction = allTransactions
-                        .filter {
-                            it.scheduledDate == selectedDate &&
-                                    it.amount == amount &&
-                                    !it.notificationSent
-                        }
-                        .maxByOrNull { it.id }
+                    // Local'den geri al (ID ile)
+                    val insertedTransaction = repo.getScheduledTransactionById(localId)
 
                     if (insertedTransaction != null) {
-                        scheduleFirstNotification(insertedTransaction.id)
-                        clearForm()
-                        onSuccess()
+                        // Firebase'e kaydet ve firestoreId'yi al
+                        val syncResult = firebaseSyncService.syncScheduledTransactionToFirebase(insertedTransaction)
+
+                        if (syncResult.isSuccess) {
+                            Log.d(TAG, "Scheduled transaction synced to Firebase: ${syncResult.getOrNull()}")
+                            // Bildirimi planla (local ID ile)
+                            scheduleFirstNotification(localId)
+                            clearForm()
+                            onSuccess()
+                        } else {
+                            Log.e(TAG, "Failed to sync to Firebase", syncResult.exceptionOrNull())
+                            // Firebase'e kayıt başarısız ama local'de var, yine de devam edebiliriz
+                            scheduleFirstNotification(localId)
+                            clearForm()
+                            onSuccess()
+                        }
                     } else {
                         savedPhotoPath?.let { PhotoStorageUtil.deletePhoto(it) }
                         onError(context.getString(R.string.error_reminder_not_created))
                     }
 
                 } else {
+                    // Normal Transaction (hatırlatıcı kapalı)
                     val transaction = TransactionEntity(
                         amount = amount,
                         transaction = selectedTransactionType,
@@ -259,13 +276,26 @@ class AddTransactionViewModel @Inject constructor(
                         locationFull = selectedLocation?.addressFull,
                         locationShort = selectedLocation?.addressShort,
                         latitude = selectedLocation?.latitude,
-                        longitude = selectedLocation?.longitude
+                        longitude = selectedLocation?.longitude,
+                        syncedToFirebase = false
                     )
+
+                    // Önce local'e kaydet
                     repo.insertTransaction(transaction)
+
+                    // Firebase'e senkronize et
+                    val syncResult = firebaseSyncService.syncTransactionToFirebase(transaction)
+                    if (syncResult.isSuccess) {
+                        Log.d(TAG, "Transaction synced to Firebase: ${syncResult.getOrNull()}")
+                    } else {
+                        Log.e(TAG, "Failed to sync transaction to Firebase", syncResult.exceptionOrNull())
+                    }
+
                     clearForm()
                     onSuccess()
                 }
             } catch (e: Exception) {
+                Log.e(TAG, "Error saving transaction", e)
                 onError(context.getString(R.string.error_transaction_save_failed, e.message ?: ""))
             }
         }

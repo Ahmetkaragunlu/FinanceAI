@@ -1,3 +1,4 @@
+
 package com.ahmetkaragunlu.financeai.di.roommodule
 
 
@@ -37,13 +38,14 @@ object RoomModule {
     // DAO instance
     @Provides
     @Singleton
-    fun provideTransactionDao(database: FinanceDatabase) : TransactionDao {
+    fun provideTransactionDao(database: FinanceDatabase): TransactionDao {
         return database.transactionDao()
     }
+
     @Provides
     @Singleton
-    fun provideScheduledTransactionDao(database: FinanceDatabase) : ScheduledTransactionDao {
-        return  database.scheduledTransactionDao()
+    fun provideScheduledTransactionDao(database: FinanceDatabase): ScheduledTransactionDao {
+        return database.scheduledTransactionDao()
     }
 
     // Repository instance (Interface + Impl)
@@ -53,6 +55,7 @@ object RoomModule {
         transactionDao: TransactionDao,
         scheduledTransactionDao: ScheduledTransactionDao
     ): FinanceRepository {
-        return FinanceRepositoryImpl(transactionDao,scheduledTransactionDao)
+        return FinanceRepositoryImpl(transactionDao, scheduledTransactionDao)
     }
+
 }
