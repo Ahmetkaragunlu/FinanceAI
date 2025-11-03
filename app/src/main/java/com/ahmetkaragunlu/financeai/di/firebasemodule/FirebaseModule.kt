@@ -1,10 +1,11 @@
- package com.ahmetkaragunlu.financeai.di.firebasemodule
-
+package com.ahmetkaragunlu.financeai.di.firebasemodule
 
 import android.content.Context
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.firebaserepo.AuthRepository
 import com.ahmetkaragunlu.financeai.firebaserepo.AuthRepositoryImpl
+import com.ahmetkaragunlu.financeai.firebaserepo.FirebaseSyncService
+import com.ahmetkaragunlu.financeai.roomrepository.financerepository.FinanceRepository
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
@@ -17,7 +18,6 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
-
 
 @InstallIn(SingletonComponent::class)
 @Module
@@ -34,6 +34,15 @@ object FirebaseModule {
     @Singleton
     fun provideFirebaseStorage(): FirebaseStorage = FirebaseStorage.getInstance()
 
+    @Provides
+    @Singleton
+    fun provideFirebaseSyncService(
+        firestore: FirebaseFirestore,
+        auth: FirebaseAuth,
+        localRepository: FinanceRepository
+    ): FirebaseSyncService {
+        return FirebaseSyncService(firestore, auth, localRepository)
+    }
 }
 
 @InstallIn(SingletonComponent::class)
@@ -44,14 +53,12 @@ object RepositoryModule {
     fun provideAuthRepository(
         auth: FirebaseAuth,
         firestore: FirebaseFirestore,
-    ): AuthRepository =
-        AuthRepositoryImpl(auth, firestore)
+    ): AuthRepository = AuthRepositoryImpl(auth, firestore)
 }
-
 
 @InstallIn(SingletonComponent::class)
 @Module
-object  SignInWithGoogle {
+object SignInWithGoogle {
     @Provides
     @Singleton
     fun provideGoogleSignInOptions(
@@ -62,6 +69,7 @@ object  SignInWithGoogle {
             .requestEmail()
             .build()
     }
+
     @Provides
     @Singleton
     fun provideGoogleSignInClient(
@@ -71,8 +79,3 @@ object  SignInWithGoogle {
         return GoogleSignIn.getClient(context, googleSignInOptions)
     }
 }
-
-
-
-
-

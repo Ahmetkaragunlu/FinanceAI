@@ -1,4 +1,3 @@
-
 package com.ahmetkaragunlu.financeai.roomdb.dao
 
 import androidx.room.Dao
@@ -16,7 +15,7 @@ import kotlinx.coroutines.flow.Flow
 interface TransactionDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend  fun  insertTransaction(transaction: TransactionEntity)
+    suspend fun insertTransaction(transaction: TransactionEntity): Long
 
     @Delete
     suspend fun deleteTransaction(transaction: TransactionEntity)
@@ -26,6 +25,7 @@ interface TransactionDao {
 
     @Query("SELECT * FROM transaction_table ORDER BY date DESC")
     fun getAllTransactions(): Flow<List<TransactionEntity>>
+
     @Query("SELECT * FROM transaction_table WHERE date BETWEEN :startDate AND :endDate ORDER BY date DESC")
     fun getAllTransactionsByDateRange(startDate: Long, endDate: Long): Flow<List<TransactionEntity>>
 
@@ -37,6 +37,7 @@ interface TransactionDao {
 
     @Query("SELECT SUM(amount) FROM transaction_table WHERE `transaction` = 'EXPENSE' AND date BETWEEN :startDate AND :endDate")
     fun getTotalExpenseByDateRange(startDate: Long, endDate: Long): Flow<Double?>
+
     @Query("""
     SELECT category, SUM(amount) as totalAmount
     FROM transaction_table
@@ -49,4 +50,9 @@ interface TransactionDao {
         endDate: Long
     ): Flow<List<CategoryExpense>>
 
+    @Query("SELECT * FROM transaction_table WHERE firestoreId = :firestoreId LIMIT 1")
+    suspend fun getTransactionByFirestoreId(firestoreId: String): TransactionEntity?
+
+    @Query("SELECT * FROM transaction_table WHERE syncedToFirebase = 0")
+    fun getUnsyncedTransactions(): Flow<List<TransactionEntity>>
 }

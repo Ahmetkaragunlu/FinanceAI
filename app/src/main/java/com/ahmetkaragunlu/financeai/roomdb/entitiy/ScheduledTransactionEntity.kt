@@ -9,6 +9,7 @@ import com.ahmetkaragunlu.financeai.roomdb.type.TransactionType
 data class ScheduledTransactionEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
+    val firestoreId: String = "",
     val amount: Double,
     val type: TransactionType,
     val category: CategoryType,
@@ -20,5 +21,6 @@ data class ScheduledTransactionEntity(
     val locationFull: String? = null,
     val locationShort: String? = null,
     val latitude: Double? = null,
-    val longitude: Double? = null
+    val longitude: Double? = null,
+    val syncedToFirebase: Boolean = false
 )

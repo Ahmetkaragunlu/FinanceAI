@@ -48,8 +48,7 @@ class NotificationWorker @AssistedInject constructor(
     }
 
     private suspend fun processSpecificTransaction(transactionId: Long) {
-        val allTransactions = repository.getAllScheduledTransactions().first()
-        val transaction = allTransactions.find { it.id == transactionId }
+        val transaction = repository.getScheduledTransactionById(transactionId)
 
         transaction?.let {
             val currentTime = System.currentTimeMillis()
@@ -64,7 +63,7 @@ class NotificationWorker @AssistedInject constructor(
                 currentTime > endOfScheduledDay -> {
                     if (!it.expirationNotificationSent) {
                         sendExpirationNotification(it)
-                        repository.insertScheduledTransaction(
+                        repository.updateScheduledTransaction(
                             it.copy(expirationNotificationSent = true)
                         )
                         scheduleDeleteExpiredTransaction(transactionId)
@@ -110,7 +109,7 @@ class NotificationWorker @AssistedInject constructor(
                 scheduleNextNotification(transaction.id)
             } else if (!transaction.expirationNotificationSent) {
                 sendExpirationNotification(transaction)
-                repository.insertScheduledTransaction(
+                repository.updateScheduledTransaction(
                     transaction.copy(expirationNotificationSent = true)
                 )
                 scheduleDeleteExpiredTransaction(transaction.id)
