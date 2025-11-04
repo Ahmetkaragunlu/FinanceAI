@@ -1,4 +1,3 @@
-
 package com.ahmetkaragunlu.financeai.firebaserepo
 
 import com.ahmetkaragunlu.financeai.firebasemodel.User
@@ -16,16 +15,21 @@ import javax.inject.Inject
 
 class AuthRepositoryImpl @Inject constructor(
     private val auth: FirebaseAuth,
-    private val firestore: FirebaseFirestore
+    private val firestore: FirebaseFirestore,
+    private val firebaseSyncService: FirebaseSyncService // EKLENDI
 ) : AuthRepository {
 
     override val currentUser get() = auth.currentUser
+
     override suspend fun signUp(email: String, password: String): AuthResult =
         auth.createUserWithEmailAndPassword(email, password).await()
 
     override suspend fun signIn(email: String, password: String): AuthResult =
         try {
-            auth.signInWithEmailAndPassword(email, password).await()
+            val result = auth.signInWithEmailAndPassword(email, password).await()
+            // Giriş başarılı, sync'i başlat
+            firebaseSyncService.initializeSyncAfterLogin()
+            result
         } catch (e: Exception) {
             when (e) {
                 is FirebaseAuthInvalidUserException,
@@ -35,6 +39,7 @@ class AuthRepositoryImpl @Inject constructor(
                 else -> throw e
             }
         }
+
     override suspend fun saveUserFirestore(user: User) {
         firestore.collection("users").document(user.uid).set(user).await()
     }
@@ -51,6 +56,8 @@ class AuthRepositoryImpl @Inject constructor(
             val uid = authResult.user?.uid ?: throw AuthException.UidNotFound
             val user = User(email = email, firstName = firstName, lastName = lastName, uid = uid)
             saveUserFirestore(user)
+            // Kayıt sonrası da sync'i başlat
+            firebaseSyncService.initializeSyncAfterLogin()
         } catch (e: Exception) {
             when (e) {
                 is FirebaseAuthUserCollisionException -> {
@@ -92,7 +99,10 @@ class AuthRepositoryImpl @Inject constructor(
 
     override suspend fun signInWithGoogle(account: GoogleSignInAccount): AuthResult {
         val credential = GoogleAuthProvider.getCredential(account.idToken, null)
-        return auth.signInWithCredential(credential).await()
+        val result = auth.signInWithCredential(credential).await()
+        // Google ile giriş başarılı, sync'i başlat
+        firebaseSyncService.initializeSyncAfterLogin()
+        return result
     }
 
     override suspend fun isUserRegistered(email: String): Boolean {
@@ -101,5 +111,12 @@ class AuthRepositoryImpl @Inject constructor(
             .get()
             .await()
         return !snapshot.isEmpty
+    }
+
+    override suspend fun signOut() {
+        // Önce sync'i durdur
+        firebaseSyncService.resetSync()
+        // Sonra çıkış yap
+        auth.signOut()
     }
 }

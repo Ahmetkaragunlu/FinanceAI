@@ -53,7 +53,8 @@ object RepositoryModule {
     fun provideAuthRepository(
         auth: FirebaseAuth,
         firestore: FirebaseFirestore,
-    ): AuthRepository = AuthRepositoryImpl(auth, firestore)
+        firebaseSyncService: FirebaseSyncService // EKLENDI
+    ): AuthRepository = AuthRepositoryImpl(auth, firestore, firebaseSyncService)
 }
 
 @InstallIn(SingletonComponent::class)

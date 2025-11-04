@@ -3,6 +3,7 @@ package com.ahmetkaragunlu.financeai.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ahmetkaragunlu.financeai.firebaserepo.FirebaseSyncService
 import com.ahmetkaragunlu.financeai.roomdb.type.TransactionType
 import com.ahmetkaragunlu.financeai.roommodel.CategoryExpense
 import com.ahmetkaragunlu.financeai.roomrepository.financerepository.FinanceRepository
@@ -13,6 +14,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.util.Calendar
 import java.util.Locale
@@ -20,8 +22,10 @@ import javax.inject.Inject
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val repository: FinanceRepository
+    private val repository: FinanceRepository,
 ) : ViewModel() {
+
+
 
 
     // LAST MONTH FINANCIAL DATA
