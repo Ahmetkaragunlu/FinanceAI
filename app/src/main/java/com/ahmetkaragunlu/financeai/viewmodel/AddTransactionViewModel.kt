@@ -1,3 +1,6 @@
+// ============================================
+// AddTransactionViewModel.kt - GERÇEK ÇÖZÜM
+// ============================================
 package com.ahmetkaragunlu.financeai.viewmodel
 
 import android.content.Context
@@ -26,7 +29,6 @@ import com.ahmetkaragunlu.financeai.roomrepository.financerepository.FinanceRepo
 import com.ahmetkaragunlu.financeai.worker.NotificationWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
 import java.util.Calendar
@@ -208,8 +210,9 @@ class AddTransactionViewModel @Inject constructor(
         val amount = inputAmount.toDouble()
 
         viewModelScope.launch {
+            var savedPhotoPath: String? = null // Try bloğunun DIŞINDA tanımla
             try {
-                val savedPhotoPath = selectedPhotoUri?.let { uri ->
+                savedPhotoPath = selectedPhotoUri?.let { uri ->
                     if (tempCameraPhotoPath != null) {
                         PhotoStorageUtil.saveTempPhotoAsPermanent(context, tempCameraPhotoPath!!)
                     } else {
@@ -218,7 +221,9 @@ class AddTransactionViewModel @Inject constructor(
                 }
 
                 if (isReminderEnabled) {
-                    // Hatırlatıcı açık - Scheduled Transaction
+                    // ============================================
+                    // SCHEDULED TRANSACTION (Hatırlatıcılı)
+                    // ============================================
                     val scheduledTransaction = ScheduledTransactionEntity(
                         amount = amount,
                         type = selectedTransactionType,
@@ -232,40 +237,40 @@ class AddTransactionViewModel @Inject constructor(
                         locationShort = selectedLocation?.addressShort,
                         latitude = selectedLocation?.latitude,
                         longitude = selectedLocation?.longitude,
-                        syncedToFirebase = false
+                        syncedToFirebase = false // HENÜZ SYNC EDİLMEDİ
                     )
 
-                    // Önce local'e kaydet
-                    val localId = repo.insertScheduledTransaction(scheduledTransaction)
-                    delay(150)
+                    // 1. Önce Firebase'e kaydet ve firestoreId al
+                    val syncResult = firebaseSyncService.syncScheduledTransactionToFirebase(scheduledTransaction)
 
-                    // Local'den geri al (ID ile)
-                    val insertedTransaction = repo.getScheduledTransactionById(localId)
+                    if (syncResult.isSuccess) {
+                        val firestoreId = syncResult.getOrNull()!!
+                        Log.d(TAG, "Scheduled transaction synced to Firebase: $firestoreId")
 
-                    if (insertedTransaction != null) {
-                        // Firebase'e kaydet ve firestoreId'yi al
-                        val syncResult = firebaseSyncService.syncScheduledTransactionToFirebase(insertedTransaction)
+                        // 2. Sonra firestoreId ile birlikte local'e kaydet (TEK SEFER!)
+                        val transactionWithFirestoreId = scheduledTransaction.copy(
+                            firestoreId = firestoreId,
+                            syncedToFirebase = true
+                        )
+                        val localId = repo.insertScheduledTransaction(transactionWithFirestoreId)
 
-                        if (syncResult.isSuccess) {
-                            Log.d(TAG, "Scheduled transaction synced to Firebase: ${syncResult.getOrNull()}")
-                            // Bildirimi planla (local ID ile)
-                            scheduleFirstNotification(localId)
-                            clearForm()
-                            onSuccess()
-                        } else {
-                            Log.e(TAG, "Failed to sync to Firebase", syncResult.exceptionOrNull())
-                            // Firebase'e kayıt başarısız ama local'de var, yine de devam edebiliriz
-                            scheduleFirstNotification(localId)
-                            clearForm()
-                            onSuccess()
-                        }
+                        // 3. Bildirimi planla
+                        scheduleFirstNotification(localId)
+                        clearForm()
+                        onSuccess()
                     } else {
-                        savedPhotoPath?.let { PhotoStorageUtil.deletePhoto(it) }
-                        onError(context.getString(R.string.error_reminder_not_created))
+                        // Firebase başarısız, sadece local'e kaydet
+                        Log.e(TAG, "Failed to sync to Firebase", syncResult.exceptionOrNull())
+                        val localId = repo.insertScheduledTransaction(scheduledTransaction)
+                        scheduleFirstNotification(localId)
+                        clearForm()
+                        onSuccess()
                     }
 
                 } else {
-                    // Normal Transaction (hatırlatıcı kapalı)
+                    // ============================================
+                    // NORMAL TRANSACTION (Hatırlatıcısız)
+                    // ============================================
                     val transaction = TransactionEntity(
                         amount = amount,
                         transaction = selectedTransactionType,
@@ -277,25 +282,35 @@ class AddTransactionViewModel @Inject constructor(
                         locationShort = selectedLocation?.addressShort,
                         latitude = selectedLocation?.latitude,
                         longitude = selectedLocation?.longitude,
-                        syncedToFirebase = false
+                        syncedToFirebase = false // HENÜZ SYNC EDİLMEDİ
                     )
 
-                    // Önce local'e kaydet
-                    repo.insertTransaction(transaction)
-
-                    // Firebase'e senkronize et
+                    // 1. Önce Firebase'e kaydet ve firestoreId al
                     val syncResult = firebaseSyncService.syncTransactionToFirebase(transaction)
-                    if (syncResult.isSuccess) {
-                        Log.d(TAG, "Transaction synced to Firebase: ${syncResult.getOrNull()}")
-                    } else {
-                        Log.e(TAG, "Failed to sync transaction to Firebase", syncResult.exceptionOrNull())
-                    }
 
-                    clearForm()
-                    onSuccess()
+                    if (syncResult.isSuccess) {
+                        val firestoreId = syncResult.getOrNull()!!
+                        Log.d(TAG, "Transaction synced to Firebase: $firestoreId")
+
+                        // 2. Sonra firestoreId ile birlikte local'e kaydet (TEK SEFER!)
+                        val transactionWithFirestoreId = transaction.copy(
+                            firestoreId = firestoreId,
+                            syncedToFirebase = true
+                        )
+                        repo.insertTransaction(transactionWithFirestoreId)
+                        clearForm()
+                        onSuccess()
+                    } else {
+                        // Firebase başarısız, sadece local'e kaydet
+                        Log.e(TAG, "Failed to sync transaction to Firebase", syncResult.exceptionOrNull())
+                        repo.insertTransaction(transaction)
+                        clearForm()
+                        onSuccess()
+                    }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error saving transaction", e)
+                savedPhotoPath?.let { PhotoStorageUtil.deletePhoto(it) }
                 onError(context.getString(R.string.error_transaction_save_failed, e.message ?: ""))
             }
         }

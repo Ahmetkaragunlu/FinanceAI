@@ -31,7 +31,8 @@ fun EditTextField(
     shape: Shape = RoundedCornerShape(12.dp),
     colors: TextFieldColors? = null,
     @StringRes supportingText: Int? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+
 ) {
     OutlinedTextField(
         value = value,

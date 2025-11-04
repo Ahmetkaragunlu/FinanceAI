@@ -13,6 +13,7 @@ import com.google.firebase.firestore.MetadataChanges
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -29,20 +30,49 @@ class FirebaseSyncService @Inject constructor(
     private var scheduledListener: ListenerRegistration? = null
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
-    // Listener başlatıldı mı kontrolü
-    private var isTransactionListenerStarted = false
-    private var isScheduledListenerStarted = false
+    private var isInitialized = false
 
     companion object {
         private const val TAG = "FirebaseSyncService"
         private const val TRANSACTIONS_COLLECTION = "transactions"
         private const val SCHEDULED_COLLECTION = "scheduled_transactions"
-        private const val SYNC_THRESHOLD_MS = 5000L
     }
 
     private fun getUserId(): String? = auth.currentUser?.uid
 
-    // Transaction'ı Firebase'e kaydet
+    suspend fun initializeSyncAfterLogin() {
+        val userId = getUserId()
+        if (userId == null) {
+            Log.w(TAG, "Cannot initialize sync - user not logged in")
+            return
+        }
+
+        if (isInitialized) {
+            Log.d(TAG, "Sync already initialized, skipping...")
+            return
+        }
+
+        Log.d(TAG, "Initializing sync for user: $userId")
+
+        try {
+            performInitialSync()
+            delay(300)
+            startListeningToTransactions()
+            startListeningToScheduledTransactions()
+
+            isInitialized = true
+            Log.d(TAG, "Sync initialization completed successfully")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error during sync initialization", e)
+        }
+    }
+
+    fun resetSync() {
+        Log.d(TAG, "Resetting sync...")
+        stopListening()
+        isInitialized = false
+    }
+
     suspend fun syncTransactionToFirebase(transaction: TransactionEntity): Result<String> {
         return try {
             val userId = getUserId() ?: return Result.failure(Exception("User not logged in"))
@@ -64,22 +94,15 @@ class FirebaseSyncService @Inject constructor(
             )
 
             val docRef = if (transaction.firestoreId.isNotEmpty()) {
-                firestore.collection(TRANSACTIONS_COLLECTION)
-                    .document(transaction.firestoreId)
+                firestore.collection(TRANSACTIONS_COLLECTION).document(transaction.firestoreId)
             } else {
                 firestore.collection(TRANSACTIONS_COLLECTION).document()
             }
 
             docRef.set(data).await()
 
-            localRepository.updateTransaction(
-                transaction.copy(
-                    firestoreId = docRef.id,
-                    syncedToFirebase = true
-                )
-            )
-
-            Log.d(TAG, "Transaction synced: ${docRef.id}")
+            // SADECE FIRESTORE ID'Yİ DÖNDÜR - Room'a ekleme YAPMA!
+            Log.d(TAG, "Transaction synced to Firebase: ${docRef.id}")
             Result.success(docRef.id)
         } catch (e: Exception) {
             Log.e(TAG, "Error syncing transaction", e)
@@ -87,7 +110,6 @@ class FirebaseSyncService @Inject constructor(
         }
     }
 
-    // Scheduled Transaction'ı Firebase'e kaydet
     suspend fun syncScheduledTransactionToFirebase(transaction: ScheduledTransactionEntity): Result<String> {
         return try {
             val userId = getUserId() ?: return Result.failure(Exception("User not logged in"))
@@ -111,22 +133,15 @@ class FirebaseSyncService @Inject constructor(
             )
 
             val docRef = if (transaction.firestoreId.isNotEmpty()) {
-                firestore.collection(SCHEDULED_COLLECTION)
-                    .document(transaction.firestoreId)
+                firestore.collection(SCHEDULED_COLLECTION).document(transaction.firestoreId)
             } else {
                 firestore.collection(SCHEDULED_COLLECTION).document()
             }
 
             docRef.set(data).await()
 
-            localRepository.updateScheduledTransaction(
-                transaction.copy(
-                    firestoreId = docRef.id,
-                    syncedToFirebase = true
-                )
-            )
-
-            Log.d(TAG, "Scheduled transaction synced: ${docRef.id}")
+            // SADECE FIRESTORE ID'Yİ DÖNDÜR - Room'a ekleme YAPMA!
+            Log.d(TAG, "Scheduled transaction synced to Firebase: ${docRef.id}")
             Result.success(docRef.id)
         } catch (e: Exception) {
             Log.e(TAG, "Error syncing scheduled transaction", e)
@@ -137,13 +152,9 @@ class FirebaseSyncService @Inject constructor(
     suspend fun deleteScheduledTransactionFromFirebase(firestoreId: String): Result<Unit> {
         return try {
             val userId = getUserId() ?: return Result.failure(Exception("User not logged in"))
-
             Log.d(TAG, "Deleting from Firebase - firestoreId: $firestoreId")
 
-            firestore.collection(SCHEDULED_COLLECTION)
-                .document(firestoreId)
-                .delete()
-                .await()
+            firestore.collection(SCHEDULED_COLLECTION).document(firestoreId).delete().await()
 
             Log.d(TAG, "Successfully deleted from Firebase: $firestoreId")
             Result.success(Unit)
@@ -153,29 +164,14 @@ class FirebaseSyncService @Inject constructor(
         }
     }
 
-    // İlk yükleme: Firebase'deki TÜM verileri local'e çek
-    suspend fun performInitialSync() {
+    private suspend fun performInitialSync() {
         val userId = getUserId() ?: return
 
         try {
-            Log.d(TAG, "Starting initial sync from Firebase...")
+            Log.d(TAG, "Starting initial sync from Firebase for user: $userId")
 
-            val localTransactions = localRepository.getAllTransactions().first()
-            val localScheduled = localRepository.getAllScheduledTransactions().first()
-
-            if (localTransactions.isEmpty()) {
-                Log.d(TAG, "Local transactions empty, fetching from Firebase...")
-                fetchAllTransactionsFromFirebase(userId)
-            } else {
-                Log.d(TAG, "Local transactions exist (${localTransactions.size}), skipping initial fetch")
-            }
-
-            if (localScheduled.isEmpty()) {
-                Log.d(TAG, "Local scheduled transactions empty, fetching from Firebase...")
-                fetchAllScheduledTransactionsFromFirebase(userId)
-            } else {
-                Log.d(TAG, "Local scheduled transactions exist (${localScheduled.size}), skipping initial fetch")
-            }
+            fetchAllTransactionsFromFirebase(userId)
+            fetchAllScheduledTransactionsFromFirebase(userId)
 
             Log.d(TAG, "Initial sync completed!")
         } catch (e: Exception) {
@@ -259,18 +255,11 @@ class FirebaseSyncService @Inject constructor(
         }
     }
 
-    // Firebase'den Transaction'ları dinle (sadece CANLI değişiklikler için)
-    fun startListeningToTransactions() {
+    private fun startListeningToTransactions() {
         val userId = getUserId() ?: return
-
-        // Zaten listener başlatıldıysa tekrar başlatma
-        if (isTransactionListenerStarted) {
-            Log.d(TAG, "Transaction listener already started, skipping...")
-            return
-        }
+        transactionListener?.remove()
 
         Log.d(TAG, "Starting transaction listener...")
-        isTransactionListenerStarted = true
 
         transactionListener = firestore.collection(TRANSACTIONS_COLLECTION)
             .whereEqualTo("userId", userId)
@@ -280,9 +269,7 @@ class FirebaseSyncService @Inject constructor(
                     return@addSnapshotListener
                 }
 
-                // İlk snapshot'ı atla (zaten performInitialSync'de çektik)
                 if (snapshot?.metadata?.isFromCache == false && snapshot.metadata.hasPendingWrites() == false) {
-
                     snapshot.documentChanges.forEach { change ->
                         scope.launch {
                             try {
@@ -291,9 +278,7 @@ class FirebaseSyncService @Inject constructor(
 
                                 when (change.type) {
                                     com.google.firebase.firestore.DocumentChange.Type.ADDED -> {
-                                        // Sadece local'de yoksa ekle
                                         val existing = localRepository.getTransactionByFirestoreId(firestoreId)
-
                                         if (existing == null) {
                                             val transaction = TransactionEntity(
                                                 firestoreId = firestoreId,
@@ -310,15 +295,13 @@ class FirebaseSyncService @Inject constructor(
                                                 syncedToFirebase = true
                                             )
                                             localRepository.insertTransaction(transaction)
-                                            Log.d(TAG, "Transaction added from Firebase (other device): $firestoreId")
+                                            Log.d(TAG, "Transaction added from listener (other device): $firestoreId")
                                         } else {
-                                            Log.d(TAG, "Transaction already exists locally: $firestoreId")
+                                            Log.d(TAG, "Transaction already exists, skipping: $firestoreId")
                                         }
                                     }
-
                                     com.google.firebase.firestore.DocumentChange.Type.MODIFIED -> {
                                         val existing = localRepository.getTransactionByFirestoreId(firestoreId)
-
                                         if (existing != null) {
                                             val transaction = existing.copy(
                                                 amount = doc.getDouble("amount") ?: existing.amount,
@@ -337,7 +320,6 @@ class FirebaseSyncService @Inject constructor(
                                             Log.d(TAG, "Transaction updated from Firebase: $firestoreId")
                                         }
                                     }
-
                                     com.google.firebase.firestore.DocumentChange.Type.REMOVED -> {
                                         val existing = localRepository.getTransactionByFirestoreId(firestoreId)
                                         existing?.let {
@@ -355,17 +337,11 @@ class FirebaseSyncService @Inject constructor(
             }
     }
 
-    // Firebase'den Scheduled Transaction'ları dinle
-    fun startListeningToScheduledTransactions() {
+    private fun startListeningToScheduledTransactions() {
         val userId = getUserId() ?: return
-
-        if (isScheduledListenerStarted) {
-            Log.d(TAG, "Scheduled transaction listener already started, skipping...")
-            return
-        }
+        scheduledListener?.remove()
 
         Log.d(TAG, "Starting scheduled transaction listener...")
-        isScheduledListenerStarted = true
 
         scheduledListener = firestore.collection(SCHEDULED_COLLECTION)
             .whereEqualTo("userId", userId)
@@ -375,9 +351,7 @@ class FirebaseSyncService @Inject constructor(
                     return@addSnapshotListener
                 }
 
-                // İlk snapshot'ı atla
                 if (snapshot?.metadata?.isFromCache == false && snapshot.metadata.hasPendingWrites() == false) {
-
                     snapshot.documentChanges.forEach { change ->
                         scope.launch {
                             try {
@@ -387,7 +361,6 @@ class FirebaseSyncService @Inject constructor(
                                 when (change.type) {
                                     com.google.firebase.firestore.DocumentChange.Type.ADDED -> {
                                         val existing = localRepository.getScheduledTransactionByFirestoreId(firestoreId)
-
                                         if (existing == null) {
                                             val scheduledTransaction = ScheduledTransactionEntity(
                                                 firestoreId = firestoreId,
@@ -406,15 +379,13 @@ class FirebaseSyncService @Inject constructor(
                                                 syncedToFirebase = true
                                             )
                                             localRepository.insertScheduledTransaction(scheduledTransaction)
-                                            Log.d(TAG, "Scheduled transaction added from Firebase (other device): $firestoreId")
+                                            Log.d(TAG, "Scheduled transaction added from listener (other device): $firestoreId")
                                         } else {
-                                            Log.d(TAG, "Scheduled transaction already exists locally: $firestoreId")
+                                            Log.d(TAG, "Scheduled transaction already exists, skipping: $firestoreId")
                                         }
                                     }
-
                                     com.google.firebase.firestore.DocumentChange.Type.MODIFIED -> {
                                         val existing = localRepository.getScheduledTransactionByFirestoreId(firestoreId)
-
                                         if (existing != null) {
                                             val scheduledTransaction = existing.copy(
                                                 amount = doc.getDouble("amount") ?: existing.amount,
@@ -435,7 +406,6 @@ class FirebaseSyncService @Inject constructor(
                                             Log.d(TAG, "Scheduled transaction updated from Firebase: $firestoreId")
                                         }
                                     }
-
                                     com.google.firebase.firestore.DocumentChange.Type.REMOVED -> {
                                         val existing = localRepository.getScheduledTransactionByFirestoreId(firestoreId)
                                         existing?.let {
@@ -456,8 +426,8 @@ class FirebaseSyncService @Inject constructor(
     fun stopListening() {
         transactionListener?.remove()
         scheduledListener?.remove()
-        isTransactionListenerStarted = false
-        isScheduledListenerStarted = false
+        transactionListener = null
+        scheduledListener = null
         Log.d(TAG, "Listeners stopped")
     }
 }
