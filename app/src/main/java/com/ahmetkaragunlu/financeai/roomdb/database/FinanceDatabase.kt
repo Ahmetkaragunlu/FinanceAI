@@ -1,3 +1,4 @@
+
 package com.ahmetkaragunlu.financeai.roomdb.database
 
 import androidx.room.Database
@@ -12,7 +13,7 @@ import com.ahmetkaragunlu.financeai.roomdb.entitiy.TransactionEntity
 
 @Database(
     entities = [TransactionEntity::class, ScheduledTransactionEntity::class],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

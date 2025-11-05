@@ -56,6 +56,7 @@ dependencies {
     implementation("com.google.android.gms:play-services-auth:21.4.0")
     implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
     implementation(libs.androidx.lifecycle.process)
+    implementation(libs.room.ktx)
 
     //Room
     ksp("androidx.room:room-compiler:2.8.0")
