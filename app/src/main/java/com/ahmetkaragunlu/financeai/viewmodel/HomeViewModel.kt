@@ -1,5 +1,6 @@
 
 
+
 package com.ahmetkaragunlu.financeai.viewmodel
 
 import androidx.lifecycle.ViewModel

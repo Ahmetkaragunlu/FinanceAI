@@ -1,4 +1,3 @@
-
 package com.ahmetkaragunlu.financeai.di.firebasemodule
 
 import android.content.Context
@@ -6,6 +5,7 @@ import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.firebaserepo.AuthRepository
 import com.ahmetkaragunlu.financeai.firebaserepo.AuthRepositoryImpl
 import com.ahmetkaragunlu.financeai.firebaserepo.FirebaseSyncService
+import com.ahmetkaragunlu.financeai.photo.PhotoStorageManager
 import com.ahmetkaragunlu.financeai.roomrepository.financerepository.FinanceRepository
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -35,14 +35,37 @@ object FirebaseModule {
     @Singleton
     fun provideFirebaseStorage(): FirebaseStorage = FirebaseStorage.getInstance()
 
+    /**
+     * PhotoStorageManager - Firebase Storage fotoğraf yöneticisi
+     */
+    @Provides
+    @Singleton
+    fun providePhotoStorageManager(
+        storage: FirebaseStorage,
+        auth: FirebaseAuth
+    ): PhotoStorageManager {
+        return PhotoStorageManager(storage, auth)
+    }
+
+    /**
+     * FirebaseSyncService - Artık PhotoStorageManager dahil
+     */
     @Provides
     @Singleton
     fun provideFirebaseSyncService(
         firestore: FirebaseFirestore,
         auth: FirebaseAuth,
-        localRepository: FinanceRepository
+        localRepository: FinanceRepository,
+        photoStorageManager: PhotoStorageManager,
+        @ApplicationContext context: Context
     ): FirebaseSyncService {
-        return FirebaseSyncService(firestore, auth, localRepository)
+        return FirebaseSyncService(
+            firestore,
+            auth,
+            localRepository,
+            photoStorageManager,
+            context
+        )
     }
 }
 
@@ -54,7 +77,7 @@ object RepositoryModule {
     fun provideAuthRepository(
         auth: FirebaseAuth,
         firestore: FirebaseFirestore,
-        firebaseSyncService: FirebaseSyncService // EKLENDI
+        firebaseSyncService: FirebaseSyncService
     ): AuthRepository = AuthRepositoryImpl(auth, firestore, firebaseSyncService)
 }
 

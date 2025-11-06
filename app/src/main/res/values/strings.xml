@@ -80,6 +80,7 @@
     <string name="create_reminder_button">Create Reminder</string>
     <string name="error_invalid_amount">Please enter a valid amount</string>
     <string name="error_select_category">Please select a category</string>
+    <string name="error_not_logged_in">Something went wrong</string>
     <string name="error_reminder_not_created">Reminder could not be created</string>
     <string name="error_transaction_save_failed">Transaction could not be saved: %1$s</string>
     <string name="error_transaction_confirm_failed">Transaction could not be confirmed: %1$s</string>

@@ -1,4 +1,5 @@
 
+
 package com.ahmetkaragunlu.financeai.roomrepository.financerepository
 
 import com.ahmetkaragunlu.financeai.roomdb.entitiy.ScheduledTransactionEntity

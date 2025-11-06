@@ -1,3 +1,4 @@
+
 package com.ahmetkaragunlu.financeai.photo
 
 
@@ -56,5 +57,3 @@ class CameraHelper(
         }
     }
 }
-
-
