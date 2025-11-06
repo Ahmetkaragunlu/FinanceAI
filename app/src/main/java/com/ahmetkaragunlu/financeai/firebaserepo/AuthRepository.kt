@@ -1,4 +1,5 @@
 
+
 package com.ahmetkaragunlu.financeai.firebaserepo
 
 import com.ahmetkaragunlu.financeai.firebasemodel.User
@@ -16,5 +17,5 @@ interface AuthRepository {
     suspend fun confirmPasswordReset(oobCode: String, newPassword: String)
     suspend fun signInWithGoogle(account: GoogleSignInAccount): AuthResult
     suspend fun isUserRegistered(email: String): Boolean
-    suspend fun signOut() // EKLENDI
+    suspend fun signOut()
 }

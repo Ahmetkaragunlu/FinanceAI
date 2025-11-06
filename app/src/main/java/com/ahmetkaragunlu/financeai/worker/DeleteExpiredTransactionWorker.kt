@@ -29,33 +29,30 @@ class DeleteExpiredTransactionWorker @AssistedInject constructor(
                 return Result.failure()
             }
 
-            Log.d(TAG, "Deleting expired transaction - Local ID: $transactionId")
+            Log.d(TAG, "Deleting expired scheduled transaction - Local ID: $transactionId")
 
-            // Local ID ile transaction'ı bul
             val transaction = repository.getScheduledTransactionById(transactionId)
 
             if (transaction != null) {
-                Log.d(TAG, "Found transaction - Firestore ID: ${transaction.firestoreId}")
+                Log.d(TAG, "Found expired transaction - Firestore ID: ${transaction.firestoreId}")
 
-                // 1. Firebase'den sil
                 if (transaction.firestoreId.isNotEmpty()) {
                     val deleteResult = firebaseSyncService.deleteScheduledTransactionFromFirebase(
                         transaction.firestoreId
                     )
                     if (deleteResult.isSuccess) {
-                        Log.d(TAG, "Successfully deleted from Firebase")
+                        Log.d(TAG, "Successfully deleted from Firebase (Firestore + Storage photo)")
                     } else {
                         Log.e(TAG, "Failed to delete from Firebase", deleteResult.exceptionOrNull())
                     }
                 }
 
-                // 2. Local'den sil
                 repository.deleteScheduledTransaction(transaction)
                 Log.d(TAG, "Deleted from local DB")
 
                 Result.success()
             } else {
-                Log.w(TAG, "Transaction not found with ID: $transactionId")
+                Log.w(TAG, "Expired transaction not found with ID: $transactionId")
                 Result.failure()
             }
         } catch (e: Exception) {

@@ -1,4 +1,3 @@
-
 package com.ahmetkaragunlu.financeai.firebaserepo
 
 import com.ahmetkaragunlu.financeai.firebasemodel.User
@@ -13,11 +12,10 @@ import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
-
 class AuthRepositoryImpl @Inject constructor(
     private val auth: FirebaseAuth,
     private val firestore: FirebaseFirestore,
-    private val firebaseSyncService: FirebaseSyncService // EKLENDI
+    private val firebaseSyncService: FirebaseSyncService
 ) : AuthRepository {
 
     override val currentUser get() = auth.currentUser
@@ -28,8 +26,8 @@ class AuthRepositoryImpl @Inject constructor(
     override suspend fun signIn(email: String, password: String): AuthResult =
         try {
             val result = auth.signInWithEmailAndPassword(email, password).await()
-            // Giriş başarılı, sync'i başlat
             firebaseSyncService.initializeSyncAfterLogin()
+
             result
         } catch (e: Exception) {
             when (e) {
@@ -57,7 +55,6 @@ class AuthRepositoryImpl @Inject constructor(
             val uid = authResult.user?.uid ?: throw AuthException.UidNotFound
             val user = User(email = email, firstName = firstName, lastName = lastName, uid = uid)
             saveUserFirestore(user)
-            // Kayıt sonrası da sync'i başlat
             firebaseSyncService.initializeSyncAfterLogin()
         } catch (e: Exception) {
             when (e) {
@@ -101,7 +98,6 @@ class AuthRepositoryImpl @Inject constructor(
     override suspend fun signInWithGoogle(account: GoogleSignInAccount): AuthResult {
         val credential = GoogleAuthProvider.getCredential(account.idToken, null)
         val result = auth.signInWithCredential(credential).await()
-        // Google ile giriş başarılı, sync'i başlat
         firebaseSyncService.initializeSyncAfterLogin()
         return result
     }
@@ -115,9 +111,7 @@ class AuthRepositoryImpl @Inject constructor(
     }
 
     override suspend fun signOut() {
-        // Önce sync'i durdur
         firebaseSyncService.resetSync()
-        // Sonra çıkış yap
         auth.signOut()
     }
 }

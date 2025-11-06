@@ -1,6 +1,5 @@
 package com.ahmetkaragunlu.financeai.photo
 
-
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -13,9 +12,10 @@ import androidx.core.graphics.scale
 
 object PhotoStorageUtil {
 
-    private const val PHOTO_DIRECTORY = "transaction_photos"
+    const val PHOTO_DIRECTORY = "transaction_photos" // Public yapıldı
     private const val MAX_IMAGE_SIZE = 1920
     private const val JPEG_QUALITY = 85
+
     fun savePhotoToInternalStorage(context: Context, photoUri: Uri): String? {
         return try {
             val photoDir = File(context.filesDir, PHOTO_DIRECTORY)
@@ -129,4 +129,3 @@ object PhotoStorageUtil {
         return bitmap.scale(newWidth, newHeight)
     }
 }
-

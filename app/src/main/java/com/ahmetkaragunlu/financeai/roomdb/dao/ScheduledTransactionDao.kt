@@ -1,4 +1,5 @@
 
+
 package com.ahmetkaragunlu.financeai.roomdb.dao
 
 import androidx.room.Dao

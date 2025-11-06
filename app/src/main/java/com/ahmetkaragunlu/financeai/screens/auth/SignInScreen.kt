@@ -1,3 +1,4 @@
+
 package com.ahmetkaragunlu.financeai.screens.auth
 
 import android.widget.Toast
@@ -95,7 +96,7 @@ fun SignInScreen(
     LaunchedEffect(uiState) {
         when (uiState) {
             AuthState.SUCCESS -> {
-               navController.navigateSingleTopClear(route = Screens.MAIN_GRAPH.route)
+                navController.navigateSingleTopClear(route = Screens.MAIN_GRAPH.route)
             }
             AuthState.EMAIL_NOT_VERIFIED -> {
                 Toast.makeText(
@@ -203,18 +204,18 @@ fun SignInScreen(
                     focusedBorderColor = MaterialTheme.colorScheme.onPrimary),
                 visualTransformation = if (authViewModel.passwordVisibility) VisualTransformation.None else PasswordVisualTransformation()
             )
-              Row(modifier = modifier.widthIn(max = 380.dp).fillMaxWidth().padding(end = 48.dp), horizontalArrangement = Arrangement.End) {
-                  Text(
-                      text = stringResource(R.string.forgot_password),
-                      color = MaterialTheme.colorScheme.onPrimary,
-                      style = MaterialTheme.typography.labelLarge,
-                      modifier = modifier
-                          .clickable {
-                              navController.navigateSingleTopClear(Screens.PasswordResetRequestScreen.route)
-                              authViewModel.clearSignInFields()
-                          },
-                  )
-              }
+            Row(modifier = modifier.widthIn(max = 380.dp).fillMaxWidth().padding(end = 48.dp), horizontalArrangement = Arrangement.End) {
+                Text(
+                    text = stringResource(R.string.forgot_password),
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    style = MaterialTheme.typography.labelLarge,
+                    modifier = modifier
+                        .clickable {
+                            navController.navigateSingleTopClear(Screens.PasswordResetRequestScreen.route)
+                            authViewModel.clearSignInFields()
+                        },
+                )
+            }
 
             Button(
                 onClick = {
