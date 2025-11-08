@@ -1,4 +1,4 @@
-package com.ahmetkaragunlu.financeai.worker
+package com.ahmetkaragunlu.financeai.notification
 
 import android.app.NotificationManager
 import android.content.BroadcastReceiver
@@ -6,7 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import androidx.work.WorkManager
-import com.ahmetkaragunlu.financeai.firebaserepo.FirebaseSyncService
+import com.ahmetkaragunlu.financeai.firebasesync.FirebaseSyncService
 import com.ahmetkaragunlu.financeai.photo.PhotoStorageManager
 import com.ahmetkaragunlu.financeai.roomdb.entitiy.TransactionEntity
 import com.ahmetkaragunlu.financeai.roomrepository.financerepository.FinanceRepository

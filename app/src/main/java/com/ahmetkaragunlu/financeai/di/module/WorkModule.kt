@@ -1,5 +1,4 @@
-package com.ahmetkaragunlu.financeai.di.workmodule
-
+package com.ahmetkaragunlu.financeai.di.module
 
 import android.content.Context
 import androidx.work.WorkManager

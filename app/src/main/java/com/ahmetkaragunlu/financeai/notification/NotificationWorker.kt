@@ -1,5 +1,4 @@
-
-package com.ahmetkaragunlu.financeai.worker
+package com.ahmetkaragunlu.financeai.notification
 
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -87,7 +86,7 @@ class NotificationWorker @AssistedInject constructor(
     }
 
     private fun scheduleDeleteExpiredTransaction(transactionId: Long) {
-        val workRequest = OneTimeWorkRequestBuilder<DeleteExpiredTransactionWorker>()
+        val workRequest = OneTimeWorkRequestBuilder<DeleteExpiredNotification>()
             .setInitialDelay(24, TimeUnit.HOURS)
             .setInputData(
                 workDataOf(TRANSACTION_ID_KEY to transactionId)

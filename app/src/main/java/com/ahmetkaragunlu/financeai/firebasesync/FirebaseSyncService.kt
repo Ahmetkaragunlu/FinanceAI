@@ -1,4 +1,4 @@
-package com.ahmetkaragunlu.financeai.firebaserepo
+package com.ahmetkaragunlu.financeai.firebasesync
 
 import android.content.Context
 import android.util.Log
@@ -9,6 +9,7 @@ import com.ahmetkaragunlu.financeai.roomdb.type.CategoryType
 import com.ahmetkaragunlu.financeai.roomdb.type.TransactionType
 import com.ahmetkaragunlu.financeai.roomrepository.financerepository.FinanceRepository
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.DocumentChange
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.MetadataChanges
@@ -397,7 +398,7 @@ class FirebaseSyncService @Inject constructor(
                                 val firestoreId = doc.id
 
                                 when (change.type) {
-                                    com.google.firebase.firestore.DocumentChange.Type.ADDED -> {
+                                    DocumentChange.Type.ADDED -> {
                                         val existing = localRepository.getTransactionByFirestoreId(firestoreId)
                                         if (existing == null) {
                                             val storagePhotoUrl = doc.getString("photoStorageUrl")
@@ -442,7 +443,7 @@ class FirebaseSyncService @Inject constructor(
                                             Log.d(TAG, "Transaction added from listener: $firestoreId")
                                         }
                                     }
-                                    com.google.firebase.firestore.DocumentChange.Type.MODIFIED -> {
+                                    DocumentChange.Type.MODIFIED -> {
                                         val existing = localRepository.getTransactionByFirestoreId(firestoreId)
                                         if (existing != null) {
                                             val storagePhotoUrl = doc.getString("photoStorageUrl")
@@ -486,7 +487,7 @@ class FirebaseSyncService @Inject constructor(
                                             Log.d(TAG, "Transaction updated from Firebase: $firestoreId")
                                         }
                                     }
-                                    com.google.firebase.firestore.DocumentChange.Type.REMOVED -> {
+                                    DocumentChange.Type.REMOVED -> {
                                         val existing = localRepository.getTransactionByFirestoreId(firestoreId)
                                         existing?.let {
                                             localRepository.deleteTransaction(it)
@@ -525,7 +526,7 @@ class FirebaseSyncService @Inject constructor(
                                 val firestoreId = doc.id
 
                                 when (change.type) {
-                                    com.google.firebase.firestore.DocumentChange.Type.ADDED -> {
+                                    DocumentChange.Type.ADDED -> {
                                         val existing = localRepository.getScheduledTransactionByFirestoreId(firestoreId)
                                         if (existing == null) {
                                             val storagePhotoUrl = doc.getString("photoStorageUrl")
@@ -572,7 +573,7 @@ class FirebaseSyncService @Inject constructor(
                                             Log.d(TAG, "Scheduled added from listener: $firestoreId")
                                         }
                                     }
-                                    com.google.firebase.firestore.DocumentChange.Type.MODIFIED -> {
+                                    DocumentChange.Type.MODIFIED -> {
                                         val existing = localRepository.getScheduledTransactionByFirestoreId(firestoreId)
                                         if (existing != null) {
                                             val storagePhotoUrl = doc.getString("photoStorageUrl")
@@ -618,7 +619,7 @@ class FirebaseSyncService @Inject constructor(
                                             Log.d(TAG, "Scheduled updated from Firebase: $firestoreId")
                                         }
                                     }
-                                    com.google.firebase.firestore.DocumentChange.Type.REMOVED -> {
+                                    DocumentChange.Type.REMOVED -> {
                                         val existing = localRepository.getScheduledTransactionByFirestoreId(firestoreId)
                                         existing?.let {
                                             localRepository.deleteScheduledTransaction(it)
