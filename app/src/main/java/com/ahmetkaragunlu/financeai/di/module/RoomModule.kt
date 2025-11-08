@@ -1,8 +1,4 @@
-
-
-package com.ahmetkaragunlu.financeai.di.roommodule
-
-
+package com.ahmetkaragunlu.financeai.di.module
 
 import android.content.Context
 import androidx.room.Room

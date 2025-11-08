@@ -1,6 +1,8 @@
+
 package com.ahmetkaragunlu.financeai.firebaserepo
 
 import com.ahmetkaragunlu.financeai.firebasemodel.User
+import com.ahmetkaragunlu.financeai.firebasesync.FirebaseSyncService
 import com.ahmetkaragunlu.financeai.screens.auth.AuthException
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.firebase.auth.AuthResult

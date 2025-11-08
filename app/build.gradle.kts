@@ -55,13 +55,17 @@ dependencies {
     implementation("androidx.credentials:credentials-play-services-auth:1.5.0")
     implementation("com.google.android.gms:play-services-auth:21.4.0")
     implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
-    implementation(libs.androidx.lifecycle.process)
-    implementation(libs.room.ktx)
+    implementation("com.google.firebase:firebase-messaging:23.4.0")
+
+
+
+
 
     //Room
     ksp("androidx.room:room-compiler:2.8.0")
     implementation("androidx.room:room-ktx:2.8.0")
     implementation("androidx.room:room-runtime:2.8.0")
+    implementation(libs.room.ktx)
 
     //DI
     implementation("com.google.dagger:hilt-android:2.57.1")
@@ -100,7 +104,7 @@ dependencies {
 
 
 
-
+    implementation(libs.androidx.lifecycle.process)
     implementation("androidx.compose.material3:material3:1.3.0")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

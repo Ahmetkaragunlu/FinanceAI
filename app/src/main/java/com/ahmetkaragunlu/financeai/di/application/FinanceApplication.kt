@@ -1,6 +1,4 @@
-
-
-package com.ahmetkaragunlu.financeai.di.financeapplication
+package com.ahmetkaragunlu.financeai.di.application
 
 import android.app.Application
 import android.app.NotificationChannel
@@ -8,7 +6,7 @@ import android.app.NotificationManager
 import com.ahmetkaragunlu.financeai.R
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.*
-import com.ahmetkaragunlu.financeai.worker.NotificationWorker
+import com.ahmetkaragunlu.financeai.notification.NotificationWorker
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 

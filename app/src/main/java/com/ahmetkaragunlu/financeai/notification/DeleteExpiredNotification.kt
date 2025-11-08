@@ -1,17 +1,17 @@
-package com.ahmetkaragunlu.financeai.worker
+package com.ahmetkaragunlu.financeai.notification
 
 import android.content.Context
 import android.util.Log
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.ahmetkaragunlu.financeai.firebaserepo.FirebaseSyncService
+import com.ahmetkaragunlu.financeai.firebasesync.FirebaseSyncService
 import com.ahmetkaragunlu.financeai.roomrepository.financerepository.FinanceRepository
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 
 @HiltWorker
-class DeleteExpiredTransactionWorker @AssistedInject constructor(
+class DeleteExpiredNotification @AssistedInject constructor(
     @Assisted private val appContext: Context,
     @Assisted private val params: WorkerParameters,
     private val repository: FinanceRepository,

@@ -1,10 +1,10 @@
-package com.ahmetkaragunlu.financeai.di.firebasemodule
+package com.ahmetkaragunlu.financeai.di.module
 
 import android.content.Context
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.firebaserepo.AuthRepository
 import com.ahmetkaragunlu.financeai.firebaserepo.AuthRepositoryImpl
-import com.ahmetkaragunlu.financeai.firebaserepo.FirebaseSyncService
+import com.ahmetkaragunlu.financeai.firebasesync.FirebaseSyncService
 import com.ahmetkaragunlu.financeai.photo.PhotoStorageManager
 import com.ahmetkaragunlu.financeai.roomrepository.financerepository.FinanceRepository
 import com.google.android.gms.auth.api.signin.GoogleSignIn
@@ -12,6 +12,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.storage.FirebaseStorage
 import dagger.Module
 import dagger.Provides
@@ -35,9 +36,7 @@ object FirebaseModule {
     @Singleton
     fun provideFirebaseStorage(): FirebaseStorage = FirebaseStorage.getInstance()
 
-    /**
-     * PhotoStorageManager - Firebase Storage fotoğraf yöneticisi
-     */
+
     @Provides
     @Singleton
     fun providePhotoStorageManager(
@@ -47,9 +46,6 @@ object FirebaseModule {
         return PhotoStorageManager(storage, auth)
     }
 
-    /**
-     * FirebaseSyncService - Artık PhotoStorageManager dahil
-     */
     @Provides
     @Singleton
     fun provideFirebaseSyncService(
@@ -67,6 +63,8 @@ object FirebaseModule {
             context
         )
     }
+
+
 }
 
 @InstallIn(SingletonComponent::class)
@@ -77,7 +75,7 @@ object RepositoryModule {
     fun provideAuthRepository(
         auth: FirebaseAuth,
         firestore: FirebaseFirestore,
-        firebaseSyncService: FirebaseSyncService
+        firebaseSyncService: FirebaseSyncService,
     ): AuthRepository = AuthRepositoryImpl(auth, firestore, firebaseSyncService)
 }
 

@@ -18,9 +18,10 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.workDataOf
 import com.ahmetkaragunlu.financeai.R
-import com.ahmetkaragunlu.financeai.firebaserepo.FirebaseSyncService
+import com.ahmetkaragunlu.financeai.firebasesync.FirebaseSyncService
 import com.ahmetkaragunlu.financeai.location.LocationData
 import com.ahmetkaragunlu.financeai.location.LocationUtil
+import com.ahmetkaragunlu.financeai.notification.NotificationWorker
 import com.ahmetkaragunlu.financeai.photo.CameraHelper
 import com.ahmetkaragunlu.financeai.photo.PhotoStorageUtil
 import com.ahmetkaragunlu.financeai.roomdb.entitiy.ScheduledTransactionEntity
@@ -28,7 +29,6 @@ import com.ahmetkaragunlu.financeai.roomdb.entitiy.TransactionEntity
 import com.ahmetkaragunlu.financeai.roomdb.type.CategoryType
 import com.ahmetkaragunlu.financeai.roomdb.type.TransactionType
 import com.ahmetkaragunlu.financeai.roomrepository.financerepository.FinanceRepository
-import com.ahmetkaragunlu.financeai.worker.NotificationWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.launch
