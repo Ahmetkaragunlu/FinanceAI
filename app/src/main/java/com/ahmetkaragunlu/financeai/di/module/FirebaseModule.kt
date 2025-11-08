@@ -2,6 +2,7 @@ package com.ahmetkaragunlu.financeai.di.module
 
 import android.content.Context
 import com.ahmetkaragunlu.financeai.R
+import com.ahmetkaragunlu.financeai.fcm.FCMTokenManager
 import com.ahmetkaragunlu.financeai.firebaserepo.AuthRepository
 import com.ahmetkaragunlu.financeai.firebaserepo.AuthRepositoryImpl
 import com.ahmetkaragunlu.financeai.firebasesync.FirebaseSyncService
@@ -36,6 +37,19 @@ object FirebaseModule {
     @Singleton
     fun provideFirebaseStorage(): FirebaseStorage = FirebaseStorage.getInstance()
 
+    @Provides
+    @Singleton
+    fun provideFirebaseMessaging(): FirebaseMessaging = FirebaseMessaging.getInstance()
+
+    @Provides
+    @Singleton
+    fun provideFCMTokenManager(
+        firestore: FirebaseFirestore,
+        auth: FirebaseAuth,
+        messaging: FirebaseMessaging
+    ): FCMTokenManager {
+        return FCMTokenManager(firestore, auth, messaging)
+    }
 
     @Provides
     @Singleton
@@ -63,8 +77,6 @@ object FirebaseModule {
             context
         )
     }
-
-
 }
 
 @InstallIn(SingletonComponent::class)
@@ -76,7 +88,13 @@ object RepositoryModule {
         auth: FirebaseAuth,
         firestore: FirebaseFirestore,
         firebaseSyncService: FirebaseSyncService,
-    ): AuthRepository = AuthRepositoryImpl(auth, firestore, firebaseSyncService)
+        fcmTokenManager: FCMTokenManager
+    ): AuthRepository = AuthRepositoryImpl(
+        auth,
+        firestore,
+        firebaseSyncService,
+        fcmTokenManager
+    )
 }
 
 @InstallIn(SingletonComponent::class)

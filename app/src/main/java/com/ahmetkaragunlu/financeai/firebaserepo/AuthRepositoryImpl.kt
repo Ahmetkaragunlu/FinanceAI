@@ -1,6 +1,6 @@
-
 package com.ahmetkaragunlu.financeai.firebaserepo
 
+import com.ahmetkaragunlu.financeai.fcm.FCMTokenManager
 import com.ahmetkaragunlu.financeai.firebasemodel.User
 import com.ahmetkaragunlu.financeai.firebasesync.FirebaseSyncService
 import com.ahmetkaragunlu.financeai.screens.auth.AuthException
@@ -14,10 +14,12 @@ import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
+
 class AuthRepositoryImpl @Inject constructor(
     private val auth: FirebaseAuth,
     private val firestore: FirebaseFirestore,
-    private val firebaseSyncService: FirebaseSyncService
+    private val firebaseSyncService: FirebaseSyncService,
+    private val fcmTokenManager: FCMTokenManager
 ) : AuthRepository {
 
     override val currentUser get() = auth.currentUser
@@ -29,7 +31,7 @@ class AuthRepositoryImpl @Inject constructor(
         try {
             val result = auth.signInWithEmailAndPassword(email, password).await()
             firebaseSyncService.initializeSyncAfterLogin()
-
+            fcmTokenManager.updateFCMToken() // FCM token'ı güncelle
             result
         } catch (e: Exception) {
             when (e) {
@@ -55,9 +57,16 @@ class AuthRepositoryImpl @Inject constructor(
             val authResult = signUp(email = email, password = password)
             sendEmailVerification()
             val uid = authResult.user?.uid ?: throw AuthException.UidNotFound
-            val user = User(email = email, firstName = firstName, lastName = lastName, uid = uid)
+            val user = User(
+                email = email,
+                firstName = firstName,
+                lastName = lastName,
+                uid = uid,
+                fcmTokens = emptyList() // İlk kayıtta boş liste
+            )
             saveUserFirestore(user)
             firebaseSyncService.initializeSyncAfterLogin()
+            fcmTokenManager.updateFCMToken() // FCM token'ı güncelle
         } catch (e: Exception) {
             when (e) {
                 is FirebaseAuthUserCollisionException -> {
@@ -101,6 +110,7 @@ class AuthRepositoryImpl @Inject constructor(
         val credential = GoogleAuthProvider.getCredential(account.idToken, null)
         val result = auth.signInWithCredential(credential).await()
         firebaseSyncService.initializeSyncAfterLogin()
+        fcmTokenManager.updateFCMToken() // FCM token'ı güncelle
         return result
     }
 
@@ -113,6 +123,7 @@ class AuthRepositoryImpl @Inject constructor(
     }
 
     override suspend fun signOut() {
+        fcmTokenManager.removeFCMToken() // Çıkış yaparken token'ı kaldır
         firebaseSyncService.resetSync()
         auth.signOut()
     }

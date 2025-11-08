@@ -41,6 +41,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
         val transactionId = intent.getLongExtra(NotificationWorker.TRANSACTION_ID_KEY, -1L)
         if (transactionId == -1L) return
 
+        // Önce bu cihazdan bildirimi kaldır
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.cancel(transactionId.toInt())
         notificationManager.cancel(transactionId.toInt() + 20000)
@@ -49,21 +50,21 @@ class NotificationActionReceiver : BroadcastReceiver() {
             ACTION_CONFIRM -> {
                 scope.launch {
                     try {
-                        Log.d(TAG, "CONFIRM action - Local ID: $transactionId")
+                        Log.d(TAG, "✅ CONFIRM action - Local ID: $transactionId")
 
                         val scheduledTransaction = repository.getScheduledTransactionById(transactionId)
 
                         if (scheduledTransaction != null) {
-                            Log.d(TAG, "Found scheduled transaction - Firestore ID: ${scheduledTransaction.firestoreId}")
+                            Log.d(TAG, "Found scheduled - Firestore ID: ${scheduledTransaction.firestoreId}")
 
-                            // 1. Transaction oluştur (lokal path ile)
+                            // 1. Transaction oluştur
                             val transaction = TransactionEntity(
                                 amount = scheduledTransaction.amount,
                                 transaction = scheduledTransaction.type,
                                 note = scheduledTransaction.note ?: "",
                                 date = System.currentTimeMillis(),
                                 category = scheduledTransaction.category,
-                                photoUri = scheduledTransaction.photoUri, // Lokal path
+                                photoUri = scheduledTransaction.photoUri,
                                 locationFull = scheduledTransaction.locationFull,
                                 locationShort = scheduledTransaction.locationShort,
                                 latitude = scheduledTransaction.latitude,
@@ -71,18 +72,18 @@ class NotificationActionReceiver : BroadcastReceiver() {
                                 syncedToFirebase = false
                             )
 
-                            // 2. Local'e kaydet (önce local, sonra sync)
+                            // 2. Local'e kaydet
                             repository.insertTransaction(transaction)
-                            Log.d(TAG, "Transaction inserted to local DB")
+                            Log.d(TAG, "Transaction inserted to local")
 
                             // 3. Firebase'e sync et
                             val transactionSyncResult = firebaseSyncService.syncTransactionToFirebase(transaction)
 
                             if (transactionSyncResult.isSuccess) {
                                 val transactionFirestoreId = transactionSyncResult.getOrNull()!!
-                                Log.d(TAG, "Transaction synced to Firebase: $transactionFirestoreId")
+                                Log.d(TAG, "Transaction synced: $transactionFirestoreId")
 
-                                // 4. Fotoğraf varsa Storage'da taşı (scheduled/ → transactions/)
+                                // 4. Fotoğraf varsa taşı
                                 if (!scheduledTransaction.photoUri.isNullOrBlank() && scheduledTransaction.firestoreId.isNotEmpty()) {
                                     val moveResult = photoStorageManager.moveScheduledPhotoToTransaction(
                                         scheduledFirestoreId = scheduledTransaction.firestoreId,
@@ -90,38 +91,39 @@ class NotificationActionReceiver : BroadcastReceiver() {
                                     )
 
                                     if (moveResult.isSuccess) {
-                                        Log.d(TAG, "Photo moved in Storage from scheduled to transaction")
+                                        Log.d(TAG, "Photo moved successfully")
                                     } else {
-                                        Log.e(TAG, "Failed to move photo in Storage", moveResult.exceptionOrNull())
+                                        Log.e(TAG, "Photo move failed", moveResult.exceptionOrNull())
                                     }
                                 }
 
-                                // 5. Scheduled transaction'ı Firebase'den sil
+                                // 5. ⚠️ ÖNEMLİ: Scheduled'ı Firebase'den sil
+                                // Bu silme işlemi Functions'taki onDelete trigger'ı tetikleyecek
+                                // ve TÜM CİHAZLARA "CANCEL_NOTIFICATION" mesajı gönderecek!
                                 if (scheduledTransaction.firestoreId.isNotEmpty()) {
                                     val deleteResult = firebaseSyncService.deleteScheduledTransactionFromFirebase(
                                         scheduledTransaction.firestoreId
                                     )
 
                                     if (deleteResult.isSuccess) {
-                                        Log.d(TAG, "Scheduled deleted from Firebase - all devices notified")
+                                        Log.d(TAG, "✅ Scheduled deleted from Firebase - all devices will be notified")
                                     } else {
-                                        Log.e(TAG, "Failed to delete scheduled from Firebase", deleteResult.exceptionOrNull())
+                                        Log.e(TAG, "❌ Delete failed", deleteResult.exceptionOrNull())
                                     }
                                 }
                             } else {
-                                Log.e(TAG, "Failed to sync transaction to Firebase", transactionSyncResult.exceptionOrNull())
+                                Log.e(TAG, "Transaction sync failed", transactionSyncResult.exceptionOrNull())
                             }
 
-                            // 6. Local'den scheduled'ı sil
+                            // 6. Local'den sil
                             repository.deleteScheduledTransaction(scheduledTransaction)
-                            Log.d(TAG, "Scheduled transaction deleted from local DB")
+                            Log.d(TAG, "Deleted from local DB")
 
-                            // 7. Bildirimleri iptal et
+                            // 7. Bu cihazın pending notification'larını iptal et
                             cancelAllPendingNotifications(context, transactionId)
-                            Log.d(TAG, "All pending notifications canceled")
 
                         } else {
-                            Log.e(TAG, "Scheduled transaction not found with ID: $transactionId")
+                            Log.e(TAG, "Scheduled transaction not found: $transactionId")
                         }
                     } catch (e: Exception) {
                         Log.e(TAG, "Error in CONFIRM action", e)
@@ -132,34 +134,35 @@ class NotificationActionReceiver : BroadcastReceiver() {
             ACTION_CANCEL -> {
                 scope.launch {
                     try {
-                        Log.d(TAG, "CANCEL action - Local ID: $transactionId")
+                        Log.d(TAG, "❌ CANCEL action - Local ID: $transactionId")
 
                         val scheduledTransaction = repository.getScheduledTransactionById(transactionId)
 
                         if (scheduledTransaction != null && scheduledTransaction.firestoreId.isNotEmpty()) {
-                            Log.d(TAG, "Deleting scheduled transaction - Firestore ID: ${scheduledTransaction.firestoreId}")
+                            Log.d(TAG, "Deleting scheduled - Firestore ID: ${scheduledTransaction.firestoreId}")
 
-                            // Firebase'den sil (Storage'daki fotoğraf da silinecek - FirebaseSyncService'te)
+                            // ⚠️ ÖNEMLİ: Firebase'den sil
+                            // Bu Functions'taki onDelete trigger'ı tetikleyecek
+                            // ve TÜM CİHAZLARA "CANCEL_NOTIFICATION" mesajı gönderecek!
                             val deleteResult = firebaseSyncService.deleteScheduledTransactionFromFirebase(
                                 scheduledTransaction.firestoreId
                             )
 
                             if (deleteResult.isSuccess) {
-                                Log.d(TAG, "Scheduled deleted from Firebase - all devices notified")
+                                Log.d(TAG, "✅ Scheduled deleted from Firebase - all devices will be notified")
                             } else {
-                                Log.e(TAG, "Failed to delete from Firebase", deleteResult.exceptionOrNull())
+                                Log.e(TAG, "❌ Delete failed", deleteResult.exceptionOrNull())
                             }
 
                             // Local'den sil
                             repository.deleteScheduledTransaction(scheduledTransaction)
-                            Log.d(TAG, "Scheduled transaction deleted from local DB")
+                            Log.d(TAG, "Deleted from local DB")
 
-                            // Bildirimleri iptal et
+                            // Bu cihazın pending notification'larını iptal et
                             cancelAllPendingNotifications(context, transactionId)
-                            Log.d(TAG, "All pending notifications canceled")
 
                         } else {
-                            Log.w(TAG, "Scheduled transaction not found or no Firestore ID")
+                            Log.w(TAG, "Scheduled not found or no Firestore ID")
                         }
                     } catch (e: Exception) {
                         Log.e(TAG, "Error in CANCEL action", e)

@@ -1,3 +1,4 @@
+
 package com.ahmetkaragunlu.financeai.firebasesync
 
 import android.content.Context
@@ -635,6 +636,7 @@ class FirebaseSyncService @Inject constructor(
                 }
             }
     }
+
 
     fun stopListening() {
         transactionListener?.remove()
