@@ -1,4 +1,3 @@
-
 package com.ahmetkaragunlu.financeai.notification
 
 import android.content.Context
@@ -30,34 +29,51 @@ class DeleteExpiredNotification @AssistedInject constructor(
                 return Result.failure()
             }
 
-            Log.d(TAG, "Deleting expired scheduled transaction - Local ID: $transactionId")
+            Log.d(TAG, "═══════════════════════════════════════════════════")
+            Log.d(TAG, "⏰ Deleting expired scheduled transaction")
+            Log.d(TAG, "Local ID: $transactionId")
 
             val transaction = repository.getScheduledTransactionById(transactionId)
 
             if (transaction != null) {
                 Log.d(TAG, "Found expired transaction - Firestore ID: ${transaction.firestoreId}")
 
+                // ⚠️ ÖNEMLİ: Firebase'den sil
+                // Bu silme işlemi Functions'taki onDelete trigger'ı tetikleyecek
+                // ve TÜM CİHAZLARA "CANCEL_NOTIFICATION" mesajı gönderecek!
                 if (transaction.firestoreId.isNotEmpty()) {
+                    Log.d(TAG, "Deleting from Firebase...")
+
                     val deleteResult = firebaseSyncService.deleteScheduledTransactionFromFirebase(
                         transaction.firestoreId
                     )
+
                     if (deleteResult.isSuccess) {
-                        Log.d(TAG, "Successfully deleted from Firebase (Firestore + Storage photo)")
+                        Log.d(TAG, "✅ Successfully deleted from Firebase")
+                        Log.d(TAG, "✅ CANCEL_NOTIFICATION sent to all devices")
+                        Log.d(TAG, "✅ Firestore + Storage photo deleted")
                     } else {
-                        Log.e(TAG, "Failed to delete from Firebase", deleteResult.exceptionOrNull())
+                        Log.e(TAG, "❌ Failed to delete from Firebase", deleteResult.exceptionOrNull())
+                        return Result.failure()
                     }
+                } else {
+                    Log.w(TAG, "⚠️ No Firestore ID, only local delete")
                 }
 
+                // Local'den sil
                 repository.deleteScheduledTransaction(transaction)
-                Log.d(TAG, "Deleted from local DB")
+                Log.d(TAG, "✅ Deleted from local DB")
+                Log.d(TAG, "═══════════════════════════════════════════════════")
 
                 Result.success()
             } else {
-                Log.w(TAG, "Expired transaction not found with ID: $transactionId")
+                Log.w(TAG, "⚠️ Expired transaction not found with ID: $transactionId")
+                Log.d(TAG, "═══════════════════════════════════════════════════")
                 Result.failure()
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error deleting expired transaction", e)
+            Log.e(TAG, "❌ Error deleting expired transaction", e)
+            Log.d(TAG, "═══════════════════════════════════════════════════")
             Result.failure()
         }
     }

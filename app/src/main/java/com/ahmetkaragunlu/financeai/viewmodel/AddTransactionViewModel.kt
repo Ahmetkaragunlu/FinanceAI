@@ -1,9 +1,3 @@
-
-
-
-// ============================================
-// AddTransactionViewModel.kt - GERÇEK ÇÖZÜM
-// ============================================
 package com.ahmetkaragunlu.financeai.viewmodel
 
 import android.content.Context
@@ -213,7 +207,7 @@ class AddTransactionViewModel @Inject constructor(
         val amount = inputAmount.toDouble()
 
         viewModelScope.launch {
-            var savedPhotoPath: String? = null // Try bloğunun DIŞINDA tanımla
+            var savedPhotoPath: String? = null
             try {
                 savedPhotoPath = selectedPhotoUri?.let { uri ->
                     if (tempCameraPhotoPath != null) {
@@ -240,29 +234,29 @@ class AddTransactionViewModel @Inject constructor(
                         locationShort = selectedLocation?.addressShort,
                         latitude = selectedLocation?.latitude,
                         longitude = selectedLocation?.longitude,
-                        syncedToFirebase = false // HENÜZ SYNC EDİLMEDİ
+                        syncedToFirebase = false
                     )
 
-                    // 1. Önce Firebase'e kaydet ve firestoreId al
+                    // 🔥 ÖNEMLİ DEĞİŞİKLİK: Önce Firebase'e sync et
                     val syncResult = firebaseSyncService.syncScheduledTransactionToFirebase(scheduledTransaction)
 
                     if (syncResult.isSuccess) {
                         val firestoreId = syncResult.getOrNull()!!
-                        Log.d(TAG, "Scheduled transaction synced to Firebase: $firestoreId")
+                        Log.d(TAG, "✅ Scheduled synced to Firebase: $firestoreId")
 
-                        // 2. Sonra firestoreId ile birlikte local'e kaydet (TEK SEFER!)
+                        // 🔥 ÖNEMLİ: FirestoreId ile birlikte Room'a kaydet
                         val transactionWithFirestoreId = scheduledTransaction.copy(
                             firestoreId = firestoreId,
                             syncedToFirebase = true
                         )
                         val localId = repo.insertScheduledTransaction(transactionWithFirestoreId)
+                        Log.d(TAG, "✅ Scheduled saved to Room: localId=$localId")
 
-                        // 3. Bildirimi planla
+                        // Bildirimi planla
                         scheduleFirstNotification(localId)
                         clearForm()
                         onSuccess()
                     } else {
-                        // Firebase başarısız, sadece local'e kaydet
                         Log.e(TAG, "Failed to sync to Firebase", syncResult.exceptionOrNull())
                         val localId = repo.insertScheduledTransaction(scheduledTransaction)
                         scheduleFirstNotification(localId)
@@ -285,17 +279,15 @@ class AddTransactionViewModel @Inject constructor(
                         locationShort = selectedLocation?.addressShort,
                         latitude = selectedLocation?.latitude,
                         longitude = selectedLocation?.longitude,
-                        syncedToFirebase = false // HENÜZ SYNC EDİLMEDİ
+                        syncedToFirebase = false
                     )
 
-                    // 1. Önce Firebase'e kaydet ve firestoreId al
                     val syncResult = firebaseSyncService.syncTransactionToFirebase(transaction)
 
                     if (syncResult.isSuccess) {
                         val firestoreId = syncResult.getOrNull()!!
                         Log.d(TAG, "Transaction synced to Firebase: $firestoreId")
 
-                        // 2. Sonra firestoreId ile birlikte local'e kaydet (TEK SEFER!)
                         val transactionWithFirestoreId = transaction.copy(
                             firestoreId = firestoreId,
                             syncedToFirebase = true
@@ -304,7 +296,6 @@ class AddTransactionViewModel @Inject constructor(
                         clearForm()
                         onSuccess()
                     } else {
-                        // Firebase başarısız, sadece local'e kaydet
                         Log.e(TAG, "Failed to sync transaction to Firebase", syncResult.exceptionOrNull())
                         repo.insertTransaction(transaction)
                         clearForm()

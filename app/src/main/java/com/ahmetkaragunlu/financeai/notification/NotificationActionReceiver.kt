@@ -10,11 +10,13 @@ import com.ahmetkaragunlu.financeai.firebasesync.FirebaseSyncService
 import com.ahmetkaragunlu.financeai.photo.PhotoStorageManager
 import com.ahmetkaragunlu.financeai.roomdb.entitiy.TransactionEntity
 import com.ahmetkaragunlu.financeai.roomrepository.financerepository.FinanceRepository
+import com.google.firebase.firestore.FirebaseFirestore
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -35,29 +37,33 @@ class NotificationActionReceiver : BroadcastReceiver() {
     @Inject
     lateinit var photoStorageManager: PhotoStorageManager
 
+    @Inject
+    lateinit var firestore: FirebaseFirestore
+
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     override fun onReceive(context: Context, intent: Intent) {
-        val transactionId = intent.getLongExtra(NotificationWorker.TRANSACTION_ID_KEY, -1L)
-        if (transactionId == -1L) return
+        // 🔥 ÖNEMLİ DEĞİŞİKLİK: FirestoreId kullan
+        val firestoreId = intent.getStringExtra(NotificationWorker.FIRESTORE_ID_KEY)
+        if (firestoreId.isNullOrBlank()) return
 
-        // Önce bu cihazdan bildirimi kaldır
+        // ⚡ HIZLI ÇÖZÜM: Bildirimi HEMEN kapat
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.cancel(transactionId.toInt())
-        notificationManager.cancel(transactionId.toInt() + 20000)
+        notificationManager.cancel(firestoreId.hashCode())
+        notificationManager.cancel(firestoreId.hashCode() + 20000)
 
         when (intent.action) {
             ACTION_CONFIRM -> {
                 scope.launch {
                     try {
-                        Log.d(TAG, "✅ CONFIRM action - Local ID: $transactionId")
+                        Log.d(TAG, "✅ CONFIRM action (EVET butonu) - Firestore ID: $firestoreId")
 
-                        val scheduledTransaction = repository.getScheduledTransactionById(transactionId)
+                        val scheduledTransaction = repository.getScheduledTransactionByFirestoreId(firestoreId)
 
                         if (scheduledTransaction != null) {
-                            Log.d(TAG, "Found scheduled - Firestore ID: ${scheduledTransaction.firestoreId}")
+                            Log.d(TAG, "📋 Found scheduled transaction")
 
-                            // 1. Transaction oluştur
+                            // Normal transaction olarak kaydet
                             val transaction = TransactionEntity(
                                 amount = scheduledTransaction.amount,
                                 transaction = scheduledTransaction.type,
@@ -72,61 +78,59 @@ class NotificationActionReceiver : BroadcastReceiver() {
                                 syncedToFirebase = false
                             )
 
-                            // 2. Local'e kaydet
-                            repository.insertTransaction(transaction)
-                            Log.d(TAG, "Transaction inserted to local")
-
-                            // 3. Firebase'e sync et
+                            // 1️⃣ Firebase'e sync et
                             val transactionSyncResult = firebaseSyncService.syncTransactionToFirebase(transaction)
 
                             if (transactionSyncResult.isSuccess) {
                                 val transactionFirestoreId = transactionSyncResult.getOrNull()!!
-                                Log.d(TAG, "Transaction synced: $transactionFirestoreId")
+                                Log.d(TAG, "✅ Transaction synced: $transactionFirestoreId")
 
-                                // 4. Fotoğraf varsa taşı
+                                // 2️⃣ Room'a kaydet
+                                val transactionWithId = transaction.copy(
+                                    firestoreId = transactionFirestoreId,
+                                    syncedToFirebase = true
+                                )
+                                repository.insertTransaction(transactionWithId)
+                                Log.d(TAG, "✅ Transaction inserted to Room")
+
+                                // 3️⃣ Fotoğrafı taşı
                                 if (!scheduledTransaction.photoUri.isNullOrBlank() && scheduledTransaction.firestoreId.isNotEmpty()) {
-                                    val moveResult = photoStorageManager.moveScheduledPhotoToTransaction(
+                                    photoStorageManager.moveScheduledPhotoToTransaction(
                                         scheduledFirestoreId = scheduledTransaction.firestoreId,
                                         transactionFirestoreId = transactionFirestoreId
                                     )
-
-                                    if (moveResult.isSuccess) {
-                                        Log.d(TAG, "Photo moved successfully")
-                                    } else {
-                                        Log.e(TAG, "Photo move failed", moveResult.exceptionOrNull())
-                                    }
                                 }
 
-                                // 5. ⚠️ ÖNEMLİ: Scheduled'ı Firebase'den sil
-                                // Bu silme işlemi Functions'taki onDelete trigger'ı tetikleyecek
-                                // ve TÜM CİHAZLARA "CANCEL_NOTIFICATION" mesajı gönderecek!
+                                // 4️⃣ Scheduled Transaction'ı Firebase'den sil
+                                // Bu silme TÜM CİHAZLARA CANCEL_NOTIFICATION gönderecek!
                                 if (scheduledTransaction.firestoreId.isNotEmpty()) {
                                     val deleteResult = firebaseSyncService.deleteScheduledTransactionFromFirebase(
                                         scheduledTransaction.firestoreId
                                     )
 
                                     if (deleteResult.isSuccess) {
-                                        Log.d(TAG, "✅ Scheduled deleted from Firebase - all devices will be notified")
-                                    } else {
-                                        Log.e(TAG, "❌ Delete failed", deleteResult.exceptionOrNull())
+                                        Log.d(TAG, "✅ Scheduled deleted from Firebase")
+                                        Log.d(TAG, "✅ CANCEL_NOTIFICATION sent to ALL DEVICES")
                                     }
                                 }
+
+                                // 5️⃣ Local'den sil
+                                repository.deleteScheduledTransaction(scheduledTransaction)
+                                Log.d(TAG, "✅ Deleted from local DB")
+
+                                // 6️⃣ Bu cihazın WorkManager'ını iptal et
+                                WorkManager.getInstance(context).cancelAllWorkByTag("scheduled_notification_${scheduledTransaction.id}")
+                                WorkManager.getInstance(context).cancelAllWorkByTag("delete_expired_${scheduledTransaction.id}")
+
                             } else {
-                                Log.e(TAG, "Transaction sync failed", transactionSyncResult.exceptionOrNull())
+                                Log.e(TAG, "❌ Transaction sync failed", transactionSyncResult.exceptionOrNull())
                             }
 
-                            // 6. Local'den sil
-                            repository.deleteScheduledTransaction(scheduledTransaction)
-                            Log.d(TAG, "Deleted from local DB")
-
-                            // 7. Bu cihazın pending notification'larını iptal et
-                            cancelAllPendingNotifications(context, transactionId)
-
                         } else {
-                            Log.e(TAG, "Scheduled transaction not found: $transactionId")
+                            Log.e(TAG, "❌ Scheduled transaction not found: $firestoreId")
                         }
                     } catch (e: Exception) {
-                        Log.e(TAG, "Error in CONFIRM action", e)
+                        Log.e(TAG, "❌ Error in CONFIRM action", e)
                     }
                 }
             }
@@ -134,46 +138,78 @@ class NotificationActionReceiver : BroadcastReceiver() {
             ACTION_CANCEL -> {
                 scope.launch {
                     try {
-                        Log.d(TAG, "❌ CANCEL action - Local ID: $transactionId")
+                        Log.d(TAG, "❌ CANCEL action (HAYIR butonu) - Firestore ID: $firestoreId")
+                        Log.d(TAG, "══════════════════════════════════════════════════════════════════")
 
-                        val scheduledTransaction = repository.getScheduledTransactionById(transactionId)
+                        val scheduledTransaction = repository.getScheduledTransactionByFirestoreId(firestoreId)
 
-                        if (scheduledTransaction != null && scheduledTransaction.firestoreId.isNotEmpty()) {
-                            Log.d(TAG, "Deleting scheduled - Firestore ID: ${scheduledTransaction.firestoreId}")
+                        if (scheduledTransaction != null) {
+                            Log.d(TAG, "📋 User clicked NO")
 
-                            // ⚠️ ÖNEMLİ: Firebase'den sil
-                            // Bu Functions'taki onDelete trigger'ı tetikleyecek
-                            // ve TÜM CİHAZLARA "CANCEL_NOTIFICATION" mesajı gönderecek!
-                            val deleteResult = firebaseSyncService.deleteScheduledTransactionFromFirebase(
-                                scheduledTransaction.firestoreId
-                            )
+                            // ⚡ PARALEL: Dismiss ve Reminder'ı aynı anda gönder
+                            val dismissJob = scope.launch {
+                                try {
+                                    val dismissData = hashMapOf(
+                                        "transactionId" to firestoreId,
+                                        "timestamp" to System.currentTimeMillis(),
+                                        "dismissedBy" to "user_action"
+                                    )
 
-                            if (deleteResult.isSuccess) {
-                                Log.d(TAG, "✅ Scheduled deleted from Firebase - all devices will be notified")
-                            } else {
-                                Log.e(TAG, "❌ Delete failed", deleteResult.exceptionOrNull())
+                                    val dismissDocRef = firestore.collection("notification_dismissals")
+                                        .add(dismissData)
+                                        .await()
+
+                                    Log.d(TAG, "✅ STEP 1/2: Dismiss signal sent to ALL DEVICES")
+                                    Log.d(TAG, "   Document ID: ${dismissDocRef.id}")
+
+                                } catch (e: Exception) {
+                                    Log.e(TAG, "❌ STEP 1/2 FAILED: Dismiss signal", e)
+                                }
                             }
 
-                            // Local'den sil
-                            repository.deleteScheduledTransaction(scheduledTransaction)
-                            Log.d(TAG, "Deleted from local DB")
+                            val reminderJob = scope.launch {
+                                try {
+                                    val reminderData = hashMapOf(
+                                        "transactionId" to firestoreId,
+                                        "timestamp" to System.currentTimeMillis(),
+                                        "triggerIn15Minutes" to true
+                                    )
 
-                            // Bu cihazın pending notification'larını iptal et
-                            cancelAllPendingNotifications(context, transactionId)
+                                    val reminderDocRef = firestore.collection("notification_reminders")
+                                        .add(reminderData)
+                                        .await()
+
+                                    Log.d(TAG, "✅ STEP 2/2: Reminder scheduled for ALL DEVICES")
+                                    Log.d(TAG, "   Document ID: ${reminderDocRef.id}")
+                                    Log.d(TAG, "   ⏰ Firebase Function will trigger in 15 minutes")
+
+                                } catch (e: Exception) {
+                                    Log.e(TAG, "❌ STEP 2/2 FAILED: Schedule reminder", e)
+                                }
+                            }
+
+                            // Her ikisinin de bitmesini bekle
+                            dismissJob.join()
+                            reminderJob.join()
+
+                            Log.d(TAG, "")
+                            Log.d(TAG, "📱 WHAT HAPPENS NEXT:")
+                            Log.d(TAG, "   1. ALL DEVICES dismiss notification (DISMISS_NOTIFICATION)")
+                            Log.d(TAG, "   2. Firebase Function waits 15 minutes")
+                            Log.d(TAG, "   3. Firebase sends RESCHEDULE_NOTIFICATION to ALL DEVICES")
+                            Log.d(TAG, "   4. ALL DEVICES restart WorkManager")
+                            Log.d(TAG, "══════════════════════════════════════════════════════════════════")
 
                         } else {
-                            Log.w(TAG, "Scheduled not found or no Firestore ID")
+                            Log.w(TAG, "⚠️ Scheduled not found")
+                            Log.d(TAG, "══════════════════════════════════════════════════════════════════")
                         }
                     } catch (e: Exception) {
-                        Log.e(TAG, "Error in CANCEL action", e)
+                        Log.e(TAG, "❌ Error in CANCEL action", e)
+                        Log.d(TAG, "══════════════════════════════════════════════════════════════════")
                     }
                 }
             }
         }
-    }
-
-    private fun cancelAllPendingNotifications(context: Context, transactionId: Long) {
-        WorkManager.getInstance(context).cancelAllWorkByTag("scheduled_notification_$transactionId")
-        WorkManager.getInstance(context).cancelAllWorkByTag("delete_expired_$transactionId")
     }
 }

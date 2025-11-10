@@ -25,6 +25,10 @@ interface TransactionDao {
     @Update
     suspend fun updateTransaction(transaction: TransactionEntity)
 
+    @Query("DELETE FROM transaction_table WHERE firestoreId = :firestoreId")
+    suspend fun deleteTransactionByFirestoreId(firestoreId: String)
+
+
     @Query("SELECT * FROM transaction_table ORDER BY date DESC")
     fun getAllTransactions(): Flow<List<TransactionEntity>>
 

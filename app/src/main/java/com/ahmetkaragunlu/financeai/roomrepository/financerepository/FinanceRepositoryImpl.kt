@@ -29,6 +29,12 @@ class FinanceRepositoryImpl @Inject constructor(
     override suspend fun updateTransaction(transaction: TransactionEntity) =
         transactionDao.updateTransaction(transaction)
 
+
+   override  suspend fun deleteTransactionByFirestoreId(firestoreId: String) {
+        transactionDao.deleteTransactionByFirestoreId(firestoreId)
+    }
+
+
     override fun getAllTransactions(): Flow<List<TransactionEntity>> =
         transactionDao.getAllTransactions()
             .distinctUntilChanged()

@@ -16,6 +16,7 @@ interface FinanceRepository {
     suspend fun deleteTransaction(transaction: TransactionEntity)
     suspend fun updateTransaction(transaction: TransactionEntity)
     fun getAllTransactions(): Flow<List<TransactionEntity>>
+    suspend fun deleteTransactionByFirestoreId(firestoreId: String)
     fun getAllTransactionsByDateRange(startDate: Long, endDate: Long): Flow<List<TransactionEntity>>
     fun getTransactionsByCategoryAndDate(
         category: CategoryType,
