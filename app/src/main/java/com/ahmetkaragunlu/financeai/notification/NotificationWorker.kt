@@ -1,4 +1,3 @@
-
 package com.ahmetkaragunlu.financeai.notification
 
 import android.app.NotificationManager
@@ -31,6 +30,7 @@ class NotificationWorker @AssistedInject constructor(
     companion object {
         const val CHANNEL_ID = "scheduled_transaction_channel"
         const val TRANSACTION_ID_KEY = "transaction_id"
+        const val FIRESTORE_ID_KEY = "firestore_id" // 🔥 YENİ
     }
 
     override suspend fun doWork(): Result {
@@ -57,7 +57,8 @@ class NotificationWorker @AssistedInject constructor(
 
             when {
                 currentTime <= endOfScheduledDay -> {
-                    sendReminderNotification(it)
+                    // ⚡ ÇÖZÜM: Lokal bildirim GÖSTERME, sadece zamanla
+                    // FCM zaten bildirimi gösterecek
                     scheduleNextNotification(transactionId)
                 }
 
@@ -106,7 +107,7 @@ class NotificationWorker @AssistedInject constructor(
             val endOfScheduledDay = getEndOfDay(transaction.scheduledDate)
 
             if (currentTime <= endOfScheduledDay) {
-                sendReminderNotification(transaction)
+                // ⚡ ÇÖZÜM: Lokal bildirim GÖSTERME, sadece zamanla
                 scheduleNextNotification(transaction.id)
             } else if (!transaction.expirationNotificationSent) {
                 sendExpirationNotification(transaction)
@@ -158,24 +159,25 @@ class NotificationWorker @AssistedInject constructor(
             }
         }
 
+        // 🔥 ÖNEMLİ DEĞİŞİKLİK: FirestoreId kullan
         val confirmIntent = Intent(appContext, NotificationActionReceiver::class.java).apply {
             action = NotificationActionReceiver.ACTION_CONFIRM
-            putExtra(TRANSACTION_ID_KEY, transaction.id)
+            putExtra(FIRESTORE_ID_KEY, transaction.firestoreId) // ✅ FirestoreId
         }
         val confirmPendingIntent = PendingIntent.getBroadcast(
             appContext,
-            transaction.id.toInt(),
+            transaction.firestoreId.hashCode(), // ✅ FirestoreId hash
             confirmIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
         val cancelIntent = Intent(appContext, NotificationActionReceiver::class.java).apply {
             action = NotificationActionReceiver.ACTION_CANCEL
-            putExtra(TRANSACTION_ID_KEY, transaction.id)
+            putExtra(FIRESTORE_ID_KEY, transaction.firestoreId) // ✅ FirestoreId
         }
         val cancelPendingIntent = PendingIntent.getBroadcast(
             appContext,
-            transaction.id.toInt() + 10000,
+            transaction.firestoreId.hashCode() + 10000, // ✅ FirestoreId hash
             cancelIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
@@ -209,7 +211,8 @@ class NotificationWorker @AssistedInject constructor(
             .build()
 
         val notificationManager = appContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.notify(transaction.id.toInt(), notification)
+        // 🔥 ÖNEMLİ: FirestoreId hash kullan
+        notificationManager.notify(transaction.firestoreId.hashCode(), notification)
     }
 
     private fun sendExpirationNotification(transaction: ScheduledTransactionEntity) {
@@ -261,6 +264,7 @@ class NotificationWorker @AssistedInject constructor(
             .build()
 
         val notificationManager = appContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.notify(transaction.id.toInt() + 20000, notification)
+        // 🔥 ÖNEMLİ: FirestoreId hash kullan
+        notificationManager.notify(transaction.firestoreId.hashCode() + 20000, notification)
     }
 }

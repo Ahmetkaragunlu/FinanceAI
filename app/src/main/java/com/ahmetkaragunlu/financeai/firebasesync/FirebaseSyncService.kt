@@ -1,8 +1,11 @@
-
 package com.ahmetkaragunlu.financeai.firebasesync
 
 import android.content.Context
 import android.util.Log
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.workDataOf
+import com.ahmetkaragunlu.financeai.notification.NotificationWorker
 import com.ahmetkaragunlu.financeai.photo.PhotoStorageManager
 import com.ahmetkaragunlu.financeai.roomdb.entitiy.ScheduledTransactionEntity
 import com.ahmetkaragunlu.financeai.roomdb.entitiy.TransactionEntity
@@ -22,9 +25,9 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
-
 @Singleton
 class FirebaseSyncService @Inject constructor(
     private val firestore: FirebaseFirestore,
@@ -38,10 +41,14 @@ class FirebaseSyncService @Inject constructor(
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var isInitialized = false
 
+    // ✅ YENİ: Bu cihazda eklenen firestoreId'leri takip et
+    private val recentlyAddedIds = mutableSetOf<String>()
+
     companion object {
         private const val TAG = "FirebaseSyncService"
         private const val TRANSACTIONS_COLLECTION = "transactions"
         private const val SCHEDULED_COLLECTION = "scheduled_transactions"
+        private const val RECENTLY_ADDED_TIMEOUT = 3000L // 3 saniye
     }
 
     private fun getUserId(): String? = auth.currentUser?.uid
@@ -77,15 +84,45 @@ class FirebaseSyncService @Inject constructor(
     fun resetSync() {
         Log.d(TAG, "Resetting sync...")
         stopListening()
+        recentlyAddedIds.clear()
         isInitialized = false
     }
 
+    // ✅ YENİ: Eklenen ID'yi takip et ve timeout sonrası kaldır
+    private fun markAsRecentlyAdded(firestoreId: String) {
+        recentlyAddedIds.add(firestoreId)
+        scope.launch {
+            delay(RECENTLY_ADDED_TIMEOUT)
+            recentlyAddedIds.remove(firestoreId)
+            Log.d(TAG, "🕐 Removed from recently added: $firestoreId")
+        }
+    }
+
+    private fun scheduleNotificationForTransaction(transactionId: Long, scheduledDate: Long) {
+        val currentTime = System.currentTimeMillis()
+
+        if (scheduledDate > currentTime) {
+            Log.d(TAG, "🔔 Starting WorkManager for scheduled transaction: $transactionId")
+
+            val workRequest = OneTimeWorkRequestBuilder<NotificationWorker>()
+                .setInitialDelay(0, TimeUnit.MILLISECONDS)
+                .setInputData(
+                    workDataOf(NotificationWorker.TRANSACTION_ID_KEY to transactionId)
+                )
+                .addTag("scheduled_notification_$transactionId")
+                .build()
+
+            WorkManager.getInstance(context).enqueue(workRequest)
+            Log.d(TAG, "✅ WorkManager scheduled for transaction: $transactionId")
+        } else {
+            Log.d(TAG, "⏭️ Scheduled date is in the past, skipping WorkManager for: $transactionId")
+        }
+    }
 
     suspend fun syncTransactionToFirebase(transaction: TransactionEntity): Result<String> {
         return try {
             val userId = getUserId() ?: return Result.failure(Exception("User not logged in"))
 
-            // Firestore ID'yi hemen al
             val docRef = if (transaction.firestoreId.isNotEmpty()) {
                 firestore.collection(TRANSACTIONS_COLLECTION).document(transaction.firestoreId)
             } else {
@@ -93,7 +130,9 @@ class FirebaseSyncService @Inject constructor(
             }
             val firestoreId = docRef.id
 
-            // Önce Firestore'a kaydet (HIZLI)
+            // ✅ YENİ: Bu ID'yi "recently added" olarak işaretle
+            markAsRecentlyAdded(firestoreId)
+
             val currentTimestamp = System.currentTimeMillis()
             val data = hashMapOf(
                 "userId" to userId,
@@ -102,7 +141,7 @@ class FirebaseSyncService @Inject constructor(
                 "note" to transaction.note,
                 "date" to transaction.date,
                 "category" to transaction.category.name,
-                "photoStorageUrl" to null, // Önce null, sonra güncellenecek
+                "photoStorageUrl" to null,
                 "locationFull" to transaction.locationFull,
                 "locationShort" to transaction.locationShort,
                 "latitude" to transaction.latitude,
@@ -112,7 +151,6 @@ class FirebaseSyncService @Inject constructor(
             docRef.set(data).await()
             Log.d(TAG, "Transaction synced to Firebase (without photo): $firestoreId")
 
-            // Fotoğraf varsa ARKAPLANDA yükle (UI bloke olmaz)
             if (!transaction.photoUri.isNullOrBlank() && transaction.photoUri.startsWith("/")) {
                 scope.launch {
                     try {
@@ -123,7 +161,6 @@ class FirebaseSyncService @Inject constructor(
 
                         if (uploadResult.isSuccess) {
                             val storagePhotoUrl = uploadResult.getOrNull()
-                            // Fotoğraf yüklendi, Firestore'u güncelle
                             docRef.update("photoStorageUrl", storagePhotoUrl).await()
                             Log.d(TAG, "Photo uploaded and Firestore updated: $firestoreId")
                         } else {
@@ -156,7 +193,9 @@ class FirebaseSyncService @Inject constructor(
             }
             val firestoreId = docRef.id
 
-            // Önce Firestore'a kaydet (HIZLI)
+            // ✅ YENİ: Bu ID'yi "recently added" olarak işaretle
+            markAsRecentlyAdded(firestoreId)
+
             val currentTimestamp = System.currentTimeMillis()
             val data = hashMapOf(
                 "userId" to userId,
@@ -167,7 +206,7 @@ class FirebaseSyncService @Inject constructor(
                 "scheduledDate" to transaction.scheduledDate,
                 "expirationNotificationSent" to transaction.expirationNotificationSent,
                 "notificationSent" to transaction.notificationSent,
-                "photoStorageUrl" to null, // Önce null
+                "photoStorageUrl" to null,
                 "locationFull" to transaction.locationFull,
                 "locationShort" to transaction.locationShort,
                 "latitude" to transaction.latitude,
@@ -177,7 +216,6 @@ class FirebaseSyncService @Inject constructor(
             docRef.set(data).await()
             Log.d(TAG, "Scheduled synced to Firebase (without photo): $firestoreId")
 
-            // Fotoğraf varsa ARKAPLANDA yükle
             if (!transaction.photoUri.isNullOrBlank() && transaction.photoUri.startsWith("/")) {
                 scope.launch {
                     try {
@@ -204,11 +242,11 @@ class FirebaseSyncService @Inject constructor(
             Result.failure(e)
         }
     }
+
     suspend fun deleteScheduledTransactionFromFirebase(firestoreId: String): Result<Unit> {
         return try {
             val userId = getUserId() ?: return Result.failure(Exception("User not logged in"))
             Log.d(TAG, "Deleting from Firebase - firestoreId: $firestoreId")
-
 
             val doc = firestore.collection(SCHEDULED_COLLECTION).document(firestoreId).get().await()
             val photoUrl = doc.getString("photoStorageUrl")
@@ -248,68 +286,6 @@ class FirebaseSyncService @Inject constructor(
             Log.d(TAG, "Initial sync completed!")
         } catch (e: Exception) {
             Log.e(TAG, "Error during initial sync", e)
-        }
-    }
-
-    private suspend fun fetchAllTransactionsFromFirebase(userId: String) {
-        try {
-            val snapshot = firestore.collection(TRANSACTIONS_COLLECTION)
-                .whereEqualTo("userId", userId)
-                .get()
-                .await()
-
-            Log.d(TAG, "Fetched ${snapshot.documents.size} transactions from Firebase")
-
-            snapshot.documents.forEach { doc ->
-                val firestoreId = doc.id
-                val existing = localRepository.getTransactionByFirestoreId(firestoreId)
-
-                if (existing == null) {
-                    val storagePhotoUrl = doc.getString("photoStorageUrl")
-                    var localPhotoPath: String? = null
-
-                    if (!storagePhotoUrl.isNullOrBlank()) {
-                        scope.launch {
-                            try {
-                                val downloadResult = photoStorageManager.downloadAndSavePhoto(
-                                    context = context,
-                                    storageUrl = storagePhotoUrl,
-                                    firestoreId = firestoreId
-                                )
-                                if (downloadResult.isSuccess) {
-                                    val downloadedPath = downloadResult.getOrNull()
-                                    val existingTx = localRepository.getTransactionByFirestoreId(firestoreId)
-                                    existingTx?.let {
-                                        localRepository.updateTransaction(it.copy(photoUri = downloadedPath))
-                                        Log.d(TAG, "Photo downloaded for transaction: $firestoreId")
-                                    }
-                                }
-                            } catch (e: Exception) {
-                                Log.e(TAG, "Error downloading photo", e)
-                            }
-                        }
-                    }
-
-                    val transaction = TransactionEntity(
-                        firestoreId = firestoreId,
-                        amount = doc.getDouble("amount") ?: 0.0,
-                        transaction = TransactionType.valueOf(doc.getString("transaction") ?: "EXPENSE"),
-                        note = doc.getString("note") ?: "",
-                        date = doc.getLong("date") ?: System.currentTimeMillis(),
-                        category = CategoryType.valueOf(doc.getString("category") ?: "OTHER"),
-                        photoUri = localPhotoPath, // Başlangıçta null olabilir
-                        locationFull = doc.getString("locationFull"),
-                        locationShort = doc.getString("locationShort"),
-                        latitude = doc.getDouble("latitude"),
-                        longitude = doc.getDouble("longitude"),
-                        syncedToFirebase = true
-                    )
-                    localRepository.insertTransaction(transaction)
-                    Log.d(TAG, "Restored transaction: $firestoreId")
-                }
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error fetching transactions from Firebase", e)
         }
     }
 
@@ -361,15 +337,17 @@ class FirebaseSyncService @Inject constructor(
                         scheduledDate = doc.getLong("scheduledDate") ?: System.currentTimeMillis(),
                         expirationNotificationSent = doc.getBoolean("expirationNotificationSent") ?: false,
                         notificationSent = doc.getBoolean("notificationSent") ?: false,
-                        photoUri = localPhotoPath, // Başlangıçta null olabilir
+                        photoUri = localPhotoPath,
                         locationFull = doc.getString("locationFull"),
                         locationShort = doc.getString("locationShort"),
                         latitude = doc.getDouble("latitude"),
                         longitude = doc.getDouble("longitude"),
                         syncedToFirebase = true
                     )
-                    localRepository.insertScheduledTransaction(scheduledTransaction)
-                    Log.d(TAG, "Restored scheduled transaction: $firestoreId")
+                    val localId = localRepository.insertScheduledTransaction(scheduledTransaction)
+
+                    scheduleNotificationForTransaction(localId, scheduledTransaction.scheduledDate)
+                    Log.d(TAG, "Restored scheduled transaction: $firestoreId (localId=$localId)")
                 }
             }
         } catch (e: Exception) {
@@ -377,6 +355,82 @@ class FirebaseSyncService @Inject constructor(
         }
     }
 
+
+
+    // ============================================
+// ÖNEMLİ BÖLÜM 1: fetchAllTransactionsFromFirebase
+// ============================================
+    private suspend fun fetchAllTransactionsFromFirebase(userId: String) {
+        try {
+            val snapshot = firestore.collection(TRANSACTIONS_COLLECTION)
+                .whereEqualTo("userId", userId)
+                .get()
+                .await()
+
+            Log.d(TAG, "Fetched ${snapshot.documents.size} transactions from Firebase")
+
+            snapshot.documents.forEach { doc ->
+                val firestoreId = doc.id
+
+                // ✅ ÇÖZÜM: Önce Room'da var mı kontrol et
+                val existing = localRepository.getTransactionByFirestoreId(firestoreId)
+
+                if (existing == null) {
+                    Log.d(TAG, "➕ Restoring NEW transaction: $firestoreId")
+
+                    val storagePhotoUrl = doc.getString("photoStorageUrl")
+                    var localPhotoPath: String? = null
+
+                    if (!storagePhotoUrl.isNullOrBlank()) {
+                        scope.launch {
+                            try {
+                                val downloadResult = photoStorageManager.downloadAndSavePhoto(
+                                    context = context,
+                                    storageUrl = storagePhotoUrl,
+                                    firestoreId = firestoreId
+                                )
+                                if (downloadResult.isSuccess) {
+                                    val downloadedPath = downloadResult.getOrNull()
+                                    val existingTx = localRepository.getTransactionByFirestoreId(firestoreId)
+                                    existingTx?.let {
+                                        localRepository.updateTransaction(it.copy(photoUri = downloadedPath))
+                                        Log.d(TAG, "Photo downloaded for transaction: $firestoreId")
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Error downloading photo", e)
+                            }
+                        }
+                    }
+
+                    val transaction = TransactionEntity(
+                        firestoreId = firestoreId,
+                        amount = doc.getDouble("amount") ?: 0.0,
+                        transaction = TransactionType.valueOf(doc.getString("transaction") ?: "EXPENSE"),
+                        note = doc.getString("note") ?: "",
+                        date = doc.getLong("date") ?: System.currentTimeMillis(),
+                        category = CategoryType.valueOf(doc.getString("category") ?: "OTHER"),
+                        photoUri = localPhotoPath,
+                        locationFull = doc.getString("locationFull"),
+                        locationShort = doc.getString("locationShort"),
+                        latitude = doc.getDouble("latitude"),
+                        longitude = doc.getDouble("longitude"),
+                        syncedToFirebase = true
+                    )
+                    localRepository.insertTransaction(transaction)
+                    Log.d(TAG, "✅ Restored transaction: $firestoreId")
+                } else {
+                    Log.d(TAG, "⏭️ Transaction ALREADY EXISTS in Room, SKIPPING: $firestoreId (id=${existing.id})")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching transactions from Firebase", e)
+        }
+    }
+
+    // ============================================
+// ÖNEMLİ BÖLÜM 2: startListeningToTransactions
+// ============================================
     private fun startListeningToTransactions() {
         val userId = getUserId() ?: return
         transactionListener?.remove()
@@ -391,6 +445,7 @@ class FirebaseSyncService @Inject constructor(
                     return@addSnapshotListener
                 }
 
+                // 🔥 ÖNEMLİ: Sadece server'dan gelen değişiklikleri işle
                 if (snapshot?.metadata?.isFromCache == false && snapshot.metadata.hasPendingWrites() == false) {
                     snapshot.documentChanges.forEach { change ->
                         scope.launch {
@@ -400,50 +455,64 @@ class FirebaseSyncService @Inject constructor(
 
                                 when (change.type) {
                                     DocumentChange.Type.ADDED -> {
-                                        val existing = localRepository.getTransactionByFirestoreId(firestoreId)
-                                        if (existing == null) {
-                                            val storagePhotoUrl = doc.getString("photoStorageUrl")
-                                            var localPhotoPath: String? = null
+                                        // 🔥 ÇÖZÜM 1: Recently added kontrolü
+                                        if (recentlyAddedIds.contains(firestoreId)) {
+                                            Log.d(TAG, "⏭️ Skipping recently added transaction: $firestoreId")
+                                            return@launch
+                                        }
 
-                                            if (!storagePhotoUrl.isNullOrBlank()) {
-                                                scope.launch {
-                                                    try {
-                                                        val downloadResult = photoStorageManager.downloadAndSavePhoto(
-                                                            context = context,
-                                                            storageUrl = storagePhotoUrl,
-                                                            firestoreId = firestoreId
-                                                        )
-                                                        if (downloadResult.isSuccess) {
-                                                            val downloadedPath = downloadResult.getOrNull()
-                                                            val existingTx = localRepository.getTransactionByFirestoreId(firestoreId)
-                                                            existingTx?.let {
-                                                                localRepository.updateTransaction(it.copy(photoUri = downloadedPath))
-                                                            }
+                                        // 🔥 ÇÖZÜM 2: Room'da var mı kontrol et
+                                        val existing = localRepository.getTransactionByFirestoreId(firestoreId)
+                                        if (existing != null) {
+                                            Log.d(TAG, "⏭️ Transaction ALREADY EXISTS in Room, SKIPPING: $firestoreId (id=${existing.id})")
+                                            return@launch
+                                        }
+
+                                        Log.d(TAG, "➕ Adding NEW transaction from Firebase: $firestoreId")
+
+                                        val storagePhotoUrl = doc.getString("photoStorageUrl")
+                                        var localPhotoPath: String? = null
+
+                                        if (!storagePhotoUrl.isNullOrBlank()) {
+                                            scope.launch {
+                                                try {
+                                                    val downloadResult = photoStorageManager.downloadAndSavePhoto(
+                                                        context = context,
+                                                        storageUrl = storagePhotoUrl,
+                                                        firestoreId = firestoreId
+                                                    )
+                                                    if (downloadResult.isSuccess) {
+                                                        val downloadedPath = downloadResult.getOrNull()
+                                                        val existingTx = localRepository.getTransactionByFirestoreId(firestoreId)
+                                                        existingTx?.let {
+                                                            localRepository.updateTransaction(it.copy(photoUri = downloadedPath))
+                                                            Log.d(TAG, "Photo downloaded for transaction: $firestoreId")
                                                         }
-                                                    } catch (e: Exception) {
-                                                        Log.e(TAG, "Error downloading photo", e)
                                                     }
+                                                } catch (e: Exception) {
+                                                    Log.e(TAG, "Error downloading photo", e)
                                                 }
                                             }
-
-                                            val transaction = TransactionEntity(
-                                                firestoreId = firestoreId,
-                                                amount = doc.getDouble("amount") ?: 0.0,
-                                                transaction = TransactionType.valueOf(doc.getString("transaction") ?: "EXPENSE"),
-                                                note = doc.getString("note") ?: "",
-                                                date = doc.getLong("date") ?: System.currentTimeMillis(),
-                                                category = CategoryType.valueOf(doc.getString("category") ?: "OTHER"),
-                                                photoUri = localPhotoPath,
-                                                locationFull = doc.getString("locationFull"),
-                                                locationShort = doc.getString("locationShort"),
-                                                latitude = doc.getDouble("latitude"),
-                                                longitude = doc.getDouble("longitude"),
-                                                syncedToFirebase = true
-                                            )
-                                            localRepository.insertTransaction(transaction)
-                                            Log.d(TAG, "Transaction added from listener: $firestoreId")
                                         }
+
+                                        val transaction = TransactionEntity(
+                                            firestoreId = firestoreId,
+                                            amount = doc.getDouble("amount") ?: 0.0,
+                                            transaction = TransactionType.valueOf(doc.getString("transaction") ?: "EXPENSE"),
+                                            note = doc.getString("note") ?: "",
+                                            date = doc.getLong("date") ?: System.currentTimeMillis(),
+                                            category = CategoryType.valueOf(doc.getString("category") ?: "OTHER"),
+                                            photoUri = localPhotoPath,
+                                            locationFull = doc.getString("locationFull"),
+                                            locationShort = doc.getString("locationShort"),
+                                            latitude = doc.getDouble("latitude"),
+                                            longitude = doc.getDouble("longitude"),
+                                            syncedToFirebase = true
+                                        )
+                                        localRepository.insertTransaction(transaction)
+                                        Log.d(TAG, "✅ Transaction added from listener: $firestoreId")
                                     }
+
                                     DocumentChange.Type.MODIFIED -> {
                                         val existing = localRepository.getTransactionByFirestoreId(firestoreId)
                                         if (existing != null) {
@@ -485,14 +554,15 @@ class FirebaseSyncService @Inject constructor(
                                                 syncedToFirebase = true
                                             )
                                             localRepository.updateTransaction(transaction)
-                                            Log.d(TAG, "Transaction updated from Firebase: $firestoreId")
+                                            Log.d(TAG, "✅ Transaction updated from Firebase: $firestoreId")
                                         }
                                     }
+
                                     DocumentChange.Type.REMOVED -> {
                                         val existing = localRepository.getTransactionByFirestoreId(firestoreId)
                                         existing?.let {
                                             localRepository.deleteTransaction(it)
-                                            Log.d(TAG, "Transaction deleted from local: $firestoreId")
+                                            Log.d(TAG, "✅ Transaction deleted from local: $firestoreId")
                                         }
                                     }
                                 }
@@ -501,10 +571,15 @@ class FirebaseSyncService @Inject constructor(
                             }
                         }
                     }
+                } else {
+                    Log.d(TAG, "⏭️ Skipping snapshot - from cache or has pending writes")
                 }
             }
     }
 
+    // ============================================
+// ÖNEMLİ BÖLÜM 3: startListeningToScheduledTransactions
+// ============================================
     private fun startListeningToScheduledTransactions() {
         val userId = getUserId() ?: return
         scheduledListener?.remove()
@@ -528,52 +603,68 @@ class FirebaseSyncService @Inject constructor(
 
                                 when (change.type) {
                                     DocumentChange.Type.ADDED -> {
-                                        val existing = localRepository.getScheduledTransactionByFirestoreId(firestoreId)
-                                        if (existing == null) {
-                                            val storagePhotoUrl = doc.getString("photoStorageUrl")
-                                            var localPhotoPath: String? = null
+                                        // ✅ ÇÖZÜM 1: Recently added kontrolü
+                                        if (recentlyAddedIds.contains(firestoreId)) {
+                                            Log.d(TAG, "⏭️ Skipping recently added scheduled: $firestoreId")
+                                            return@launch
+                                        }
 
-                                            if (!storagePhotoUrl.isNullOrBlank()) {
-                                                scope.launch {
-                                                    try {
-                                                        val downloadResult = photoStorageManager.downloadAndSavePhoto(
-                                                            context = context,
-                                                            storageUrl = storagePhotoUrl,
-                                                            firestoreId = firestoreId
-                                                        )
-                                                        if (downloadResult.isSuccess) {
-                                                            val downloadedPath = downloadResult.getOrNull()
-                                                            val existingTx = localRepository.getScheduledTransactionByFirestoreId(firestoreId)
-                                                            existingTx?.let {
-                                                                localRepository.updateScheduledTransaction(it.copy(photoUri = downloadedPath))
-                                                            }
+                                        // ✅ ÇÖZÜM 2: Room'da var mı kontrol et
+                                        val existing = localRepository.getScheduledTransactionByFirestoreId(firestoreId)
+                                        if (existing != null) {
+                                            Log.d(TAG, "⏭️ Scheduled ALREADY EXISTS in Room, SKIPPING: $firestoreId (localId=${existing.id})")
+                                            return@launch
+                                        }
+
+                                        Log.d(TAG, "➕ Adding NEW scheduled from Firebase: $firestoreId")
+
+                                        val storagePhotoUrl = doc.getString("photoStorageUrl")
+                                        var localPhotoPath: String? = null
+
+                                        if (!storagePhotoUrl.isNullOrBlank()) {
+                                            scope.launch {
+                                                try {
+                                                    val downloadResult = photoStorageManager.downloadAndSavePhoto(
+                                                        context = context,
+                                                        storageUrl = storagePhotoUrl,
+                                                        firestoreId = firestoreId
+                                                    )
+                                                    if (downloadResult.isSuccess) {
+                                                        val downloadedPath = downloadResult.getOrNull()
+                                                        val existingTx = localRepository.getScheduledTransactionByFirestoreId(firestoreId)
+                                                        existingTx?.let {
+                                                            localRepository.updateScheduledTransaction(it.copy(photoUri = downloadedPath))
                                                         }
-                                                    } catch (e: Exception) {
-                                                        Log.e(TAG, "Error downloading photo", e)
                                                     }
+                                                } catch (e: Exception) {
+                                                    Log.e(TAG, "Error downloading photo", e)
                                                 }
                                             }
-
-                                            val scheduledTransaction = ScheduledTransactionEntity(
-                                                firestoreId = firestoreId,
-                                                amount = doc.getDouble("amount") ?: 0.0,
-                                                type = TransactionType.valueOf(doc.getString("type") ?: "EXPENSE"),
-                                                category = CategoryType.valueOf(doc.getString("category") ?: "OTHER"),
-                                                note = doc.getString("note"),
-                                                scheduledDate = doc.getLong("scheduledDate") ?: System.currentTimeMillis(),
-                                                expirationNotificationSent = doc.getBoolean("expirationNotificationSent") ?: false,
-                                                notificationSent = doc.getBoolean("notificationSent") ?: false,
-                                                photoUri = localPhotoPath,
-                                                locationFull = doc.getString("locationFull"),
-                                                locationShort = doc.getString("locationShort"),
-                                                latitude = doc.getDouble("latitude"),
-                                                longitude = doc.getDouble("longitude"),
-                                                syncedToFirebase = true
-                                            )
-                                            localRepository.insertScheduledTransaction(scheduledTransaction)
-                                            Log.d(TAG, "Scheduled added from listener: $firestoreId")
                                         }
+
+                                        val scheduledTransaction = ScheduledTransactionEntity(
+                                            firestoreId = firestoreId,
+                                            amount = doc.getDouble("amount") ?: 0.0,
+                                            type = TransactionType.valueOf(doc.getString("type") ?: "EXPENSE"),
+                                            category = CategoryType.valueOf(doc.getString("category") ?: "OTHER"),
+                                            note = doc.getString("note"),
+                                            scheduledDate = doc.getLong("scheduledDate") ?: System.currentTimeMillis(),
+                                            expirationNotificationSent = doc.getBoolean("expirationNotificationSent") ?: false,
+                                            notificationSent = doc.getBoolean("notificationSent") ?: false,
+                                            photoUri = localPhotoPath,
+                                            locationFull = doc.getString("locationFull"),
+                                            locationShort = doc.getString("locationShort"),
+                                            latitude = doc.getDouble("latitude"),
+                                            longitude = doc.getDouble("longitude"),
+                                            syncedToFirebase = true
+                                        )
+
+                                        val localId = localRepository.insertScheduledTransaction(scheduledTransaction)
+                                        Log.d(TAG, "✅ Scheduled added from Firebase: $firestoreId (localId=$localId)")
+
+                                        scheduleNotificationForTransaction(localId, scheduledTransaction.scheduledDate)
                                     }
+
                                     DocumentChange.Type.MODIFIED -> {
                                         val existing = localRepository.getScheduledTransactionByFirestoreId(firestoreId)
                                         if (existing != null) {
@@ -620,10 +711,15 @@ class FirebaseSyncService @Inject constructor(
                                             Log.d(TAG, "Scheduled updated from Firebase: $firestoreId")
                                         }
                                     }
+
                                     DocumentChange.Type.REMOVED -> {
                                         val existing = localRepository.getScheduledTransactionByFirestoreId(firestoreId)
                                         existing?.let {
                                             localRepository.deleteScheduledTransaction(it)
+
+                                            WorkManager.getInstance(context).cancelAllWorkByTag("scheduled_notification_${it.id}")
+                                            WorkManager.getInstance(context).cancelAllWorkByTag("delete_expired_${it.id}")
+
                                             Log.d(TAG, "Scheduled deleted from local: $firestoreId")
                                         }
                                     }
@@ -633,11 +729,11 @@ class FirebaseSyncService @Inject constructor(
                             }
                         }
                     }
+                } else {
+                    Log.d(TAG, "⏭️ Skipping snapshot - from cache or has pending writes")
                 }
             }
     }
-
-
     fun stopListening() {
         transactionListener?.remove()
         scheduledListener?.remove()
