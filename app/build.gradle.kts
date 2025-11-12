@@ -58,7 +58,6 @@ dependencies {
     implementation("com.google.firebase:firebase-messaging:23.4.0")
     implementation("com.google.firebase:firebase-functions:20.4.0")
 
-    implementation("androidx.work:work-runtime-ktx:2.8.0")
 
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
