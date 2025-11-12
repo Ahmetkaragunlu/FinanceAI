@@ -1,7 +1,9 @@
+
 package com.ahmetkaragunlu.financeai.di.module
 
 import android.content.Context
 import com.ahmetkaragunlu.financeai.R
+import com.ahmetkaragunlu.financeai.fcm.FCMNotificationSender
 import com.ahmetkaragunlu.financeai.fcm.FCMTokenManager
 import com.ahmetkaragunlu.financeai.firebaserepo.AuthRepository
 import com.ahmetkaragunlu.financeai.firebaserepo.AuthRepositoryImpl
@@ -58,6 +60,17 @@ object FirebaseModule {
         auth: FirebaseAuth
     ): PhotoStorageManager {
         return PhotoStorageManager(storage, auth)
+    }
+
+
+    @Provides
+    @Singleton
+    fun provideFCMNotificationSender(
+        firestore: FirebaseFirestore,
+        auth: FirebaseAuth,
+        fcmTokenManager: FCMTokenManager
+    ): FCMNotificationSender {
+        return FCMNotificationSender(firestore, auth, fcmTokenManager)
     }
 
     @Provides

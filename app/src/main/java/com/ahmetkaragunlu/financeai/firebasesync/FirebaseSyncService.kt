@@ -12,11 +12,13 @@ import com.ahmetkaragunlu.financeai.roomdb.entitiy.TransactionEntity
 import com.ahmetkaragunlu.financeai.roomdb.type.CategoryType
 import com.ahmetkaragunlu.financeai.roomdb.type.TransactionType
 import com.ahmetkaragunlu.financeai.roomrepository.financerepository.FinanceRepository
+import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentChange
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.MetadataChanges
+import com.google.firebase.functions.functions
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -53,6 +55,39 @@ class FirebaseSyncService @Inject constructor(
 
     private fun getUserId(): String? = auth.currentUser?.uid
 
+
+
+
+    private suspend fun sendPendingNotifications() {
+        try {
+            val userId = getUserId() ?: return
+
+            Log.d(TAG, "═══════════════════════════════════════════════════")
+            Log.d(TAG, "📋 Checking for pending notifications...")
+
+            val functions = Firebase.functions
+            val data = hashMapOf<String, Any>()
+
+            functions
+                .getHttpsCallable("sendPendingNotifications")
+                .call(data)
+                .addOnSuccessListener { result ->
+                    val responseData = result.data as? Map<*, *>
+                    val count = responseData?.get("count") as? Long ?: 0
+                    Log.d(TAG, "✅ Sent $count pending notifications")
+                    Log.d(TAG, "═══════════════════════════════════════════════════")
+                }
+                .addOnFailureListener { e ->
+                    Log.e(TAG, "❌ Error sending pending notifications", e)
+                    Log.d(TAG, "═══════════════════════════════════════════════════")
+                }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error calling sendPendingNotifications", e)
+        }
+    }
+
+// initializeSyncAfterLogin fonksiyonunu bu şekilde güncelleyin:
+
     fun initializeSyncAfterLogin() {
         scope.launch {
             val userId = getUserId()
@@ -73,6 +108,11 @@ class FirebaseSyncService @Inject constructor(
                 delay(300)
                 startListeningToTransactions()
                 startListeningToScheduledTransactions()
+
+                // YENİ: Bekleyen bildirimleri gönder
+                delay(500)
+                sendPendingNotifications()
+
                 isInitialized = true
                 Log.d(TAG, "Sync initialization completed successfully")
             } catch (e: Exception) {
@@ -80,6 +120,8 @@ class FirebaseSyncService @Inject constructor(
             }
         }
     }
+
+    // initializeSyncAfterLogin fonksiyonunu güncelle:
 
     fun resetSync() {
         Log.d(TAG, "Resetting sync...")

@@ -1,5 +1,6 @@
 
 
+
 package com.ahmetkaragunlu.financeai.roomrepository.financerepository
 
 import com.ahmetkaragunlu.financeai.roomdb.dao.ScheduledTransactionDao
@@ -30,7 +31,7 @@ class FinanceRepositoryImpl @Inject constructor(
         transactionDao.updateTransaction(transaction)
 
 
-   override  suspend fun deleteTransactionByFirestoreId(firestoreId: String) {
+    override  suspend fun deleteTransactionByFirestoreId(firestoreId: String) {
         transactionDao.deleteTransactionByFirestoreId(firestoreId)
     }
 

@@ -20,6 +20,8 @@ class FinanceApplication : Application(), Configuration.Provider {
     @Inject
     lateinit var workManager: WorkManager
 
+
+
     // firebaseSyncService artık gerekli değil - çünkü AuthRepository içinde yönetiliyor
 
     override fun onCreate() {
