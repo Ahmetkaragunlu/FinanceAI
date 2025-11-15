@@ -2,14 +2,10 @@
 package com.ahmetkaragunlu.financeai.di.module
 
 import android.content.Context
-import com.ahmetkaragunlu.financeai.R
-import com.ahmetkaragunlu.financeai.fcm.FCMNotificationSender
 import com.ahmetkaragunlu.financeai.fcm.FCMTokenManager
 import com.ahmetkaragunlu.financeai.firebaserepo.AuthRepository
 import com.ahmetkaragunlu.financeai.firebaserepo.AuthRepositoryImpl
 import com.ahmetkaragunlu.financeai.firebasesync.FirebaseSyncService
-import com.ahmetkaragunlu.financeai.photo.PhotoStorageManager
-import com.ahmetkaragunlu.financeai.roomrepository.financerepository.FinanceRepository
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
@@ -43,53 +39,7 @@ object FirebaseModule {
     @Singleton
     fun provideFirebaseMessaging(): FirebaseMessaging = FirebaseMessaging.getInstance()
 
-    @Provides
-    @Singleton
-    fun provideFCMTokenManager(
-        firestore: FirebaseFirestore,
-        auth: FirebaseAuth,
-        messaging: FirebaseMessaging
-    ): FCMTokenManager {
-        return FCMTokenManager(firestore, auth, messaging)
-    }
 
-    @Provides
-    @Singleton
-    fun providePhotoStorageManager(
-        storage: FirebaseStorage,
-        auth: FirebaseAuth
-    ): PhotoStorageManager {
-        return PhotoStorageManager(storage, auth)
-    }
-
-
-    @Provides
-    @Singleton
-    fun provideFCMNotificationSender(
-        firestore: FirebaseFirestore,
-        auth: FirebaseAuth,
-        fcmTokenManager: FCMTokenManager
-    ): FCMNotificationSender {
-        return FCMNotificationSender(firestore, auth, fcmTokenManager)
-    }
-
-    @Provides
-    @Singleton
-    fun provideFirebaseSyncService(
-        firestore: FirebaseFirestore,
-        auth: FirebaseAuth,
-        localRepository: FinanceRepository,
-        photoStorageManager: PhotoStorageManager,
-        @ApplicationContext context: Context
-    ): FirebaseSyncService {
-        return FirebaseSyncService(
-            firestore,
-            auth,
-            localRepository,
-            photoStorageManager,
-            context
-        )
-    }
 }
 
 @InstallIn(SingletonComponent::class)
@@ -119,7 +69,7 @@ object SignInWithGoogle {
         @ApplicationContext context: Context
     ): GoogleSignInOptions {
         return GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken(context.getString(R.string.default_web_client_id))
+            .requestIdToken("1048183018405-9vic0j0akq3punlpeuc7926qq43erict.apps.googleusercontent.com")
             .requestEmail()
             .build()
     }

@@ -16,6 +16,7 @@ import com.ahmetkaragunlu.financeai.components.formatAsShortDate
 import com.ahmetkaragunlu.financeai.notification.NotificationActionReceiver
 import com.ahmetkaragunlu.financeai.notification.NotificationWorker
 import com.ahmetkaragunlu.financeai.roomrepository.financerepository.FinanceRepository
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import dagger.hilt.android.AndroidEntryPoint
@@ -23,7 +24,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
@@ -36,6 +36,8 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
     @Inject
     lateinit var repository: FinanceRepository
 
+    @Inject
+    lateinit var auth: FirebaseAuth
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     companion object {
@@ -112,106 +114,109 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         Log.d(TAG, "🏷️ Category: $category")
         Log.d(TAG, "🔄 Update Existing: $updateExisting")
 
-        val localId = runBlocking {
-            repository.getScheduledTransactionByFirestoreId(firestoreId)?.id
-        }
 
-        if (localId == null) {
-            Log.e(TAG, "❌ Local transaction not found for Firestore ID: $firestoreId")
-            return
-        }
-
-        Log.d(TAG, "✅ Found local ID: $localId")
-
-        val formattedAmount = amount.formatAsCurrency()
-        val categoryName = category.replace("_", " ").lowercase()
-            .split(" ")
-            .joinToString(" ") { it.replaceFirstChar { char -> char.uppercase() } }
-        val formattedDate = scheduledDate.formatAsShortDate()
-
-        val (title, message) = when (transactionType) {
-            "INCOME" -> {
-                getString(R.string.notification_income_title) to
-                        getString(
-                            R.string.notification_income_message,
-                            formattedAmount,
-                            categoryName,
-                            formattedDate
-                        )
+        scope.launch {
+            val localId = try {
+                repository.getScheduledTransactionByFirestoreId(firestoreId)?.id
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ Error while fetching local transaction", e)
+                null
             }
-            else -> {
-                getString(R.string.notification_expense_title) to
-                        getString(
-                            R.string.notification_expense_message,
-                            formattedAmount,
-                            categoryName,
-                            formattedDate
-                        )
+
+            if (localId == null) {
+                Log.e(TAG, "❌ Local transaction not found for Firestore ID: $firestoreId")
+                return@launch // scope.launch'ı sonlandır
             }
-        }
 
-        // 🔥 ÖNEMLİ DEĞİŞİKLİK: FirestoreId kullan
-        val confirmIntent = Intent(this, NotificationActionReceiver::class.java).apply {
-            action = NotificationActionReceiver.ACTION_CONFIRM
-            putExtra(NotificationWorker.FIRESTORE_ID_KEY, firestoreId) // ✅ FirestoreId
-        }
-        val confirmPendingIntent = PendingIntent.getBroadcast(
-            this,
-            firestoreId.hashCode(), // ✅ FirestoreId hash
-            confirmIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
+            Log.d(TAG, "✅ Found local ID: $localId")
 
-        val cancelIntent = Intent(this, NotificationActionReceiver::class.java).apply {
-            action = NotificationActionReceiver.ACTION_CANCEL
-            putExtra(NotificationWorker.FIRESTORE_ID_KEY, firestoreId) // ✅ FirestoreId
-        }
-        val cancelPendingIntent = PendingIntent.getBroadcast(
-            this,
-            firestoreId.hashCode() + 10000, // ✅ FirestoreId hash
-            cancelIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
+            val formattedAmount = amount.formatAsCurrency()
+            val categoryName = category.replace("_", " ").lowercase()
+                .split(" ")
+                .joinToString(" ") { it.replaceFirstChar { char -> char.uppercase() } }
+            val formattedDate = scheduledDate.formatAsShortDate()
 
-        val mainIntent = Intent(this, MainActivity::class.java)
-        val mainPendingIntent = PendingIntent.getActivity(
-            this,
-            0,
-            mainIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
+            val (title, message) = when (transactionType) {
+                "INCOME" -> {
+                    getString(R.string.notification_income_title) to
+                            getString(
+                                R.string.notification_income_message,
+                                formattedAmount,
+                                categoryName,
+                                formattedDate
+                            )
+                }
+                else -> {
+                    getString(R.string.notification_expense_title) to
+                            getString(
+                                R.string.notification_expense_message,
+                                formattedAmount,
+                                categoryName,
+                                formattedDate
+                            )
+                }
+            }
 
-        val notification = NotificationCompat.Builder(this, NotificationWorker.CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle(title)
-            .setContentText(message)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(message))
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setAutoCancel(true)
-            .setContentIntent(mainPendingIntent)
-            .addAction(
-                R.drawable.ic_launcher_foreground,
-                getString(R.string.notification_action_yes),
-                confirmPendingIntent
+            val confirmIntent = Intent(this@MyFirebaseMessagingService, NotificationActionReceiver::class.java).apply {
+                action = NotificationActionReceiver.ACTION_CONFIRM
+                putExtra(NotificationWorker.FIRESTORE_ID_KEY, firestoreId) // ✅ FirestoreId
+            }
+            val confirmPendingIntent = PendingIntent.getBroadcast(
+                this@MyFirebaseMessagingService,
+                firestoreId.hashCode(), // ✅ FirestoreId hash
+                confirmIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-            .addAction(
-                R.drawable.ic_launcher_foreground,
-                getString(R.string.notification_action_no),
-                cancelPendingIntent
+
+            val cancelIntent = Intent(this@MyFirebaseMessagingService, NotificationActionReceiver::class.java).apply {
+                action = NotificationActionReceiver.ACTION_CANCEL
+                putExtra(NotificationWorker.FIRESTORE_ID_KEY, firestoreId) // ✅ FirestoreId
+            }
+            val cancelPendingIntent = PendingIntent.getBroadcast(
+                this@MyFirebaseMessagingService,
+                firestoreId.hashCode() + 10000, // ✅ FirestoreId hash
+                cancelIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-            .build()
 
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        // 🔥 ÖNEMLİ: FirestoreId hash kullan
-        notificationManager.notify(firestoreId.hashCode(), notification)
+            val mainIntent = Intent(this@MyFirebaseMessagingService, MainActivity::class.java)
+            val mainPendingIntent = PendingIntent.getActivity(
+                this@MyFirebaseMessagingService,
+                0,
+                mainIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
 
-        if (updateExisting) {
-            Log.d(TAG, "✅ Notification UPDATED successfully (Firestore ID: $firestoreId)")
-        } else {
-            Log.d(TAG, "✅ Notification shown successfully (Firestore ID: $firestoreId)")
+            val notification = NotificationCompat.Builder(this@MyFirebaseMessagingService, NotificationWorker.CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setContentTitle(title)
+                .setContentText(message)
+                .setStyle(NotificationCompat.BigTextStyle().bigText(message))
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setAutoCancel(true)
+                .setContentIntent(mainPendingIntent)
+                .addAction(
+                    R.drawable.ic_launcher_foreground,
+                    getString(R.string.notification_action_yes),
+                    confirmPendingIntent
+                )
+                .addAction(
+                    R.drawable.ic_launcher_foreground,
+                    getString(R.string.notification_action_no),
+                    cancelPendingIntent
+                )
+                .build()
+
+            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.notify(firestoreId.hashCode(), notification)
+
+            if (updateExisting) {
+                Log.d(TAG, "✅ Notification UPDATED successfully (Firestore ID: $firestoreId)")
+            } else {
+                Log.d(TAG, "✅ Notification shown successfully (Firestore ID: $firestoreId)")
+            }
         }
     }
-
     private fun handleCancelNotification(data: Map<String, String>) {
         val firestoreId = data["transactionId"] ?: run {
             Log.e(TAG, "❌ Missing transactionId for cancel")
@@ -220,29 +225,29 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
 
         Log.d(TAG, "🗑️ CANCEL_NOTIFICATION received (EVET butonu) - Firestore ID: $firestoreId")
 
-        val localId = runBlocking {
-            try {
+        scope.launch {
+            val localId = try {
                 repository.getScheduledTransactionByFirestoreId(firestoreId)?.id
             } catch (e: Exception) {
                 Log.e(TAG, "Error getting local transaction", e)
                 null
             }
-        }
 
-        // 🔥 ÖNEMLİ: FirestoreId hash ile bildirimi kapat
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.cancel(firestoreId.hashCode())
-        notificationManager.cancel(firestoreId.hashCode() + 20000)
 
-        if (localId != null) {
-            Log.d(TAG, "✅ Found local ID: $localId - canceling ALL notifications and work")
+            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.cancel(firestoreId.hashCode())
+            notificationManager.cancel(firestoreId.hashCode() + 20000)
 
-            WorkManager.getInstance(this).cancelAllWorkByTag("scheduled_notification_$localId")
-            WorkManager.getInstance(this).cancelAllWorkByTag("delete_expired_$localId")
+            if (localId != null) {
+                Log.d(TAG, "✅ Found local ID: $localId - canceling ALL notifications and work")
 
-            Log.d(TAG, "✅ Notifications and WorkManager cancelled - NO MORE notifications")
-        } else {
-            Log.w(TAG, "⚠️ Local transaction not found")
+                WorkManager.getInstance(this@MyFirebaseMessagingService).cancelAllWorkByTag("scheduled_notification_$localId")
+                WorkManager.getInstance(this@MyFirebaseMessagingService).cancelAllWorkByTag("delete_expired_$localId")
+
+                Log.d(TAG, "✅ Notifications and WorkManager cancelled - NO MORE notifications")
+            } else {
+                Log.w(TAG, "⚠️ Local transaction not found")
+            }
         }
     }
 
@@ -254,13 +259,14 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
 
         Log.d(TAG, "👋 DISMISS_NOTIFICATION received (HAYIR butonu) - Firestore ID: $firestoreId")
 
-        // 🔥 ÖNEMLİ: FirestoreId hash ile bildirimi kapat
+
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.cancel(firestoreId.hashCode())
         notificationManager.cancel(firestoreId.hashCode() + 20000)
 
         Log.d(TAG, "✅ Notification dismissed on this device (will return in 15 min on ALL DEVICES)")
     }
+
 
     private fun handleRescheduleNotification(data: Map<String, String>) {
         val firestoreId = data["transactionId"] ?: run {
@@ -272,36 +278,45 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         Log.d(TAG, "🔄 RESCHEDULE_NOTIFICATION received (15 dakika sonra)")
         Log.d(TAG, "📋 Firestore ID: $firestoreId")
 
-        val localId = runBlocking {
-            try {
+        if (auth.currentUser == null) {
+            Log.w(TAG, "🔄 RESCHEDULE_NOTIFICATION received (Firestore ID: $firestoreId) ...")
+            Log.w(TAG, "   ... but user is logged out on this device. IGNORING.")
+
+            return
+        }
+
+
+        scope.launch {
+            val localId = try {
                 repository.getScheduledTransactionByFirestoreId(firestoreId)?.id
             } catch (e: Exception) {
                 Log.e(TAG, "❌ Error getting local transaction", e)
                 null
             }
-        }
 
-        if (localId != null) {
-            Log.d(TAG, "✅ Found local ID: $localId")
-            Log.d(TAG, "🔄 RE-STARTING WorkManager...")
+            if (localId != null) {
+                Log.d(TAG, "✅ Found local ID: $localId")
+                Log.d(TAG, "🔄 RE-STARTING WorkManager...")
 
-            val workRequest = OneTimeWorkRequestBuilder<NotificationWorker>()
-                .setInitialDelay(0, TimeUnit.MILLISECONDS)
-                .setInputData(
-                    workDataOf(NotificationWorker.TRANSACTION_ID_KEY to localId)
-                )
-                .addTag("scheduled_notification_$localId")
-                .build()
+                val workRequest = OneTimeWorkRequestBuilder<NotificationWorker>()
+                    .setInitialDelay(0, TimeUnit.MILLISECONDS)
+                    .setInputData(
+                        workDataOf(NotificationWorker.TRANSACTION_ID_KEY to localId)
+                    )
+                    .addTag("scheduled_notification_$localId")
+                    .build()
 
-            WorkManager.getInstance(this).enqueue(workRequest)
+                WorkManager.getInstance(this@MyFirebaseMessagingService).enqueue(workRequest)
 
-            Log.d(TAG, "✅ WorkManager RE-STARTED successfully!")
-            Log.d(TAG, "✅ Notifications will continue every 15 min")
-            Log.d(TAG, "✅ This happened on ALL DEVICES!")
-            Log.d(TAG, "══════════════════════════════════════════════════════════════════")
-        } else {
-            Log.w(TAG, "⚠️ Local transaction not found for reschedule")
-            Log.d(TAG, "══════════════════════════════════════════════════════════════════")
+                Log.d(TAG, "✅ WorkManager RE-STARTED successfully!")
+                Log.d(TAG, "✅ Notifications will continue every 15 min")
+                Log.d(TAG, "✅ This happened on ALL DEVICES!")
+                Log.d(TAG, "══════════════════════════════════════════════════════════════════")
+            } else {
+                Log.w(TAG, "⚠️ Local transaction not found for reschedule")
+                Log.d(TAG, "══════════════════════════════════════════════════════════════════")
+            }
         }
     }
+
 }

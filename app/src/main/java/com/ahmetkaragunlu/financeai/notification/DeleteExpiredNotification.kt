@@ -38,10 +38,6 @@ class DeleteExpiredNotification @AssistedInject constructor(
 
             if (transaction != null) {
                 Log.d(TAG, "Found expired transaction - Firestore ID: ${transaction.firestoreId}")
-
-                // ⚠️ ÖNEMLİ: Firebase'den sil
-                // Bu silme işlemi Functions'taki onDelete trigger'ı tetikleyecek
-                // ve TÜM CİHAZLARA "CANCEL_NOTIFICATION" mesajı gönderecek!
                 if (transaction.firestoreId.isNotEmpty()) {
                     Log.d(TAG, "Deleting from Firebase...")
 
@@ -61,7 +57,6 @@ class DeleteExpiredNotification @AssistedInject constructor(
                     Log.w(TAG, "⚠️ No Firestore ID, only local delete")
                 }
 
-                // Local'den sil
                 repository.deleteScheduledTransaction(transaction)
                 Log.d(TAG, "✅ Deleted from local DB")
                 Log.d(TAG, "═══════════════════════════════════════════════════")

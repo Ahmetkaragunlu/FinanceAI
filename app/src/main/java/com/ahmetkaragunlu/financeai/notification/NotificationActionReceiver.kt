@@ -1,3 +1,4 @@
+
 package com.ahmetkaragunlu.financeai.notification
 
 import android.app.NotificationManager
@@ -49,7 +50,6 @@ class NotificationActionReceiver : BroadcastReceiver() {
         val firestoreId = intent.getStringExtra(NotificationWorker.FIRESTORE_ID_KEY)
         if (firestoreId.isNullOrBlank()) return
 
-        // Bildirimi HEMEN kapat
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.cancel(firestoreId.hashCode())
         notificationManager.cancel(firestoreId.hashCode() + 20000)
@@ -90,31 +90,24 @@ class NotificationActionReceiver : BroadcastReceiver() {
                         syncedToFirebase = false
                     )
 
-                    // Firebase'e sync et
                     val transactionSyncResult = firebaseSyncService.syncTransactionToFirebase(transaction)
 
                     if (transactionSyncResult.isSuccess) {
                         val transactionFirestoreId = transactionSyncResult.getOrNull()!!
                         Log.d(TAG, "✅ Transaction synced: $transactionFirestoreId")
-
-                        // Room'a kaydet
                         val transactionWithId = transaction.copy(
                             firestoreId = transactionFirestoreId,
                             syncedToFirebase = true
                         )
                         repository.insertTransaction(transactionWithId)
 
-                        // Fotoğrafı taşı
+
                         if (!scheduledTransaction.photoUri.isNullOrBlank() && scheduledTransaction.firestoreId.isNotEmpty()) {
                             photoStorageManager.moveScheduledPhotoToTransaction(
                                 scheduledFirestoreId = scheduledTransaction.firestoreId,
                                 transactionFirestoreId = transactionFirestoreId
                             )
                         }
-
-                        // Scheduled Transaction'ı sil
-                        // Bu silme işlemi Firebase Functions'ı tetikleyecek
-                        // ve TÜM CİHAZLARA CANCEL_NOTIFICATION gönderecek
                         if (scheduledTransaction.firestoreId.isNotEmpty()) {
                             val deleteResult = firebaseSyncService.deleteScheduledTransactionFromFirebase(
                                 scheduledTransaction.firestoreId
@@ -126,10 +119,8 @@ class NotificationActionReceiver : BroadcastReceiver() {
                             }
                         }
 
-                        // Local'den sil
                         repository.deleteScheduledTransaction(scheduledTransaction)
 
-                        // Bu cihazın WorkManager'ını iptal et
                         WorkManager.getInstance(context).cancelAllWorkByTag("scheduled_notification_${scheduledTransaction.id}")
                         WorkManager.getInstance(context).cancelAllWorkByTag("delete_expired_${scheduledTransaction.id}")
 
@@ -149,7 +140,6 @@ class NotificationActionReceiver : BroadcastReceiver() {
             }
         }
     }
-
     private fun handleCancel(context: Context, firestoreId: String) {
         scope.launch {
             try {
@@ -158,19 +148,18 @@ class NotificationActionReceiver : BroadcastReceiver() {
                 if (scheduledTransaction != null) {
                     Log.d(TAG, "📋 User clicked NO (HAYIR)")
 
-                    // 1. TÜM CİHAZLARA dismiss sinyali gönder
-                    fcmNotificationSender.sendDismissToAllDevices(firestoreId)
-                    Log.d(TAG, "✅ STEP 1/2: Dismiss signal sent")
 
-                    // 2. 15 dakika sonra reschedule için trigger gönder
+
+                    Log.d(TAG, "✅ STEP 2/3: Dismiss signal sent to all devices")
+
                     fcmNotificationSender.sendRescheduleToAllDevices(firestoreId)
-                    Log.d(TAG, "✅ STEP 2/2: Reschedule scheduled (15 min)")
+                    Log.d(TAG, "✅ STEP 3/3: Reschedule scheduled (15 min)")
 
                     Log.d(TAG, "")
                     Log.d(TAG, "📱 WHAT HAPPENS NEXT:")
                     Log.d(TAG, "   1. ALL DEVICES dismiss notification now")
-                    Log.d(TAG, "   2. Firebase Function waits 15 minutes")
-                    Log.d(TAG, "   3. ALL DEVICES get RESCHEDULE_NOTIFICATION")
+                    Log.d(TAG, "   2. App will check cloud reminder on NEXT APP OPEN")
+                    Log.d(TAG, "   3. On app open, ALL DEVICES get RESCHEDULE_NOTIFICATION")
                     Log.d(TAG, "   4. WorkManager restarts on ALL DEVICES")
                     Log.d(TAG, "═══════════════════════════════════════════════════")
                 } else {

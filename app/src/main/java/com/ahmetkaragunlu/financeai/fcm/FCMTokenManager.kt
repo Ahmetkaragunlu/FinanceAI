@@ -1,4 +1,5 @@
 
+
 package com.ahmetkaragunlu.financeai.fcm
 
 import android.util.Log
@@ -29,7 +30,7 @@ class FCMTokenManager @Inject constructor(
 
             Log.d(TAG, "FCM Token obtained: ${token.take(10)}...")
 
-            // Token'ı array'e ekle (duplicate olmasın diye arrayUnion kullan)
+
             firestore.collection(USERS_COLLECTION)
                 .document(userId)
                 .update(FCM_TOKENS_FIELD, FieldValue.arrayUnion(token))
@@ -46,7 +47,7 @@ class FCMTokenManager @Inject constructor(
             val userId = auth.currentUser?.uid ?: return
             val token = messaging.token.await()
 
-            // Token'ı array'den kaldır
+
             firestore.collection(USERS_COLLECTION)
                 .document(userId)
                 .update(FCM_TOKENS_FIELD, FieldValue.arrayRemove(token))
@@ -58,18 +59,4 @@ class FCMTokenManager @Inject constructor(
         }
     }
 
-    suspend fun getUserFCMTokens(userId: String): List<String> {
-        return try {
-            val doc = firestore.collection(USERS_COLLECTION)
-                .document(userId)
-                .get()
-                .await()
-
-            @Suppress("UNCHECKED_CAST")
-            doc.get(FCM_TOKENS_FIELD) as? List<String> ?: emptyList()
-        } catch (e: Exception) {
-            Log.e(TAG, "Error getting user FCM tokens", e)
-            emptyList()
-        }
-    }
 }

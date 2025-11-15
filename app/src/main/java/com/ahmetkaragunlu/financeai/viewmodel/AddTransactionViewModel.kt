@@ -219,9 +219,6 @@ class AddTransactionViewModel @Inject constructor(
                 }
 
                 if (isReminderEnabled) {
-                    // ============================================
-                    // SCHEDULED TRANSACTION (Hatırlatıcılı)
-                    // ============================================
                     val scheduledTransaction = ScheduledTransactionEntity(
                         amount = amount,
                         type = selectedTransactionType,
@@ -238,37 +235,33 @@ class AddTransactionViewModel @Inject constructor(
                         syncedToFirebase = false
                     )
 
-                    // 🔥 ÖNEMLİ DEĞİŞİKLİK: Önce Firebase'e sync et
                     val syncResult = firebaseSyncService.syncScheduledTransactionToFirebase(scheduledTransaction)
 
                     if (syncResult.isSuccess) {
                         val firestoreId = syncResult.getOrNull()!!
                         Log.d(TAG, "✅ Scheduled synced to Firebase: $firestoreId")
 
-                        // 🔥 ÖNEMLİ: FirestoreId ile birlikte Room'a kaydet
                         val transactionWithFirestoreId = scheduledTransaction.copy(
                             firestoreId = firestoreId,
                             syncedToFirebase = true
                         )
                         val localId = repo.insertScheduledTransaction(transactionWithFirestoreId)
                         Log.d(TAG, "✅ Scheduled saved to Room: localId=$localId")
+                        Log.d(TAG, "✅ Firebase will trigger WorkManager via FCM")
 
-                        // Bildirimi planla
-                        scheduleFirstNotification(localId)
                         clearForm()
                         onSuccess()
                     } else {
                         Log.e(TAG, "Failed to sync to Firebase", syncResult.exceptionOrNull())
                         val localId = repo.insertScheduledTransaction(scheduledTransaction)
-                        scheduleFirstNotification(localId)
+                        Log.d(TAG, "⚠️ Offline mode - starting WorkManager manually")
+                        scheduleFirstNotificationOffline(localId)
+
                         clearForm()
                         onSuccess()
                     }
 
                 } else {
-                    // ============================================
-                    // NORMAL TRANSACTION (Hatırlatıcısız)
-                    // ============================================
                     val transaction = TransactionEntity(
                         amount = amount,
                         transaction = selectedTransactionType,
@@ -310,8 +303,7 @@ class AddTransactionViewModel @Inject constructor(
             }
         }
     }
-
-    private fun scheduleFirstNotification(transactionId: Long) {
+    private fun scheduleFirstNotificationOffline(transactionId: Long) {
         val workRequest = OneTimeWorkRequestBuilder<NotificationWorker>()
             .setInitialDelay(5, TimeUnit.SECONDS)
             .setInputData(
@@ -323,8 +315,8 @@ class AddTransactionViewModel @Inject constructor(
             .build()
 
         workManager.enqueue(workRequest)
+        Log.d(TAG, "✅ WorkManager scheduled (offline mode)")
     }
-
     private fun clearForm() {
         inputAmount = ""
         inputNote = ""
