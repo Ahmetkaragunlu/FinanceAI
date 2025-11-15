@@ -1382,12 +1382,6 @@ class FirebaseSyncService @Inject constructor(
                                         )
 
 
-
-                                        scheduleNotificationForTransaction(
-                                            localId,
-                                            scheduledTransaction.scheduledDate
-                                        )
-
                                     }
 
 

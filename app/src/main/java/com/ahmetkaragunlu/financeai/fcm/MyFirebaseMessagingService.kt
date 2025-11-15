@@ -17,6 +17,7 @@ import com.ahmetkaragunlu.financeai.notification.NotificationActionReceiver
 import com.ahmetkaragunlu.financeai.notification.NotificationWorker
 import com.ahmetkaragunlu.financeai.roomrepository.financerepository.FinanceRepository
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import dagger.hilt.android.AndroidEntryPoint
@@ -24,6 +25,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
@@ -38,6 +40,9 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
 
     @Inject
     lateinit var auth: FirebaseAuth
+
+    @Inject
+    lateinit var firestore: FirebaseFirestore
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     companion object {
@@ -55,6 +60,11 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
 
     override fun onMessageReceived(message: RemoteMessage) {
         super.onMessageReceived(message)
+
+        if (auth.currentUser == null) {
+            Log.w(TAG, "Message received but user is logged out. Ignoring.")
+            return // Oturum açık değilse hiçbir işlem yapma
+        }
 
         Log.d(TAG, "════════════════════════════════════")
         Log.d(TAG, "📩 MESSAGE RECEIVED")
@@ -116,6 +126,23 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
 
 
         scope.launch {
+
+            try {
+                val activeReminders = firestore.collection("notification_reminders")
+                    .whereEqualTo("transactionId", firestoreId)
+                    .get()
+                    .await() // kotlinx.coroutines.tasks.await
+
+                if (!activeReminders.isEmpty) {
+                    Log.w(TAG, "🚫 Ignoring SCHEDULED_REMINDER (transactionId: $firestoreId) because an active snooze (notification_reminder) exists.")
+                    return@launch // Snooze (erteleme) aktif, bildirimi GÖSTERME
+                }
+                Log.d(TAG, "✅ No active snooze found for $firestoreId, proceeding with notification.")
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ Error checking for active snooze, aborting notification", e)
+                return@launch // Kontrol edilemezse, göstermemek daha güvenli
+            }
+            //
             val localId = try {
                 repository.getScheduledTransactionByFirestoreId(firestoreId)?.id
             } catch (e: Exception) {
@@ -287,6 +314,23 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
 
 
         scope.launch {
+            try {
+                val activeReminders = firestore.collection("notification_reminders")
+                    .whereEqualTo("transactionId", firestoreId)
+                    .get()
+                    .await() // kotlinx.coroutines.tasks.await
+
+                if (!activeReminders.isEmpty) {
+                    Log.w(TAG, "🚫 Ignoring RESCHEDULE (transactionId: $firestoreId) because an active snooze (notification_reminder) exists.")
+                    Log.d(TAG, "══════════════════════════════════════════════════════════════════")
+                    return@launch // Snooze (erteleme) aktif, yeniden kurma (Worker'ı BAŞLATMA)
+                }
+                Log.d(TAG, "✅ No active snooze found for $firestoreId, proceeding with reschedule.")
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ Error checking for active snooze, aborting reschedule", e)
+                Log.d(TAG, "══════════════════════════════════════════════════════════════════")
+                return@launch // Kontrol edilemezse, başlatmamak daha güvenli
+            }
             val localId = try {
                 repository.getScheduledTransactionByFirestoreId(firestoreId)?.id
             } catch (e: Exception) {
