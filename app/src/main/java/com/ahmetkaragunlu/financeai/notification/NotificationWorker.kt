@@ -27,7 +27,6 @@ class NotificationWorker @AssistedInject constructor(
     @Assisted private val appContext: Context,
     @Assisted private val params: WorkerParameters,
     private val repository: FinanceRepository,
-    private val fcmNotificationSender: FCMNotificationSender
 ) : CoroutineWorker(appContext, params) {
 
     companion object {
@@ -68,9 +67,6 @@ class NotificationWorker @AssistedInject constructor(
                 currentTime <= endOfScheduledDay -> {
                     Log.d(TAG, "📱 Showing notification on THIS device")
                     showReminderNotification(it)
-
-                    Log.d(TAG, "📡 Sending FCM to ALL other devices")
-                    fcmNotificationSender.sendScheduledReminderToAllDevices(it)
 
                     Log.d(TAG, "⏰ Scheduling next notification in 15 minutes")
                     scheduleNextNotification(transactionId)

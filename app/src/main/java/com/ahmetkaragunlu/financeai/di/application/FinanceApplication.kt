@@ -1,4 +1,5 @@
 
+
 package com.ahmetkaragunlu.financeai.di.application
 
 import android.app.Application
@@ -22,14 +23,11 @@ class FinanceApplication : Application(), Configuration.Provider {
 
 
 
-    // firebaseSyncService artık gerekli değil - çünkü AuthRepository içinde yönetiliyor
 
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
 
-        // ÖNEMLİ: Sync'i burada BAŞLATMA!
-        // Kullanıcı giriş yaptığında AuthRepository otomatik başlatacak
     }
 
     override val workManagerConfiguration: Configuration
