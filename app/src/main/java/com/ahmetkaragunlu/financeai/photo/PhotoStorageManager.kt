@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.storage.FirebaseStorage
+import com.google.firebase.storage.StorageException
 import kotlinx.coroutines.tasks.await
 import java.io.File
 import javax.inject.Inject
@@ -18,12 +19,14 @@ class PhotoStorageManager @Inject constructor(
         private const val TRANSACTIONS_PATH = "transactions"
         private const val SCHEDULED_PATH = "scheduled"
     }
+
     suspend fun uploadTransactionPhoto(
         localPhotoPath: String,
         firestoreId: String
     ): Result<String> {
         return uploadPhoto(localPhotoPath, firestoreId, TRANSACTIONS_PATH)
     }
+
     suspend fun uploadScheduledPhoto(
         localPhotoPath: String,
         firestoreId: String
@@ -39,7 +42,6 @@ class PhotoStorageManager @Inject constructor(
         return try {
             val userId = auth.currentUser?.uid
                 ?: return Result.failure(Exception("User not logged in"))
-
             val photoFile = File(localPhotoPath)
             if (!photoFile.exists()) {
                 return Result.failure(Exception("Photo file not found: $localPhotoPath"))
@@ -74,6 +76,7 @@ class PhotoStorageManager @Inject constructor(
             Result.failure(e)
         }
     }
+
     suspend fun deletePhoto(storageUrl: String): Result<Unit> {
         return try {
             if (storageUrl.isBlank()) {
@@ -82,30 +85,27 @@ class PhotoStorageManager @Inject constructor(
             val storageRef = storage.getReferenceFromUrl(storageUrl)
             storageRef.delete().await()
             Result.success(Unit)
-
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
-    suspend fun moveScheduledPhotoToTransaction(
-        scheduledFirestoreId: String,
-        transactionFirestoreId: String
-    ): Result<String> {
+    suspend fun deleteScheduledPhotoById(scheduledFirestoreId: String): Result<Unit> {
         return try {
-            val userId = auth.currentUser?.uid
-                ?: return Result.failure(Exception("User not logged in"))
-            val oldRef = storage.reference
-                .child("users/$userId/$SCHEDULED_PATH/${scheduledFirestoreId}_photo.jpg")
-            val newRef = storage.reference
-                .child("users/$userId/$TRANSACTIONS_PATH/${transactionFirestoreId}_photo.jpg")
-            val metadata = oldRef.metadata.await()
-            val bytes = oldRef.getBytes(Long.MAX_VALUE).await()
-            newRef.putBytes(bytes, metadata).await()
-            oldRef.delete().await()
-            val newUrl = newRef.downloadUrl.await().toString()
-            Result.success(newUrl)
+            val userId = auth.currentUser?.uid ?: return Result.failure(Exception("User not logged in"))
+            val storageRef = storage.reference
+                .child("users")
+                .child(userId)
+                .child(SCHEDULED_PATH)
+                .child("${scheduledFirestoreId}_photo.jpg")
+
+            storageRef.delete().await()
+            Result.success(Unit)
         } catch (e: Exception) {
+            if ((e as? StorageException)?.errorCode == StorageException.ERROR_OBJECT_NOT_FOUND) {
+                return Result.success(Unit)
+            }
             Result.failure(e)
         }
     }
+
 }

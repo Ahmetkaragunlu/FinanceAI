@@ -5,8 +5,8 @@ import android.util.Log
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.ahmetkaragunlu.financeai.photo.PhotoStorageManager
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FirebaseFirestoreException
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.tasks.await
@@ -22,16 +22,24 @@ class PhotoUploadWorker @AssistedInject constructor(
     companion object {
         const val KEY_LOCAL_PATH = "local_path"
         const val KEY_FIRESTORE_ID = "firestore_id"
-        const val KEY_COLLECTION_TYPE = "collection_type" // "transactions" veya "scheduled"
+        const val KEY_COLLECTION_TYPE = "collection_type"
     }
 
     override suspend fun doWork(): Result {
         val localPath = inputData.getString(KEY_LOCAL_PATH) ?: return Result.failure()
         val firestoreId = inputData.getString(KEY_FIRESTORE_ID) ?: return Result.failure()
         val collectionType = inputData.getString(KEY_COLLECTION_TYPE) ?: "transactions"
+        val collectionPath = if (collectionType == "scheduled") "scheduled_transactions" else "transactions"
 
         return try {
-            // 1. Fotoğrafı Storage'a yükle
+            try {
+                val docSnapshot = firestore.collection(collectionPath).document(firestoreId).get().await()
+                if (!docSnapshot.exists()) {
+                    return Result.success()
+                }
+            } catch (e: Exception) {
+                return Result.retry()
+            }
             val uploadResult = if (collectionType == "scheduled") {
                 photoStorageManager.uploadScheduledPhoto(localPath, firestoreId)
             } else {
@@ -40,23 +48,26 @@ class PhotoUploadWorker @AssistedInject constructor(
 
             if (uploadResult.isSuccess) {
                 val downloadUrl = uploadResult.getOrNull()
-
-                // 2. Firestore belgesini güncelle (URL'i ekle)
-                val collectionPath = if (collectionType == "scheduled") "scheduled_transactions" else "transactions"
-
-                firestore.collection(collectionPath)
-                    .document(firestoreId)
-                    .update("photoStorageUrl", downloadUrl)
-                    .await()
-
-                Log.d("PhotoUploadWorker", "Photo uploaded and Firestore updated successfully.")
-                Result.success()
+                try {
+                    firestore.collection(collectionPath)
+                        .document(firestoreId)
+                        .update("photoStorageUrl", downloadUrl)
+                        .await()
+                    Result.success()
+                } catch (e: Exception) {
+                    if (e is FirebaseFirestoreException && e.code == FirebaseFirestoreException.Code.NOT_FOUND) {
+                        if (!downloadUrl.isNullOrBlank()) {
+                            photoStorageManager.deletePhoto(downloadUrl)
+                        }
+                        Result.success()
+                    } else {
+                        throw e
+                    }
+                }
             } else {
-                Log.e("PhotoUploadWorker", "Upload failed", uploadResult.exceptionOrNull())
-                Result.retry() // Hata olursa (örn. ağ koparsa) tekrar dene
+                Result.retry()
             }
         } catch (e: Exception) {
-            Log.e("PhotoUploadWorker", "Error in worker", e)
             Result.retry()
         }
     }

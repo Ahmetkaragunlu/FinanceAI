@@ -5,10 +5,14 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import androidx.work.Constraints
+import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import androidx.work.workDataOf
 import com.ahmetkaragunlu.financeai.fcm.FCMNotificationSender
 import com.ahmetkaragunlu.financeai.firebasesync.FirebaseSyncService
-import com.ahmetkaragunlu.financeai.photo.PhotoStorageManager
+import com.ahmetkaragunlu.financeai.photo.PhotoMoveWorker
 import com.ahmetkaragunlu.financeai.roomdb.entitiy.TransactionEntity
 import com.ahmetkaragunlu.financeai.roomrepository.financerepository.FinanceRepository
 import com.google.firebase.firestore.FirebaseFirestore
@@ -23,7 +27,7 @@ import javax.inject.Inject
 class NotificationActionReceiver : BroadcastReceiver() {
 
     companion object {
-        private const val TAG = "NotificationActionReceiver"
+        private const val TAG = "NotificationReceiver"
         const val ACTION_CONFIRM = "com.ahmetkaragunlu.financeai.ACTION_CONFIRM"
         const val ACTION_CANCEL = "com.ahmetkaragunlu.financeai.ACTION_CANCEL"
     }
@@ -33,9 +37,6 @@ class NotificationActionReceiver : BroadcastReceiver() {
 
     @Inject
     lateinit var firebaseSyncService: FirebaseSyncService
-
-    @Inject
-    lateinit var photoStorageManager: PhotoStorageManager
 
     @Inject
     lateinit var firestore: FirebaseFirestore
@@ -51,21 +52,21 @@ class NotificationActionReceiver : BroadcastReceiver() {
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.cancel(firestoreId.hashCode())
         notificationManager.cancel(firestoreId.hashCode() + 20000)
-
         when (intent.action) {
-            ACTION_CONFIRM -> {
-                handleConfirm(context, firestoreId)
-            }
-            ACTION_CANCEL -> {
-                handleCancel(firestoreId)
-            }
+            ACTION_CONFIRM -> handleConfirm(context, firestoreId)
+            ACTION_CANCEL -> handleCancel(firestoreId)
         }
     }
+
     private fun handleConfirm(context: Context, firestoreId: String) {
         scope.launch {
             try {
                 val scheduledTransaction = repository.getScheduledTransactionByFirestoreId(firestoreId)
                 if (scheduledTransaction != null) {
+                    WorkManager.getInstance(context).cancelUniqueWork("scheduled_notification_${scheduledTransaction.id}")
+                    WorkManager.getInstance(context).cancelAllWorkByTag("scheduled_notification_${scheduledTransaction.id}")
+                    WorkManager.getInstance(context).cancelAllWorkByTag("delete_expired_${scheduledTransaction.id}")
+                    val newTransactionFirestoreId = scheduledTransaction.firestoreId.ifEmpty { firebaseSyncService.getNewTransactionId() }
                     val transaction = TransactionEntity(
                         amount = scheduledTransaction.amount,
                         transaction = scheduledTransaction.type,
@@ -77,38 +78,48 @@ class NotificationActionReceiver : BroadcastReceiver() {
                         locationShort = scheduledTransaction.locationShort,
                         latitude = scheduledTransaction.latitude,
                         longitude = scheduledTransaction.longitude,
-                        syncedToFirebase = false
+                        syncedToFirebase = false, // Henüz senkron olmadı
+                        firestoreId = newTransactionFirestoreId
                     )
-                    val transactionSyncResult = firebaseSyncService.syncTransactionToFirebase(transaction)
-                    if (transactionSyncResult.isSuccess) {
-                        val transactionFirestoreId = transactionSyncResult.getOrNull()!!
-                        val transactionWithId = transaction.copy(
-                            firestoreId = transactionFirestoreId,
-                            syncedToFirebase = true
-                        )
-                        repository.insertTransaction(transactionWithId)
+                    repository.insertTransaction(transaction)
+                    repository.deleteScheduledTransaction(scheduledTransaction)
+                    if (!scheduledTransaction.photoUri.isNullOrBlank() && scheduledTransaction.firestoreId.isNotEmpty()) {
+                        val constraints = Constraints.Builder()
+                            .setRequiredNetworkType(NetworkType.CONNECTED)
+                            .build()
 
-                        if (!scheduledTransaction.photoUri.isNullOrBlank() && scheduledTransaction.firestoreId.isNotEmpty()) {
-                            photoStorageManager.moveScheduledPhotoToTransaction(
-                                scheduledFirestoreId = scheduledTransaction.firestoreId,
-                                transactionFirestoreId = transactionFirestoreId
+                        val moveWork = OneTimeWorkRequestBuilder<PhotoMoveWorker>()
+                            .setConstraints(constraints)
+                            .setInputData(
+                                workDataOf(
+                                    PhotoMoveWorker.KEY_SCHEDULED_ID to scheduledTransaction.firestoreId,
+                                    PhotoMoveWorker.KEY_TRANSACTION_ID to newTransactionFirestoreId,
+                                    PhotoMoveWorker.KEY_LOCAL_PATH to scheduledTransaction.photoUri
+                                )
                             )
+                            .build()
+                        WorkManager.getInstance(context).enqueue(moveWork)
+                    }
+                    try {
+                        val syncResult = firebaseSyncService.syncTransactionToFirebase(transaction)
+                        if (syncResult.isSuccess) {
+                            repository.updateTransaction(transaction.copy(syncedToFirebase = true))
+                            if (scheduledTransaction.firestoreId.isNotEmpty()) {
+                                firestore.collection("scheduled_transactions")
+                                    .document(scheduledTransaction.firestoreId)
+                                    .delete()
+                            }
                         }
-                        if (scheduledTransaction.firestoreId.isNotEmpty()) {
-                            val deleteResult = firebaseSyncService.deleteScheduledTransactionFromFirebase(
-                                scheduledTransaction.firestoreId
-                            )
-                        }
-                        repository.deleteScheduledTransaction(scheduledTransaction)
-                        WorkManager.getInstance(context).cancelAllWorkByTag("scheduled_notification_${scheduledTransaction.id}")
-                        WorkManager.getInstance(context).cancelAllWorkByTag("delete_expired_${scheduledTransaction.id}")
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Senkronizasyon şimdilik başarısız, daha sonra yapılacak.", e)
                     }
                 }
             } catch (e: Exception) {
-                Log.e(TAG, " Error in CONFIRM action", e)
+                Log.e(TAG, "Confirm işleminde hata", e)
             }
         }
     }
+
     private fun handleCancel(firestoreId: String) {
         scope.launch {
             try {
@@ -117,7 +128,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
                     fcmNotificationSender.sendRescheduleToAllDevices(firestoreId)
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Error in CANCEL action", e)
+                Log.e(TAG, "Cancel işleminde hata", e)
             }
         }
     }

@@ -96,7 +96,11 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
                 )
                 .addTag("scheduled_notification_$localId")
                 .build()
-            WorkManager.getInstance(this@MyFirebaseMessagingService).enqueue(workRequest)
+            WorkManager.getInstance(this@MyFirebaseMessagingService).enqueueUniqueWork(
+                "scheduled_notification_$localId",
+                androidx.work.ExistingWorkPolicy.KEEP,
+                workRequest
+            )
         }
     }
 
@@ -120,8 +124,6 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
                     .cancelAllWorkByTag("scheduled_notification_$localId")
                 WorkManager.getInstance(this@MyFirebaseMessagingService)
                     .cancelAllWorkByTag("delete_expired_$localId")
-            } else {
-                Log.w(TAG, "⚠️ Local transaction not found")
             }
         }
     }
@@ -159,8 +161,6 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
                     .build()
                 WorkManager.getInstance(this@MyFirebaseMessagingService).enqueue(workRequest)
 
-            } else {
-                Log.w(TAG, "⚠️ Local transaction not found for reschedule")
             }
         }
     }

@@ -1,4 +1,3 @@
-
 package com.ahmetkaragunlu.financeai.firebasesync
 
 import android.content.Context
@@ -24,6 +23,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
@@ -51,7 +51,6 @@ class FirebaseSyncService @Inject constructor(
         private const val RECENTLY_ADDED_TIMEOUT = 3000L
     }
 
-    // YENİ EKLENEN FONKSİYONLAR: ID'leri önceden üretmek için
     fun getNewTransactionId(): String {
         return firestore.collection(TRANSACTIONS_COLLECTION).document().id
     }
@@ -59,7 +58,6 @@ class FirebaseSyncService @Inject constructor(
     fun getNewScheduledTransactionId(): String {
         return firestore.collection(SCHEDULED_COLLECTION).document().id
     }
-    // ---------------------------------------------------------
 
     private fun getUserId(): String? = auth.currentUser?.uid
     private suspend fun sendPendingNotifications() {
@@ -95,6 +93,7 @@ class FirebaseSyncService @Inject constructor(
             }
             try {
                 performInitialSync()
+                pushUnsyncedData()
                 delay(300)
                 startListeningToTransactions()
                 startListeningToScheduledTransactions()
@@ -104,6 +103,25 @@ class FirebaseSyncService @Inject constructor(
             } catch (e: Exception) {
                 Log.e(TAG, "Error during sync initialization", e)
             }
+        }
+    }
+    private suspend fun pushUnsyncedData() {
+        try {
+            val unsyncedTransactions = localRepository.getUnsyncedTransactions().firstOrNull() ?: emptyList()
+            unsyncedTransactions.forEach { transaction ->
+                syncTransactionToFirebase(transaction).onSuccess { firestoreId ->
+                    localRepository.updateTransaction(transaction.copy(syncedToFirebase = true))
+                }
+            }
+
+            val unsyncedScheduled = localRepository.getUnsyncedScheduledTransactions().firstOrNull() ?: emptyList()
+            unsyncedScheduled.forEach { transaction ->
+                syncScheduledTransactionToFirebase(transaction).onSuccess { firestoreId ->
+                    localRepository.updateScheduledTransaction(transaction.copy(syncedToFirebase = true))
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error pushing unsynced data", e)
         }
     }
 
@@ -132,7 +150,7 @@ class FirebaseSyncService @Inject constructor(
                 firestore.collection(TRANSACTIONS_COLLECTION).document()
             }
             val firestoreId = docRef.id
-            markAsRecentlyAdded(firestoreId) // Loop'a girmemesi için
+            markAsRecentlyAdded(firestoreId)
 
             val currentTimestamp = System.currentTimeMillis()
             val data = hashMapOf(
@@ -142,10 +160,6 @@ class FirebaseSyncService @Inject constructor(
                 "note" to transaction.note,
                 "date" to transaction.date,
                 "category" to transaction.category.name,
-                // BURASI ÖNEMLİ: photoStorageUrl'i null gönderiyoruz.
-                // WorkManager internet gelince bunu güncelleyecek.
-                // Eğer zaten varsa (update durumu) üzerine yazmıyoruz (SetOptions.merge kullanılabilir ama burada manuel kontrol daha güvenli)
-                // Ancak create işleminde null gidecek.
                 "photoStorageUrl" to null,
                 "locationFull" to transaction.locationFull,
                 "locationShort" to transaction.locationShort,
@@ -153,21 +167,13 @@ class FirebaseSyncService @Inject constructor(
                 "longitude" to transaction.longitude,
                 "timestamp" to currentTimestamp
             )
-
-            // set kullanıyoruz, bu belgeyi oluşturur.
-            // WorkManager daha sonra sadece photoStorageUrl alanını update edecek.
             docRef.set(data).await()
-
-            // NOT: Buradaki scope.launch { photoStorageManager.upload... } BLOĞUNU TAMAMEN SİLİYORUZ.
-            // Artık bu işi WorkManager yapıyor.
-
             Result.success(firestoreId)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    // Aynı işlemi syncScheduledTransactionToFirebase için de yap:
     suspend fun syncScheduledTransactionToFirebase(
         transaction: ScheduledTransactionEntity
     ): Result<String> {
@@ -190,7 +196,7 @@ class FirebaseSyncService @Inject constructor(
                 "scheduledDate" to transaction.scheduledDate,
                 "expirationNotificationSent" to transaction.expirationNotificationSent,
                 "notificationSent" to transaction.notificationSent,
-                "photoStorageUrl" to null, // WorkManager güncelleyecek
+                "photoStorageUrl" to null,
                 "locationFull" to transaction.locationFull,
                 "locationShort" to transaction.locationShort,
                 "latitude" to transaction.latitude,
@@ -198,9 +204,6 @@ class FirebaseSyncService @Inject constructor(
                 "timestamp" to currentTimestamp
             )
             docRef.set(data).await()
-
-            // NOT: scope.launch { uploadScheduledPhoto... } BLOĞUNU SİLİYORUZ.
-
             Result.success(firestoreId)
         } catch (e: Exception) {
             Result.failure(e)
@@ -294,7 +297,7 @@ class FirebaseSyncService @Inject constructor(
                         longitude = doc.getDouble("longitude"),
                         syncedToFirebase = true
                     )
-                    localRepository.insertScheduledTransaction(scheduledTransaction) // EKLENDI: Eksik insert çağrısı düzeltildi
+                    localRepository.insertScheduledTransaction(scheduledTransaction)
                 }
             }
         } catch (e: Exception) {
@@ -594,7 +597,7 @@ class FirebaseSyncService @Inject constructor(
                                             longitude = doc.getDouble("longitude"),
                                             syncedToFirebase = true
                                         )
-                                        localRepository.insertScheduledTransaction(scheduledTransaction) // EKLENDI: Buradaki eksik insert düzeltildi
+                                        localRepository.insertScheduledTransaction(scheduledTransaction)
                                     }
                                     DocumentChange.Type.MODIFIED -> {
                                         val existing =
