@@ -1,4 +1,3 @@
-
 package com.ahmetkaragunlu.financeai.photo
 
 

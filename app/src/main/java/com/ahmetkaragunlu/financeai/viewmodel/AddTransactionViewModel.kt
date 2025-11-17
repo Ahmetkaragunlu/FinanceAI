@@ -206,7 +206,6 @@ class AddTransactionViewModel @Inject constructor(
         viewModelScope.launch {
             var savedPhotoPath: String? = null
             try {
-                // 1. FOTOĞRAFI YEREL KAYDET (Hızlı)
                 savedPhotoPath = selectedPhotoUri?.let { uri ->
                     if (tempCameraPhotoPath != null) {
                         PhotoStorageUtil.saveTempPhotoAsPermanent(context, tempCameraPhotoPath!!)
@@ -214,35 +213,25 @@ class AddTransactionViewModel @Inject constructor(
                         PhotoStorageUtil.savePhotoToInternalStorage(context, uri)
                     }
                 }
-
-                // 2. ID OLUŞTUR
                 val isScheduled = isReminderEnabled
                 val firestoreId = if (isScheduled) firebaseSyncService.getNewScheduledTransactionId()
                 else firebaseSyncService.getNewTransactionId()
-
-                // 3. WORKMANAGER'I KUR (FOTOĞRAF İÇİN - BEKLEME YAPMAZ)
-                // Bu kısım fotoğrafın internet gelince yüklenmesini garanti eder
                 if (savedPhotoPath != null) {
                     val constraints = Constraints.Builder()
                         .setRequiredNetworkType(NetworkType.CONNECTED)
                         .build()
-
                     val uploadWork = OneTimeWorkRequestBuilder<PhotoUploadWorker>()
                         .setConstraints(constraints)
                         .setInputData(
-                           workDataOf(
+                            workDataOf(
                                 PhotoUploadWorker.KEY_LOCAL_PATH to savedPhotoPath,
                                 PhotoUploadWorker.KEY_FIRESTORE_ID to firestoreId,
-                            PhotoUploadWorker.KEY_COLLECTION_TYPE to if (isScheduled) "scheduled" else "transactions"
+                                PhotoUploadWorker.KEY_COLLECTION_TYPE to if (isScheduled) "scheduled" else "transactions"
                             )
                         )
                         .build()
-
-                    // enqueue işlemi milisaniyeler sürer, bekleme yapmaz
                     workManager.enqueue(uploadWork)
                 }
-
-                // 4. VERİTABANINA KAYDET VE SAYFAYI KAPAT (ORİJİNAL MANTIK)
                 if (isScheduled) {
                     val scheduledTransaction = ScheduledTransactionEntity(
                         amount = amount,
@@ -260,21 +249,14 @@ class AddTransactionViewModel @Inject constructor(
                         syncedToFirebase = false,
                         firestoreId = firestoreId
                     )
-
                     val localId = repo.insertScheduledTransaction(scheduledTransaction)
                     scheduleFirstNotificationOffline(localId)
-
-                    // UI İŞLEMİ BİTTİ, HEMEN ÇIK
                     clearForm()
                     onSuccess()
-
-                    // ARKA PLANDA SENKRONİZASYON DENEMESİ (Hata verirse versin, WorkManager fotoğrafı, Firestore SDK metni halleder)
                     launch {
                         try {
                             firebaseSyncService.syncScheduledTransactionToFirebase(scheduledTransaction)
                         } catch (e: Exception) {
-                            // İnternet yoksa burası hata verebilir ama sorun değil
-                            // Çünkü veriyi Room'a yazdık, fotoğrafı WorkManager'a verdik.
                         }
                     }
 
@@ -293,25 +275,18 @@ class AddTransactionViewModel @Inject constructor(
                         syncedToFirebase = false,
                         firestoreId = firestoreId
                     )
-
                     repo.insertTransaction(transaction)
-
-                    // UI İŞLEMİ BİTTİ, HEMEN ÇIK
                     clearForm()
                     onSuccess()
-
-                    // ARKA PLANDA SENKRONİZASYON DENEMESİ
                     launch {
                         try {
                             firebaseSyncService.syncTransactionToFirebase(transaction)
                         } catch (e: Exception) {
-                            // Sorun yok, veri güvende.
                         }
                     }
                 }
 
             } catch (e: Exception) {
-                // Sadece çok kritik dosya/db hatası olursa buraya düşer
                 savedPhotoPath?.let { PhotoStorageUtil.deletePhoto(it) }
                 onError(context.getString(R.string.error_transaction_save_failed, e.message ?: ""))
             }
@@ -327,7 +302,11 @@ class AddTransactionViewModel @Inject constructor(
             )
             .addTag("scheduled_notification_$transactionId")
             .build()
-        workManager.enqueue(workRequest)
+        workManager.enqueueUniqueWork(
+            "scheduled_notification_$transactionId",
+            androidx.work.ExistingWorkPolicy.REPLACE,
+            workRequest
+        )
     }
     private fun clearForm() {
         inputAmount = ""
