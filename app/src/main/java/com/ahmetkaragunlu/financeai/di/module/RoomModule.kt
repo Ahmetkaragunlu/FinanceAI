@@ -18,7 +18,6 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object RoomModule {
-
     //  Room Database instance
     @Provides
     @Singleton
@@ -31,20 +30,17 @@ object RoomModule {
             .fallbackToDestructiveMigration()
             .build()
     }
-
     // DAO instance
     @Provides
     @Singleton
     fun provideTransactionDao(database: FinanceDatabase): TransactionDao {
         return database.transactionDao()
     }
-
     @Provides
     @Singleton
     fun provideScheduledTransactionDao(database: FinanceDatabase): ScheduledTransactionDao {
         return database.scheduledTransactionDao()
     }
-
     // Repository instance (Interface + Impl)
     @Provides
     @Singleton
@@ -54,5 +50,4 @@ object RoomModule {
     ): FinanceRepository {
         return FinanceRepositoryImpl(transactionDao, scheduledTransactionDao)
     }
-
 }

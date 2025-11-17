@@ -1,6 +1,3 @@
-
-
-
 package com.ahmetkaragunlu.financeai.roomrepository.financerepository
 
 import com.ahmetkaragunlu.financeai.roomdb.dao.ScheduledTransactionDao

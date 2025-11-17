@@ -1,5 +1,3 @@
-
-
 package com.ahmetkaragunlu.financeai.viewmodel
 
 import android.util.Patterns

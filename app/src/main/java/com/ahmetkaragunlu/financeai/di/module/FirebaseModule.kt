@@ -1,7 +1,7 @@
-
 package com.ahmetkaragunlu.financeai.di.module
 
 import android.content.Context
+import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.fcm.FCMTokenManager
 import com.ahmetkaragunlu.financeai.firebaserepo.AuthRepository
 import com.ahmetkaragunlu.financeai.firebaserepo.AuthRepositoryImpl
@@ -26,20 +26,15 @@ object FirebaseModule {
     @Provides
     @Singleton
     fun provideFirebaseStore(): FirebaseFirestore = FirebaseFirestore.getInstance()
-
     @Provides
     @Singleton
     fun provideFirebaseAuth(): FirebaseAuth = FirebaseAuth.getInstance()
-
     @Provides
     @Singleton
     fun provideFirebaseStorage(): FirebaseStorage = FirebaseStorage.getInstance()
-
     @Provides
     @Singleton
     fun provideFirebaseMessaging(): FirebaseMessaging = FirebaseMessaging.getInstance()
-
-
 }
 
 @InstallIn(SingletonComponent::class)
@@ -69,11 +64,10 @@ object SignInWithGoogle {
         @ApplicationContext context: Context
     ): GoogleSignInOptions {
         return GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken("1048183018405-9vic0j0akq3punlpeuc7926qq43erict.apps.googleusercontent.com")
+            .requestIdToken(context.getString(R.string.default_web_client_id))
             .requestEmail()
             .build()
     }
-
     @Provides
     @Singleton
     fun provideGoogleSignInClient(

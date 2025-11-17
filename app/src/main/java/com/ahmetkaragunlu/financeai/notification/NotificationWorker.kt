@@ -4,7 +4,6 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.hilt.work.HiltWorker
 import androidx.work.*
@@ -12,7 +11,6 @@ import com.ahmetkaragunlu.financeai.MainActivity
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.components.formatAsCurrency
 import com.ahmetkaragunlu.financeai.components.formatAsShortDate
-import com.ahmetkaragunlu.financeai.fcm.FCMNotificationSender
 import com.ahmetkaragunlu.financeai.roomdb.entitiy.ScheduledTransactionEntity
 import com.ahmetkaragunlu.financeai.roomdb.type.TransactionType
 import com.ahmetkaragunlu.financeai.roomrepository.financerepository.FinanceRepository
@@ -33,13 +31,11 @@ class NotificationWorker @AssistedInject constructor(
         const val CHANNEL_ID = "scheduled_transaction_channel"
         const val TRANSACTION_ID_KEY = "transaction_id"
         const val FIRESTORE_ID_KEY = "firestore_id"
-        private const val TAG = "NotificationWorker"
     }
 
     override suspend fun doWork(): Result {
         return try {
             val specificTransactionId = inputData.getLong(TRANSACTION_ID_KEY, -1L)
-
             if (specificTransactionId != -1L) {
                 processSpecificTransaction(specificTransactionId)
             } else {
@@ -47,34 +43,21 @@ class NotificationWorker @AssistedInject constructor(
             }
             Result.success()
         } catch (e: Exception) {
-            Log.e(TAG, "Error in doWork", e)
             Result.failure()
         }
     }
-
     private suspend fun processSpecificTransaction(transactionId: Long) {
         val transaction = repository.getScheduledTransactionById(transactionId)
-
         transaction?.let {
-            Log.d(TAG, "═══════════════════════════════════════════════════")
-            Log.d(TAG, "⏰ Processing transaction ID: $transactionId")
-            Log.d(TAG, "Firestore ID: ${it.firestoreId}")
-
             val currentTime = System.currentTimeMillis()
             val endOfScheduledDay = getEndOfDay(it.scheduledDate)
-
             when {
                 currentTime <= endOfScheduledDay -> {
-                    Log.d(TAG, "📱 Showing notification on THIS device")
                     showReminderNotification(it)
-
-                    Log.d(TAG, "⏰ Scheduling next notification in 15 minutes")
                     scheduleNextNotification(transactionId)
                 }
-
                 currentTime > endOfScheduledDay -> {
                     if (!it.expirationNotificationSent) {
-                        Log.d(TAG, "⏰ Expired! Sending expiration notification")
                         sendExpirationNotification(it)
                         repository.updateScheduledTransaction(
                             it.copy(expirationNotificationSent = true)
@@ -83,7 +66,6 @@ class NotificationWorker @AssistedInject constructor(
                     }
                 }
             }
-            Log.d(TAG, "═══════════════════════════════════════════════════")
         }
     }
 
@@ -97,9 +79,7 @@ class NotificationWorker @AssistedInject constructor(
             .build()
 
         WorkManager.getInstance(appContext).enqueue(workRequest)
-        Log.d(TAG, "✅ Next notification scheduled for transaction: $transactionId")
     }
-
     private fun scheduleDeleteExpiredTransaction(transactionId: Long) {
         val workRequest = OneTimeWorkRequestBuilder<DeleteExpiredNotification>()
             .setInitialDelay(24, TimeUnit.HOURS)
@@ -108,21 +88,15 @@ class NotificationWorker @AssistedInject constructor(
             )
             .addTag("delete_expired_$transactionId")
             .build()
-
         WorkManager.getInstance(appContext).enqueue(workRequest)
     }
 
     private suspend fun checkAllPendingTransactions() {
         val currentTime = System.currentTimeMillis()
         val allTransactions = repository.getAllScheduledTransactions().first()
-
-        Log.d(TAG, "📋 Checking ${allTransactions.size} pending transactions")
-
         allTransactions.forEach { transaction ->
             val endOfScheduledDay = getEndOfDay(transaction.scheduledDate)
-
             if (currentTime <= endOfScheduledDay) {
-                Log.d(TAG, "📱 Showing pending notification: ${transaction.firestoreId}")
                 showReminderNotification(transaction)
                 scheduleNextNotification(transaction.id)
             } else if (!transaction.expirationNotificationSent) {
@@ -151,7 +125,6 @@ class NotificationWorker @AssistedInject constructor(
             .split(" ")
             .joinToString(" ") { it.replaceFirstChar { char -> char.uppercase() } }
         val formattedDate = transaction.scheduledDate.formatAsShortDate()
-
         val (title, message) = when (transaction.type) {
             TransactionType.INCOME -> {
                 appContext.getString(R.string.notification_income_title) to
@@ -172,7 +145,6 @@ class NotificationWorker @AssistedInject constructor(
                         )
             }
         }
-
         val confirmIntent = Intent(appContext, NotificationActionReceiver::class.java).apply {
             action = NotificationActionReceiver.ACTION_CONFIRM
             putExtra(FIRESTORE_ID_KEY, transaction.firestoreId)
@@ -183,7 +155,6 @@ class NotificationWorker @AssistedInject constructor(
             confirmIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-
         val cancelIntent = Intent(appContext, NotificationActionReceiver::class.java).apply {
             action = NotificationActionReceiver.ACTION_CANCEL
             putExtra(FIRESTORE_ID_KEY, transaction.firestoreId)
@@ -191,6 +162,13 @@ class NotificationWorker @AssistedInject constructor(
         val cancelPendingIntent = PendingIntent.getBroadcast(
             appContext,
             transaction.firestoreId.hashCode() + 10000,
+            cancelIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val deletePendingIntent = PendingIntent.getBroadcast(
+            appContext,
+            transaction.firestoreId.hashCode() + 20000,
             cancelIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
@@ -212,6 +190,7 @@ class NotificationWorker @AssistedInject constructor(
             .setAutoCancel(false)
             .setOngoing(false)
             .setContentIntent(mainPendingIntent)
+            .setDeleteIntent(deletePendingIntent)
             .addAction(
                 R.drawable.ic_launcher_foreground,
                 appContext.getString(R.string.notification_action_yes),
@@ -226,17 +205,13 @@ class NotificationWorker @AssistedInject constructor(
 
         val notificationManager = appContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.notify(transaction.firestoreId.hashCode(), notification)
-
-        Log.d(TAG, "✅ Notification shown: ${transaction.firestoreId}")
     }
-
     private fun sendExpirationNotification(transaction: ScheduledTransactionEntity) {
         val formattedAmount = transaction.amount.formatAsCurrency()
         val categoryName = transaction.category.name.replace("_", " ").lowercase()
             .split(" ")
             .joinToString(" ") { it.replaceFirstChar { char -> char.uppercase() } }
         val formattedDate = transaction.scheduledDate.formatAsShortDate()
-
         val (title, message) = when (transaction.type) {
             TransactionType.INCOME -> {
                 appContext.getString(R.string.notification_income_expired_title) to
@@ -257,7 +232,6 @@ class NotificationWorker @AssistedInject constructor(
                         )
             }
         }
-
         val mainIntent = Intent(appContext, MainActivity::class.java)
         val mainPendingIntent = PendingIntent.getActivity(
             appContext,

@@ -1,5 +1,3 @@
-
-
 package com.ahmetkaragunlu.financeai.di.application
 
 import android.app.Application
@@ -14,27 +12,19 @@ import javax.inject.Inject
 
 @HiltAndroidApp
 class FinanceApplication : Application(), Configuration.Provider {
-
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
-
     @Inject
     lateinit var workManager: WorkManager
-
-
-
 
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
-
     }
-
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder()
             .setWorkerFactory(workerFactory)
             .build()
-
     private fun createNotificationChannel() {
         val channel = NotificationChannel(
             NotificationWorker.CHANNEL_ID,
@@ -44,7 +34,6 @@ class FinanceApplication : Application(), Configuration.Provider {
             description = getString(R.string.notification_channel_description)
             enableVibration(true)
         }
-
         val notificationManager = getSystemService(NotificationManager::class.java)
         notificationManager?.createNotificationChannel(channel)
     }
