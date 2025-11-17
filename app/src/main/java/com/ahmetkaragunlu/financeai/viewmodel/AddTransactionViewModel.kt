@@ -10,6 +10,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.work.Constraints
+import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.workDataOf
@@ -20,6 +22,7 @@ import com.ahmetkaragunlu.financeai.location.LocationUtil
 import com.ahmetkaragunlu.financeai.notification.NotificationWorker
 import com.ahmetkaragunlu.financeai.photo.CameraHelper
 import com.ahmetkaragunlu.financeai.photo.PhotoStorageUtil
+import com.ahmetkaragunlu.financeai.photo.PhotoUploadWorker
 import com.ahmetkaragunlu.financeai.roomdb.entitiy.ScheduledTransactionEntity
 import com.ahmetkaragunlu.financeai.roomdb.entitiy.TransactionEntity
 import com.ahmetkaragunlu.financeai.roomdb.type.CategoryType
@@ -199,9 +202,11 @@ class AddTransactionViewModel @Inject constructor(
             return
         }
         val amount = inputAmount.toDouble()
+
         viewModelScope.launch {
             var savedPhotoPath: String? = null
             try {
+                // 1. FOTOĞRAFI YEREL KAYDET (Hızlı)
                 savedPhotoPath = selectedPhotoUri?.let { uri ->
                     if (tempCameraPhotoPath != null) {
                         PhotoStorageUtil.saveTempPhotoAsPermanent(context, tempCameraPhotoPath!!)
@@ -210,7 +215,35 @@ class AddTransactionViewModel @Inject constructor(
                     }
                 }
 
-                if (isReminderEnabled) {
+                // 2. ID OLUŞTUR
+                val isScheduled = isReminderEnabled
+                val firestoreId = if (isScheduled) firebaseSyncService.getNewScheduledTransactionId()
+                else firebaseSyncService.getNewTransactionId()
+
+                // 3. WORKMANAGER'I KUR (FOTOĞRAF İÇİN - BEKLEME YAPMAZ)
+                // Bu kısım fotoğrafın internet gelince yüklenmesini garanti eder
+                if (savedPhotoPath != null) {
+                    val constraints = Constraints.Builder()
+                        .setRequiredNetworkType(NetworkType.CONNECTED)
+                        .build()
+
+                    val uploadWork = OneTimeWorkRequestBuilder<PhotoUploadWorker>()
+                        .setConstraints(constraints)
+                        .setInputData(
+                           workDataOf(
+                                PhotoUploadWorker.KEY_LOCAL_PATH to savedPhotoPath,
+                                PhotoUploadWorker.KEY_FIRESTORE_ID to firestoreId,
+                            PhotoUploadWorker.KEY_COLLECTION_TYPE to if (isScheduled) "scheduled" else "transactions"
+                            )
+                        )
+                        .build()
+
+                    // enqueue işlemi milisaniyeler sürer, bekleme yapmaz
+                    workManager.enqueue(uploadWork)
+                }
+
+                // 4. VERİTABANINA KAYDET VE SAYFAYI KAPAT (ORİJİNAL MANTIK)
+                if (isScheduled) {
                     val scheduledTransaction = ScheduledTransactionEntity(
                         amount = amount,
                         type = selectedTransactionType,
@@ -224,23 +257,25 @@ class AddTransactionViewModel @Inject constructor(
                         locationShort = selectedLocation?.addressShort,
                         latitude = selectedLocation?.latitude,
                         longitude = selectedLocation?.longitude,
-                        syncedToFirebase = false
+                        syncedToFirebase = false,
+                        firestoreId = firestoreId
                     )
-                    val syncResult = firebaseSyncService.syncScheduledTransactionToFirebase(scheduledTransaction)
-                    if (syncResult.isSuccess) {
-                        val firestoreId = syncResult.getOrNull()!!
-                        val transactionWithFirestoreId = scheduledTransaction.copy(
-                            firestoreId = firestoreId,
-                            syncedToFirebase = true
-                        )
-                        repo.insertScheduledTransaction(transactionWithFirestoreId)
-                        clearForm()
-                        onSuccess()
-                    } else {
-                        val localId = repo.insertScheduledTransaction(scheduledTransaction)
-                        scheduleFirstNotificationOffline(localId)
-                        clearForm()
-                        onSuccess()
+
+                    val localId = repo.insertScheduledTransaction(scheduledTransaction)
+                    scheduleFirstNotificationOffline(localId)
+
+                    // UI İŞLEMİ BİTTİ, HEMEN ÇIK
+                    clearForm()
+                    onSuccess()
+
+                    // ARKA PLANDA SENKRONİZASYON DENEMESİ (Hata verirse versin, WorkManager fotoğrafı, Firestore SDK metni halleder)
+                    launch {
+                        try {
+                            firebaseSyncService.syncScheduledTransactionToFirebase(scheduledTransaction)
+                        } catch (e: Exception) {
+                            // İnternet yoksa burası hata verebilir ama sorun değil
+                            // Çünkü veriyi Room'a yazdık, fotoğrafı WorkManager'a verdik.
+                        }
                     }
 
                 } else {
@@ -255,31 +290,33 @@ class AddTransactionViewModel @Inject constructor(
                         locationShort = selectedLocation?.addressShort,
                         latitude = selectedLocation?.latitude,
                         longitude = selectedLocation?.longitude,
-                        syncedToFirebase = false
+                        syncedToFirebase = false,
+                        firestoreId = firestoreId
                     )
-                    val syncResult = firebaseSyncService.syncTransactionToFirebase(transaction)
-                    if (syncResult.isSuccess) {
-                        val firestoreId = syncResult.getOrNull()!!
-                        val transactionWithFirestoreId = transaction.copy(
-                            firestoreId = firestoreId,
-                            syncedToFirebase = true
-                        )
-                        repo.insertTransaction(transactionWithFirestoreId)
-                        clearForm()
-                        onSuccess()
-                    } else {
-                        repo.insertTransaction(transaction)
-                        clearForm()
-                        onSuccess()
+
+                    repo.insertTransaction(transaction)
+
+                    // UI İŞLEMİ BİTTİ, HEMEN ÇIK
+                    clearForm()
+                    onSuccess()
+
+                    // ARKA PLANDA SENKRONİZASYON DENEMESİ
+                    launch {
+                        try {
+                            firebaseSyncService.syncTransactionToFirebase(transaction)
+                        } catch (e: Exception) {
+                            // Sorun yok, veri güvende.
+                        }
                     }
                 }
+
             } catch (e: Exception) {
+                // Sadece çok kritik dosya/db hatası olursa buraya düşer
                 savedPhotoPath?.let { PhotoStorageUtil.deletePhoto(it) }
                 onError(context.getString(R.string.error_transaction_save_failed, e.message ?: ""))
             }
         }
     }
-
     private fun scheduleFirstNotificationOffline(transactionId: Long) {
         val workRequest = OneTimeWorkRequestBuilder<NotificationWorker>()
             .setInitialDelay(5, TimeUnit.SECONDS)
