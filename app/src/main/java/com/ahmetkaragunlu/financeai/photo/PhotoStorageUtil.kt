@@ -12,7 +12,7 @@ import androidx.core.graphics.scale
 
 object PhotoStorageUtil {
 
-    const val PHOTO_DIRECTORY = "transaction_photos" // Public yapıldı
+    const val PHOTO_DIRECTORY = "transaction_photos"
     private const val MAX_IMAGE_SIZE = 1920
     private const val JPEG_QUALITY = 85
 
@@ -54,7 +54,6 @@ object PhotoStorageUtil {
             if (!photoDir.exists()) {
                 photoDir.mkdirs()
             }
-
             val fileName = "TEMP_${System.currentTimeMillis()}.jpg"
             val photoFile = File(photoDir, fileName)
 
@@ -75,14 +74,12 @@ object PhotoStorageUtil {
         return try {
             val tempFile = File(tempPhotoPath)
             if (!tempFile.exists()) return null
-
             val photoDir = File(context.filesDir, PHOTO_DIRECTORY)
             val fileName = "IMG_${UUID.randomUUID()}.jpg"
             val permanentFile = File(photoDir, fileName)
 
             tempFile.copyTo(permanentFile, overwrite = true)
             tempFile.delete()
-
             permanentFile.absolutePath
         } catch (e: Exception) {
             e.printStackTrace()
@@ -92,7 +89,6 @@ object PhotoStorageUtil {
 
     fun deletePhoto(photoPath: String?): Boolean {
         if (photoPath.isNullOrBlank()) return false
-
         return try {
             val file = File(photoPath)
             if (file.exists()) {
@@ -125,7 +121,6 @@ object PhotoStorageUtil {
             newHeight = maxSize
             newWidth = (maxSize * ratio).toInt()
         }
-
         return bitmap.scale(newWidth, newHeight)
     }
 }

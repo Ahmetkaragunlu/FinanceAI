@@ -4,6 +4,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.ahmetkaragunlu.financeai.feature.MainNavGraphScaffold
 import com.ahmetkaragunlu.financeai.feature.authNavGraph
+import com.ahmetkaragunlu.financeai.location.MapLocationPickerScreen
 import com.ahmetkaragunlu.financeai.navigation.Screens
 import com.ahmetkaragunlu.financeai.screens.splash.SplashScreen
 
@@ -24,5 +25,7 @@ fun FinanceNavigation() {
         composable(route = Screens.MAIN_GRAPH.route) {
             MainNavGraphScaffold()
         }
+
+
     }
 }

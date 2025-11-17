@@ -1,7 +1,10 @@
+// Dosya: app/src/main/java/com/ahmetkaragunlu/financeai/location/MapLocationPickerScreen.kt
 package com.ahmetkaragunlu.financeai.location
 
+import FinanceNavigation
 import android.Manifest
 import android.content.pm.PackageManager
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
@@ -57,8 +60,13 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 import com.ahmetkaragunlu.financeai.R
+import com.ahmetkaragunlu.financeai.navigation.Screens
+import com.ahmetkaragunlu.financeai.navigation.navigateSingleTopClear
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.GoogleMap
@@ -73,28 +81,32 @@ import kotlinx.coroutines.launch
 @Composable
 fun MapLocationPickerScreen(
     onLocationSelected: (latitude: Double, longitude: Double) -> Unit,
-    onDismiss: () -> Unit,
-    viewModel: LocationPickerViewModel = hiltViewModel()
+    onDismiss: () -> Unit ,
+    viewModel: LocationPickerViewModel = hiltViewModel(),
+
+
 ) {
+    BackHandler {onDismiss()}
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
-    val lifecycleOwner = LocalLifecycleOwner.current
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
 
     var searchQuery by remember { mutableStateOf("") }
     var isSearching by remember { mutableStateOf(false) }
+
 
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         val fineLocationGranted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] ?: false
         val coarseLocationGranted = permissions[Manifest.permission.ACCESS_COARSE_LOCATION] ?: false
-
-        if (fineLocationGranted || coarseLocationGranted) {
+        val hasPermission = fineLocationGranted || coarseLocationGranted
+        viewModel.updatePermissionState(hasPermission)
+        if (hasPermission) {
             viewModel.getCurrentLocation()
         }
     }
-
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -107,20 +119,16 @@ fun MapLocationPickerScreen(
                 }
             }
         }
-
         lifecycleOwner.lifecycle.addObserver(observer)
-
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
-
     LaunchedEffect(Unit) {
         val hasPermission = ContextCompat.checkSelfPermission(
             context,
             Manifest.permission.ACCESS_FINE_LOCATION
         ) == PackageManager.PERMISSION_GRANTED
-
         if (hasPermission) {
             viewModel.getCurrentLocation()
         } else {
@@ -190,13 +198,13 @@ fun MapLocationPickerScreen(
                         focusedContainerColor = Color.White,
                         unfocusedContainerColor = Color.White,
 
-                    ),
+                        ),
                     shape = RoundedCornerShape(12.dp)
                 )
             }
         },
 
-    ) { padding ->
+        ) { padding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -273,7 +281,7 @@ fun MapLocationPickerScreen(
                         color = Color.White
                     )
                 }
-               Button(
+                Button(
                     onClick = {
                         uiState.selectedLocation?.let { location ->
                             onLocationSelected(location.latitude, location.longitude)

@@ -30,13 +30,19 @@ class LocationPickerViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(LocationPickerUiState())
     val uiState: StateFlow<LocationPickerUiState> = _uiState.asStateFlow()
-
     private val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
 
     init {
         checkLocationPermission()
     }
-
+    fun updatePermissionState(isGranted: Boolean) {
+        _uiState.value = _uiState.value.copy(hasLocationPermission = isGranted)
+        if (!isGranted) {
+            _uiState.value = _uiState.value.copy(
+                errorMessage = context.getString(R.string.location_permission_required)
+            )
+        }
+    }
     private fun checkLocationPermission() {
         val hasPermission = ContextCompat.checkSelfPermission(
             context,
@@ -75,13 +81,10 @@ class LocationPickerViewModel @Inject constructor(
             )
             return
         }
-
         _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
-
         viewModelScope.launch {
             try {
                 val cancellationTokenSource = CancellationTokenSource()
-
                 fusedLocationClient.getCurrentLocation(
                     Priority.PRIORITY_HIGH_ACCURACY,
                     cancellationTokenSource.token
@@ -137,7 +140,6 @@ class LocationPickerViewModel @Inject constructor(
             }
         }
     }
-
     fun dismissLocationSettingsDialog() {
         _uiState.value = _uiState.value.copy(showLocationSettingsDialog = false)
     }

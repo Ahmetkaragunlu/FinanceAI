@@ -1,9 +1,9 @@
-
 package com.ahmetkaragunlu.financeai.viewmodel
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.net.Uri
-import android.util.Log
+import android.widget.Toast
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -40,10 +40,6 @@ class AddTransactionViewModel @Inject constructor(
     private val firebaseSyncService: FirebaseSyncService,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
-
-    companion object {
-        private const val TAG = "AddTransactionVM"
-    }
 
     var selectedTransactionType by mutableStateOf(TransactionType.EXPENSE)
     var selectedCategory by mutableStateOf<CategoryType?>(null)
@@ -107,10 +103,10 @@ class AddTransactionViewModel @Inject constructor(
 
     fun toggleReminder(enabled: Boolean) {
         isReminderEnabled = enabled
-        if (!enabled) {
-            selectedDate = System.currentTimeMillis()
+        selectedDate = if (!enabled) {
+            System.currentTimeMillis()
         } else {
-            selectedDate = Calendar.getInstance().apply {
+            Calendar.getInstance().apply {
                 add(Calendar.DAY_OF_YEAR, 1)
                 set(Calendar.HOUR_OF_DAY, 0)
                 set(Calendar.MINUTE, 0)
@@ -119,7 +115,6 @@ class AddTransactionViewModel @Inject constructor(
             }.timeInMillis
         }
     }
-
     fun openDatePicker() {
         isDatePickerOpen = true
     }
@@ -149,7 +144,7 @@ class AddTransactionViewModel @Inject constructor(
 
     fun prepareCameraPhoto(): Pair<File, Uri>? {
         val result = PhotoStorageUtil.createTempPhotoFile(context)
-        result?.let { (file, uri) ->
+        result?.let { (file, _) ->
             tempCameraPhotoPath = file.absolutePath
         }
         return result
@@ -175,7 +170,7 @@ class AddTransactionViewModel @Inject constructor(
         }
         tempCameraPhotoPath = null
     }
-
+    @SuppressLint("StringFormatInvalid")
     fun onLocationSelected(latitude: Double, longitude: Double) {
         viewModelScope.launch {
             try {
@@ -186,15 +181,14 @@ class AddTransactionViewModel @Inject constructor(
                 )
                 selectedLocation = locationData
             } catch (e: Exception) {
-                Log.e(TAG, "Error getting location", e)
+                val errorMessage = context.getString(R.string.failure, e.message ?: "")
+                Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
             }
         }
     }
-
     fun clearLocation() {
         selectedLocation = null
     }
-
     fun saveTransaction(onSuccess: () -> Unit, onError: (String) -> Unit) {
         if (inputAmount.isBlank() || inputAmount.toDoubleOrNull() == null) {
             onError(context.getString(R.string.error_invalid_amount))
@@ -204,9 +198,7 @@ class AddTransactionViewModel @Inject constructor(
             onError(context.getString(R.string.error_select_category))
             return
         }
-
         val amount = inputAmount.toDouble()
-
         viewModelScope.launch {
             var savedPhotoPath: String? = null
             try {
@@ -234,29 +226,19 @@ class AddTransactionViewModel @Inject constructor(
                         longitude = selectedLocation?.longitude,
                         syncedToFirebase = false
                     )
-
                     val syncResult = firebaseSyncService.syncScheduledTransactionToFirebase(scheduledTransaction)
-
                     if (syncResult.isSuccess) {
                         val firestoreId = syncResult.getOrNull()!!
-                        Log.d(TAG, "✅ Scheduled synced to Firebase: $firestoreId")
-
                         val transactionWithFirestoreId = scheduledTransaction.copy(
                             firestoreId = firestoreId,
                             syncedToFirebase = true
                         )
-                        val localId = repo.insertScheduledTransaction(transactionWithFirestoreId)
-                        Log.d(TAG, "✅ Scheduled saved to Room: localId=$localId")
-                        Log.d(TAG, "✅ Firebase will trigger WorkManager via FCM")
-
+                        repo.insertScheduledTransaction(transactionWithFirestoreId)
                         clearForm()
                         onSuccess()
                     } else {
-                        Log.e(TAG, "Failed to sync to Firebase", syncResult.exceptionOrNull())
                         val localId = repo.insertScheduledTransaction(scheduledTransaction)
-                        Log.d(TAG, "⚠️ Offline mode - starting WorkManager manually")
                         scheduleFirstNotificationOffline(localId)
-
                         clearForm()
                         onSuccess()
                     }
@@ -275,13 +257,9 @@ class AddTransactionViewModel @Inject constructor(
                         longitude = selectedLocation?.longitude,
                         syncedToFirebase = false
                     )
-
                     val syncResult = firebaseSyncService.syncTransactionToFirebase(transaction)
-
                     if (syncResult.isSuccess) {
                         val firestoreId = syncResult.getOrNull()!!
-                        Log.d(TAG, "Transaction synced to Firebase: $firestoreId")
-
                         val transactionWithFirestoreId = transaction.copy(
                             firestoreId = firestoreId,
                             syncedToFirebase = true
@@ -290,19 +268,18 @@ class AddTransactionViewModel @Inject constructor(
                         clearForm()
                         onSuccess()
                     } else {
-                        Log.e(TAG, "Failed to sync transaction to Firebase", syncResult.exceptionOrNull())
                         repo.insertTransaction(transaction)
                         clearForm()
                         onSuccess()
                     }
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Error saving transaction", e)
                 savedPhotoPath?.let { PhotoStorageUtil.deletePhoto(it) }
                 onError(context.getString(R.string.error_transaction_save_failed, e.message ?: ""))
             }
         }
     }
+
     private fun scheduleFirstNotificationOffline(transactionId: Long) {
         val workRequest = OneTimeWorkRequestBuilder<NotificationWorker>()
             .setInitialDelay(5, TimeUnit.SECONDS)
@@ -313,9 +290,7 @@ class AddTransactionViewModel @Inject constructor(
             )
             .addTag("scheduled_notification_$transactionId")
             .build()
-
         workManager.enqueue(workRequest)
-        Log.d(TAG, "✅ WorkManager scheduled (offline mode)")
     }
     private fun clearForm() {
         inputAmount = ""
