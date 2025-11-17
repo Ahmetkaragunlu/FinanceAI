@@ -1,6 +1,7 @@
 package com.ahmetkaragunlu.financeai.photo
 
 import android.content.Context
+import android.net.Uri
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.tasks.await
@@ -29,6 +30,7 @@ class PhotoStorageManager @Inject constructor(
     ): Result<String> {
         return uploadPhoto(localPhotoPath, firestoreId, SCHEDULED_PATH)
     }
+
     private suspend fun uploadPhoto(
         localPhotoPath: String,
         firestoreId: String,
@@ -47,12 +49,15 @@ class PhotoStorageManager @Inject constructor(
                 .child(userId)
                 .child(folder)
                 .child("${firestoreId}_photo.jpg")
+            val fileUri = Uri.fromFile(photoFile)
+            storageRef.putFile(fileUri).await()
             val downloadUrl = storageRef.downloadUrl.await().toString()
             Result.success(downloadUrl)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
+
     suspend fun downloadAndSavePhoto(
         context: Context,
         storageUrl: String,

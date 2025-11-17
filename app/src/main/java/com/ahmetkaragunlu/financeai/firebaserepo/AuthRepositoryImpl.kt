@@ -1,3 +1,4 @@
+
 package com.ahmetkaragunlu.financeai.firebaserepo
 
 import com.ahmetkaragunlu.financeai.fcm.FCMTokenManager
@@ -12,6 +13,7 @@ import com.google.firebase.auth.FirebaseAuthInvalidUserException
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Source
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
@@ -116,7 +118,7 @@ class AuthRepositoryImpl @Inject constructor(
     override suspend fun isUserRegistered(email: String): Boolean {
         val snapshot = firestore.collection("users")
             .whereEqualTo("email", email)
-            .get()
+            .get(Source.SERVER)
             .await()
         return !snapshot.isEmpty
     }

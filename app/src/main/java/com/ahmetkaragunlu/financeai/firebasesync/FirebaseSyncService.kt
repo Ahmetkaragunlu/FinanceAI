@@ -1,3 +1,4 @@
+
 package com.ahmetkaragunlu.financeai.firebasesync
 
 import android.content.Context
@@ -49,6 +50,16 @@ class FirebaseSyncService @Inject constructor(
         private const val SCHEDULED_COLLECTION = "scheduled_transactions"
         private const val RECENTLY_ADDED_TIMEOUT = 3000L
     }
+
+    // YENİ EKLENEN FONKSİYONLAR: ID'leri önceden üretmek için
+    fun getNewTransactionId(): String {
+        return firestore.collection(TRANSACTIONS_COLLECTION).document().id
+    }
+
+    fun getNewScheduledTransactionId(): String {
+        return firestore.collection(SCHEDULED_COLLECTION).document().id
+    }
+    // ---------------------------------------------------------
 
     private fun getUserId(): String? = auth.currentUser?.uid
     private suspend fun sendPendingNotifications() {
@@ -110,6 +121,8 @@ class FirebaseSyncService @Inject constructor(
         }
     }
 
+
+
     suspend fun syncTransactionToFirebase(transaction: TransactionEntity): Result<String> {
         return try {
             val userId = getUserId() ?: return Result.failure(Exception("User not logged in"))
@@ -119,7 +132,8 @@ class FirebaseSyncService @Inject constructor(
                 firestore.collection(TRANSACTIONS_COLLECTION).document()
             }
             val firestoreId = docRef.id
-            markAsRecentlyAdded(firestoreId)
+            markAsRecentlyAdded(firestoreId) // Loop'a girmemesi için
+
             val currentTimestamp = System.currentTimeMillis()
             val data = hashMapOf(
                 "userId" to userId,
@@ -128,6 +142,10 @@ class FirebaseSyncService @Inject constructor(
                 "note" to transaction.note,
                 "date" to transaction.date,
                 "category" to transaction.category.name,
+                // BURASI ÖNEMLİ: photoStorageUrl'i null gönderiyoruz.
+                // WorkManager internet gelince bunu güncelleyecek.
+                // Eğer zaten varsa (update durumu) üzerine yazmıyoruz (SetOptions.merge kullanılabilir ama burada manuel kontrol daha güvenli)
+                // Ancak create işleminde null gidecek.
                 "photoStorageUrl" to null,
                 "locationFull" to transaction.locationFull,
                 "locationShort" to transaction.locationShort,
@@ -135,31 +153,21 @@ class FirebaseSyncService @Inject constructor(
                 "longitude" to transaction.longitude,
                 "timestamp" to currentTimestamp
             )
+
+            // set kullanıyoruz, bu belgeyi oluşturur.
+            // WorkManager daha sonra sadece photoStorageUrl alanını update edecek.
             docRef.set(data).await()
-            if (!transaction.photoUri.isNullOrBlank() && transaction.photoUri.startsWith("/")) {
-                scope.launch {
-                    try {
-                        val uploadResult = photoStorageManager.uploadTransactionPhoto(
-                            localPhotoPath = transaction.photoUri,
-                            firestoreId = firestoreId
-                        )
-                        if (uploadResult.isSuccess) {
-                            val storagePhotoUrl = uploadResult.getOrNull()
-                            docRef.update("photoStorageUrl", storagePhotoUrl).await()
-                        } else {
-                            Log.e(TAG, "Failed to upload photo", uploadResult.exceptionOrNull())
-                        }
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Error uploading photo in background", e)
-                    }
-                }
-            }
+
+            // NOT: Buradaki scope.launch { photoStorageManager.upload... } BLOĞUNU TAMAMEN SİLİYORUZ.
+            // Artık bu işi WorkManager yapıyor.
+
             Result.success(firestoreId)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
+    // Aynı işlemi syncScheduledTransactionToFirebase için de yap:
     suspend fun syncScheduledTransactionToFirebase(
         transaction: ScheduledTransactionEntity
     ): Result<String> {
@@ -182,7 +190,7 @@ class FirebaseSyncService @Inject constructor(
                 "scheduledDate" to transaction.scheduledDate,
                 "expirationNotificationSent" to transaction.expirationNotificationSent,
                 "notificationSent" to transaction.notificationSent,
-                "photoStorageUrl" to null,
+                "photoStorageUrl" to null, // WorkManager güncelleyecek
                 "locationFull" to transaction.locationFull,
                 "locationShort" to transaction.locationShort,
                 "latitude" to transaction.latitude,
@@ -190,22 +198,9 @@ class FirebaseSyncService @Inject constructor(
                 "timestamp" to currentTimestamp
             )
             docRef.set(data).await()
-            if (!transaction.photoUri.isNullOrBlank() && transaction.photoUri.startsWith("/")) {
-                scope.launch {
-                    try {
-                        val uploadResult = photoStorageManager.uploadScheduledPhoto(
-                            localPhotoPath = transaction.photoUri,
-                            firestoreId = firestoreId
-                        )
-                        if (uploadResult.isSuccess) {
-                            val storagePhotoUrl = uploadResult.getOrNull()
-                            docRef.update("photoStorageUrl", storagePhotoUrl).await()
-                        }
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Error uploading scheduled photo in background", e)
-                    }
-                }
-            }
+
+            // NOT: scope.launch { uploadScheduledPhoto... } BLOĞUNU SİLİYORUZ.
+
             Result.success(firestoreId)
         } catch (e: Exception) {
             Result.failure(e)
@@ -299,6 +294,7 @@ class FirebaseSyncService @Inject constructor(
                         longitude = doc.getDouble("longitude"),
                         syncedToFirebase = true
                     )
+                    localRepository.insertScheduledTransaction(scheduledTransaction) // EKLENDI: Eksik insert çağrısı düzeltildi
                 }
             }
         } catch (e: Exception) {
@@ -447,15 +443,15 @@ class FirebaseSyncService @Inject constructor(
                                             localRepository.getTransactionByFirestoreId(firestoreId)
                                         if (existing != null) {
                                             val storagePhotoUrl = doc.getString("photoStorageUrl")
-                                                  var localPhotoPath = existing.photoUri
-                                                                if (!storagePhotoUrl.isNullOrBlank() && storagePhotoUrl != existing.photoUri) {
-                                                                    scope.launch {
-                                                                        try {
-                                                                            val downloadResult = photoStorageManager.downloadAndSavePhoto(
-                                                                                context = context,
-                                                                                storageUrl = storagePhotoUrl,
-                                                                                firestoreId = firestoreId
-                                                            )
+                                            var localPhotoPath = existing.photoUri
+                                            if (!storagePhotoUrl.isNullOrBlank() && storagePhotoUrl != existing.photoUri) {
+                                                scope.launch {
+                                                    try {
+                                                        val downloadResult = photoStorageManager.downloadAndSavePhoto(
+                                                            context = context,
+                                                            storageUrl = storagePhotoUrl,
+                                                            firestoreId = firestoreId
+                                                        )
                                                         if (downloadResult.isSuccess) {
                                                             localPhotoPath =
                                                                 downloadResult.getOrNull()
@@ -540,8 +536,8 @@ class FirebaseSyncService @Inject constructor(
                                             return@launch
                                         }
                                         val existing = localRepository.getScheduledTransactionByFirestoreId(
-                                                firestoreId
-                                            )
+                                            firestoreId
+                                        )
                                         if (existing != null) {
                                             return@launch
 
@@ -598,6 +594,7 @@ class FirebaseSyncService @Inject constructor(
                                             longitude = doc.getDouble("longitude"),
                                             syncedToFirebase = true
                                         )
+                                        localRepository.insertScheduledTransaction(scheduledTransaction) // EKLENDI: Buradaki eksik insert düzeltildi
                                     }
                                     DocumentChange.Type.MODIFIED -> {
                                         val existing =
@@ -611,10 +608,10 @@ class FirebaseSyncService @Inject constructor(
                                                 scope.launch {
                                                     try {
                                                         val downloadResult = photoStorageManager.downloadAndSavePhoto(
-                                                                context = context,
-                                                                storageUrl = storagePhotoUrl,
-                                                                firestoreId = firestoreId
-                                                            )
+                                                            context = context,
+                                                            storageUrl = storagePhotoUrl,
+                                                            firestoreId = firestoreId
+                                                        )
                                                         if (downloadResult.isSuccess) {
                                                             localPhotoPath =
                                                                 downloadResult.getOrNull()
