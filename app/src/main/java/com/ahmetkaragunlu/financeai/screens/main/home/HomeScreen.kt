@@ -1,6 +1,5 @@
+package com.ahmetkaragunlu.financeai.screens.main.home
 
-
-package com.ahmetkaragunlu.financeai.screens.main
 
 import android.annotation.SuppressLint
 import androidx.activity.compose.BackHandler

@@ -1,4 +1,4 @@
-package com.ahmetkaragunlu.financeai.screens.main
+package com.ahmetkaragunlu.financeai.screens.main.addtransaction
 
 import android.net.Uri
 import android.widget.Toast
@@ -6,6 +6,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -30,7 +31,6 @@ import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.components.EditTextField
-import com.ahmetkaragunlu.financeai.components.getCurrencySymbol
 import com.ahmetkaragunlu.financeai.location.MapLocationPickerScreen
 import com.ahmetkaragunlu.financeai.navigation.Screens
 import com.ahmetkaragunlu.financeai.navigation.navigateSingleTopClear
@@ -38,7 +38,7 @@ import com.ahmetkaragunlu.financeai.photo.CameraHelper
 import com.ahmetkaragunlu.financeai.photo.PhotoSourceBottomSheet
 import com.ahmetkaragunlu.financeai.roomdb.type.TransactionType
 import com.ahmetkaragunlu.financeai.ui.theme.AddTransactionScreenTextFieldStyles
-import com.ahmetkaragunlu.financeai.utils.*
+import com.ahmetkaragunlu.financeai.utils.* // FinanceDropdownMenu burada
 import com.ahmetkaragunlu.financeai.viewmodel.AddTransactionViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -151,20 +151,50 @@ fun AddTransactionScreen(
                 }
             )
 
-            // Category Dropdown
-            CategoryDropdownMenu(
-                selectedCategory = viewModel.selectedCategory,
-                availableCategories = viewModel.availableCategories,
-                expanded = viewModel.isCategoryDropdownExpanded,
-                onCategorySelected = { viewModel.updateCategory(it) },
-                onToggleDropdown = { viewModel.toggleDropdown() },
-                onDismissDropdown = { viewModel.dismissDropdown() },
+            FinanceDropdownMenu(
                 modifier = modifier
                     .widthIn(max = 450.dp)
                     .padding(bottom = 14.dp)
-                    .fillMaxWidth()
+                    .fillMaxWidth(),
+                expanded = viewModel.isCategoryDropdownExpanded,
+                onExpandedChange = { isOpen ->
+                    if (isOpen) viewModel.toggleDropdown() else viewModel.dismissDropdown()
+                },
+                options = viewModel.availableCategories,
+                onOptionSelected = { category -> viewModel.updateCategory(category) },
+                itemLabel = { category -> category.name.replace("_", " ") },
+                trigger = {
+                    OutlinedTextField(
+                        value = viewModel.selectedCategory?.name?.replace("_", " ") ?: "",
+                        onValueChange = {},
+                        readOnly = true,
+                        placeholder = {
+                            Text(
+                                text = stringResource(R.string.select_category),
+                                color = Color.Gray
+                            )
+                        },
+                        trailingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.ArrowDropDown,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.clickable { viewModel.toggleDropdown() }
+                            )
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { viewModel.toggleDropdown() },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            disabledContainerColor = Color(0xFF404349),
+                            disabledTextColor = MaterialTheme.colorScheme.onPrimary
+                        ),
+                        enabled = false,
+                        shape = RoundedCornerShape(12.dp),
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onPrimary)
+                    )
+                }
             )
-
             // Note Field
             EditTextField(
                 value = viewModel.inputNote,

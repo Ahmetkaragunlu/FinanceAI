@@ -1,4 +1,4 @@
-package com.ahmetkaragunlu.financeai.utils
+package com.ahmetkaragunlu.financeai.screens.main.addtransaction
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement

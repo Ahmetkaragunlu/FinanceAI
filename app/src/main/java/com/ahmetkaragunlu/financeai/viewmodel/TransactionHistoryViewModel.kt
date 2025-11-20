@@ -1,79 +1,47 @@
 package com.ahmetkaragunlu.financeai.viewmodel
 
-import android.content.Context
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import androidx.work.WorkManager
 import com.ahmetkaragunlu.financeai.R
-import com.ahmetkaragunlu.financeai.roomdb.entitiy.ScheduledTransactionEntity
-import com.ahmetkaragunlu.financeai.roomdb.entitiy.TransactionEntity
-import com.ahmetkaragunlu.financeai.roomrepository.financerepository.FinanceRepository
+import com.ahmetkaragunlu.financeai.roomdb.type.TransactionType
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 import javax.inject.Inject
+
 
 @HiltViewModel
 class TransactionHistoryViewModel @Inject constructor(
-    private val repo: FinanceRepository,
-    private val workManager: WorkManager,
-    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
+    var isHistoryPage by mutableStateOf(true)
+    var isDateMenuOpen by mutableStateOf(false)
+    var selectedDateResId by mutableIntStateOf(R.string.date)
+    val dateOptions = listOf(
+        R.string.today,
+        R.string.yesterday,
+        R.string.last_week,
+        R.string.last_month,
+        R.string.select_date
+    )
 
-    val scheduledTransactions: StateFlow<List<ScheduledTransactionEntity>> =
-        repo.getAllScheduledTransactions()
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5_000),
-                initialValue = emptyList()
-            )
-
-    fun confirmScheduledTransaction(
-        scheduledTransaction: ScheduledTransactionEntity,
-        onSuccess: () -> Unit,
-        onError: (String) -> Unit
-    ) {
-        viewModelScope.launch {
-            try {
-                val transaction = TransactionEntity(
-                    amount = scheduledTransaction.amount,
-                    transaction = scheduledTransaction.type,
-                    note = scheduledTransaction.note ?: "",
-                    date = System.currentTimeMillis(),
-                    category = scheduledTransaction.category
-                )
-                repo.insertTransaction(transaction)
-                repo.deleteScheduledTransaction(scheduledTransaction)
-                cancelPendingNotifications(scheduledTransaction.id)
-                onSuccess()
-            } catch (e: Exception) {
-                onError(context.getString(R.string.error_transaction_confirm_failed, e.message ?: ""))
-            }
-        }
+    fun onDateOptionSelected(resId: Int) {
+        isDateMenuOpen = false
+        selectedDateResId = resId
     }
-
-    fun deleteScheduledTransaction(
-        scheduledTransaction: ScheduledTransactionEntity,
-        onSuccess: () -> Unit,
-        onError: (String) -> Unit
-    ) {
-        viewModelScope.launch {
-            try {
-                repo.deleteScheduledTransaction(scheduledTransaction)
-                cancelPendingNotifications(scheduledTransaction.id)
-                onSuccess()
-            } catch (e: Exception) {
-                onError(context.getString(R.string.error_transaction_delete_failed, e.message ?: ""))
-            }
-        }
+    var isTypeMenuOpen by mutableStateOf(false)
+    var selectedType by mutableStateOf<TransactionType?>(null)
+    val typeOptions = TransactionType.entries
+    fun onTypeSelected(type: TransactionType) {
+        isTypeMenuOpen = false
+        selectedType = type
     }
-
-    private fun cancelPendingNotifications(transactionId: Long) {
-        workManager.cancelAllWorkByTag("scheduled_notification_$transactionId")
-        workManager.cancelAllWorkByTag("delete_expired_$transactionId")
+    fun getTypeLabel(type: TransactionType?): Int {
+        return when (type) {
+            TransactionType.INCOME -> R.string.income
+            TransactionType.EXPENSE -> R.string.expense
+            null -> R.string.type
+        }
     }
 }
