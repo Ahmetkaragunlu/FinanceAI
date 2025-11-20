@@ -58,7 +58,7 @@ fun EditTopBar(
 private fun topBarTitleForRoute(currentRoute: String): Int {
     return when (currentRoute) {
         Screens.HomeScreen.route -> R.string.welcome
-        Screens.HISTORY_SCREEN.route -> R.string.history
+        Screens.TRANSACTION_HISTORY_SCREEN.route -> R.string.history
         Screens.AiChatScreen.route -> R.string.ai_assistant
         Screens.AnalysisScreen.route -> R.string.analysis
         Screens.AddTransaction.route -> R.string.add

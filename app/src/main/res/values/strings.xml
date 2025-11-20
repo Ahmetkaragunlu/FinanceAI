@@ -47,6 +47,14 @@
     <string name="remaining_budget">Remaining Budget</string>
     <string name="ai_assistant">AI Assistant</string>
     <string name="history">History</string>
+    <string name="date">Date</string>
+    <string name="today">Today</string>
+    <string name="yesterday">Yesterday</string>
+    <string name="last_week">Last Week</string>
+    <string name="last_month">Last Month</string>
+    <string name="select_date">Select Date</string>
+    <string name="type">Type</string>
+    <string name="scheduled">Scheduled</string>
     <string name="add">Add Transaction</string>
     <string name="welcome">Welcome,Ahmet</string>
     <string name="fill_all_fields_correctly">Please fill all fields correctly</string>

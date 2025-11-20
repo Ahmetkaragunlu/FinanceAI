@@ -4,7 +4,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.ahmetkaragunlu.financeai.feature.MainNavGraphScaffold
 import com.ahmetkaragunlu.financeai.feature.authNavGraph
-import com.ahmetkaragunlu.financeai.location.MapLocationPickerScreen
 import com.ahmetkaragunlu.financeai.navigation.Screens
 import com.ahmetkaragunlu.financeai.screens.splash.SplashScreen
 
@@ -14,7 +13,7 @@ fun FinanceNavigation() {
     val navController = rememberNavController()
     NavHost(
         navController = navController,
-        startDestination = Screens.SplashScreen.route
+        startDestination = Screens.MAIN_GRAPH.route
     ) {
         composable(Screens.SplashScreen.route) {
             SplashScreen(navController=navController)

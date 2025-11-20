@@ -1,6 +1,3 @@
-
-
-
 package com.ahmetkaragunlu.financeai.viewmodel
 
 import androidx.lifecycle.ViewModel
@@ -22,14 +19,10 @@ import javax.inject.Inject
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val repository: FinanceRepository,
+     val repository: FinanceRepository,
 ) : ViewModel() {
 
-
-
-
     // LAST MONTH FINANCIAL DATA
-
     private val lastMonthDateRange: Pair<Long, Long> = run {
         val calendar = Calendar.getInstance()
         val endDate = calendar.timeInMillis

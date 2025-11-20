@@ -1,4 +1,5 @@
-package com.ahmetkaragunlu.financeai.components
+package com.ahmetkaragunlu.financeai.utils
+
 
 
 import java.text.NumberFormat

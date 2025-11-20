@@ -14,18 +14,18 @@ import androidx.navigation.compose.rememberNavController
 import com.ahmetkaragunlu.financeai.components.EditTopBar
 import com.ahmetkaragunlu.financeai.navigation.Screens
 import com.ahmetkaragunlu.financeai.navigation.bottomnavigation.BottomBar
-import com.ahmetkaragunlu.financeai.screens.main.AddTransactionScreen
 import com.ahmetkaragunlu.financeai.screens.main.AiChatScreen
 import com.ahmetkaragunlu.financeai.screens.main.AnalysisScreen
-import com.ahmetkaragunlu.financeai.screens.main.HistoryScreen
-import com.ahmetkaragunlu.financeai.screens.main.HomeScreen
+import com.ahmetkaragunlu.financeai.screens.main.addtransaction.AddTransactionScreen
+import com.ahmetkaragunlu.financeai.screens.main.history.TransactionHistoryScreen
+import com.ahmetkaragunlu.financeai.screens.main.home.HomeScreen
 
 fun NavGraphBuilder.mainNavGraph(navController: NavHostController) {
     composable(Screens.HomeScreen.route) {
         HomeScreen()
     }
-     composable(Screens.HISTORY_SCREEN.route) {
-         HistoryScreen()
+     composable(Screens.TRANSACTION_HISTORY_SCREEN.route) {
+         TransactionHistoryScreen()
      }
     composable(Screens.AiChatScreen.route) {
         AiChatScreen()
@@ -58,7 +58,7 @@ fun MainNavGraphScaffold() {
     ) { innerPadding ->
         NavHost(
             navController = mainNavController,
-            startDestination = Screens.HomeScreen.route,
+            startDestination = Screens.TRANSACTION_HISTORY_SCREEN.route,
             modifier = Modifier.padding(innerPadding)
         ) {
             mainNavGraph(navController = mainNavController)

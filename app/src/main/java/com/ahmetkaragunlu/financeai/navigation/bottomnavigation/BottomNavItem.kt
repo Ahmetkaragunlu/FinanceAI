@@ -30,7 +30,7 @@ val bottomNavItem = listOf(
     BottomNavItem(
         label = R.string.history,
         icon = BottomIcon.Vector(Icons.Default.History),
-        screen = Screens.HISTORY_SCREEN.route
+        screen = Screens.TRANSACTION_HISTORY_SCREEN.route
     ),
     BottomNavItem(
         label = R.string.add,
