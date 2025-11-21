@@ -47,6 +47,7 @@
     <string name="remaining_budget">Remaining Budget</string>
     <string name="ai_assistant">AI Assistant</string>
     <string name="history">History</string>
+    <string name="error_select_type_first">Please select the transaction type first</string>
     <string name="date">Date</string>
     <string name="today">Today</string>
     <string name="yesterday">Yesterday</string>
