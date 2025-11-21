@@ -5,6 +5,7 @@ import com.ahmetkaragunlu.financeai.roomdb.dao.TransactionDao
 import com.ahmetkaragunlu.financeai.roomdb.entitiy.ScheduledTransactionEntity
 import com.ahmetkaragunlu.financeai.roomdb.entitiy.TransactionEntity
 import com.ahmetkaragunlu.financeai.roomdb.type.CategoryType
+import com.ahmetkaragunlu.financeai.roomdb.type.TransactionType
 import com.ahmetkaragunlu.financeai.roommodel.CategoryExpense
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -33,8 +34,12 @@ class FinanceRepositoryImpl @Inject constructor(
     }
 
 
-    override fun getAllTransactions(): Flow<List<TransactionEntity>> =
-        transactionDao.getAllTransactions()
+    override fun getTransactionsByTypeAndDate(
+        transactionType: TransactionType,
+        startDate: Long,
+        endDate: Long
+    ): Flow<List<TransactionEntity>> =
+        transactionDao.getTransactionsByTypeAndDate(transactionType, startDate, endDate)
             .distinctUntilChanged()
             .flowOn(Dispatchers.IO)
 

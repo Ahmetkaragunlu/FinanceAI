@@ -21,9 +21,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.roomdb.type.CategoryType
 import com.ahmetkaragunlu.financeai.roommodel.CategoryExpense
 import kotlin.math.cos
@@ -35,6 +34,7 @@ fun ExpensePieChart(
     modifier: Modifier = Modifier
 ) {
     val total = categoryExpenses.sumOf { it.totalAmount }
+    val context = LocalContext.current
 
     val displayData = categoryExpenses.ifEmpty {
         listOf(
@@ -47,23 +47,6 @@ fun ExpensePieChart(
 
     val displayTotal = if (total <= 0) 4.0 else total
 
-    val categoryDisplayNames = mapOf(
-        CategoryType.FOOD to stringResource(R.string.category_food),
-        CategoryType.GROCERIES to stringResource(R.string.category_groceries),
-        CategoryType.HEALTH to stringResource(R.string.category_health),
-        CategoryType.COFFEE_TEA to stringResource(R.string.category_coffee_tea),
-        CategoryType.DESSERT_SWEETS to stringResource(R.string.category_dessert_sweets),
-        CategoryType.TRANSPORT to stringResource(R.string.category_transport),
-        CategoryType.RENT to stringResource(R.string.category_rent),
-        CategoryType.ENTERTAINMENT to stringResource(R.string.category_entertainment),
-        CategoryType.BILLS to stringResource(R.string.category_bills),
-        CategoryType.CLOTHING to stringResource(R.string.category_clothing),
-        CategoryType.EDUCATION to stringResource(R.string.category_education),
-        CategoryType.HOME_DECORATION to stringResource(R.string.category_home_decoration),
-        CategoryType.GIFTS_DONATION to stringResource(R.string.category_gifts_donation),
-        CategoryType.OTHER to stringResource(R.string.category_other)
-    )
-
     val categoryData = remember(displayData) {
         displayData.mapIndexed { index, expense ->
             val categoryType = try {
@@ -75,6 +58,11 @@ fun ExpensePieChart(
         }
     }
 
+    val categoryDisplayStrings = remember(categoryData) {
+        categoryData.associate { (categoryType, _, _) ->
+            categoryType to context.getString(categoryType.toResId())
+        }
+    }
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -122,6 +110,9 @@ fun ExpensePieChart(
                 val labelY = centerY + (labelDistance * sin(angleInRadians)).toFloat()
 
 
+                val categoryEnum = categoryData[index].first
+                val categoryName = categoryDisplayStrings[categoryEnum] ?: categoryEnum.name
+
                 drawContext.canvas.nativeCanvas.apply {
                     val paint = Paint().apply {
                         isAntiAlias = true
@@ -152,9 +143,6 @@ fun ExpensePieChart(
                     paint.color = android.graphics.Color.WHITE
                     paint.textSize = 36f
                     paint.isFakeBoldText = false
-
-                    val categoryName = categoryDisplayNames[categoryData[index].first]
-                        ?: categoryData[index].first.name
 
                     if (isLeftSide) {
                         paint.textAlign = Paint.Align.RIGHT
@@ -210,5 +198,3 @@ private fun getCategoryColor(index: Int): Color {
     )
     return colors[index % colors.size]
 }
-
-
