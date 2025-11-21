@@ -3,6 +3,7 @@ package com.ahmetkaragunlu.financeai.roomrepository.financerepository
 import com.ahmetkaragunlu.financeai.roomdb.entitiy.ScheduledTransactionEntity
 import com.ahmetkaragunlu.financeai.roomdb.entitiy.TransactionEntity
 import com.ahmetkaragunlu.financeai.roomdb.type.CategoryType
+import com.ahmetkaragunlu.financeai.roomdb.type.TransactionType
 import com.ahmetkaragunlu.financeai.roommodel.CategoryExpense
 import kotlinx.coroutines.flow.Flow
 
@@ -12,7 +13,6 @@ interface FinanceRepository {
     suspend fun insertTransaction(transaction: TransactionEntity): Long
     suspend fun deleteTransaction(transaction: TransactionEntity)
     suspend fun updateTransaction(transaction: TransactionEntity)
-    fun getAllTransactions(): Flow<List<TransactionEntity>>
     suspend fun deleteTransactionByFirestoreId(firestoreId: String)
     fun getAllTransactionsByDateRange(startDate: Long, endDate: Long): Flow<List<TransactionEntity>>
     fun getTransactionsByCategoryAndDate(
@@ -22,6 +22,11 @@ interface FinanceRepository {
     ): Flow<List<TransactionEntity>>
     fun getTotalIncomeByDateRange(startDate: Long, endDate: Long): Flow<Double?>
     fun getTotalExpenseByDateRange(startDate: Long, endDate: Long): Flow<Double?>
+    fun getTransactionsByTypeAndDate(
+        transactionType: TransactionType,
+        startDate: Long,
+        endDate: Long
+    ): Flow<List<TransactionEntity>>
     fun getCategoryByTypeAndDateRange(
         transactionType: String,
         startDate: Long,
@@ -40,4 +45,7 @@ interface FinanceRepository {
     suspend fun getScheduledTransactionById(localId: Long): ScheduledTransactionEntity?
     suspend fun deleteScheduledTransactionByFirestoreId(firestoreId: String)
     fun getUnsyncedScheduledTransactions(): Flow<List<ScheduledTransactionEntity>>
+
+
+
 }

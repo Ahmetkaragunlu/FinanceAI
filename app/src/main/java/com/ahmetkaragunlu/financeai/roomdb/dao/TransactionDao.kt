@@ -8,6 +8,7 @@ import androidx.room.Query
 import androidx.room.Update
 import com.ahmetkaragunlu.financeai.roomdb.entitiy.TransactionEntity
 import com.ahmetkaragunlu.financeai.roomdb.type.CategoryType
+import com.ahmetkaragunlu.financeai.roomdb.type.TransactionType
 import com.ahmetkaragunlu.financeai.roommodel.CategoryExpense
 import kotlinx.coroutines.flow.Flow
 
@@ -27,9 +28,6 @@ interface TransactionDao {
     suspend fun deleteTransactionByFirestoreId(firestoreId: String)
 
 
-    @Query("SELECT * FROM transaction_table ORDER BY date DESC")
-    fun getAllTransactions(): Flow<List<TransactionEntity>>
-
     @Query("SELECT * FROM transaction_table WHERE date BETWEEN :startDate AND :endDate ORDER BY date DESC")
     fun getAllTransactionsByDateRange(startDate: Long, endDate: Long): Flow<List<TransactionEntity>>
 
@@ -41,6 +39,9 @@ interface TransactionDao {
 
     @Query("SELECT SUM(amount) FROM transaction_table WHERE `transaction` = 'EXPENSE' AND date BETWEEN :startDate AND :endDate")
     fun getTotalExpenseByDateRange(startDate: Long, endDate: Long): Flow<Double?>
+
+    @Query("SELECT * FROM transaction_table WHERE `transaction` = :transactionType AND date BETWEEN :startDate AND :endDate ORDER BY date DESC")
+    fun getTransactionsByTypeAndDate(transactionType: TransactionType, startDate: Long, endDate: Long): Flow<List<TransactionEntity>>
 
     @Query("""
     SELECT category, SUM(amount) as totalAmount
