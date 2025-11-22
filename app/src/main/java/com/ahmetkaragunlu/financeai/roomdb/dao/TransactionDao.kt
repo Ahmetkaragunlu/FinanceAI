@@ -28,6 +28,8 @@ interface TransactionDao {
     suspend fun deleteTransactionByFirestoreId(firestoreId: String)
 
 
+    @Query("SELECT * FROM transaction_table ORDER BY date DESC")
+    fun getAllTransactions(): Flow<List<TransactionEntity>>
     @Query("SELECT * FROM transaction_table WHERE date BETWEEN :startDate AND :endDate ORDER BY date DESC")
     fun getAllTransactionsByDateRange(startDate: Long, endDate: Long): Flow<List<TransactionEntity>>
 
@@ -50,7 +52,7 @@ interface TransactionDao {
     GROUP BY category
 """)
     fun getCategoryByTypeAndDateRange(
-        transactionType: String,
+        transactionType: TransactionType,
         startDate: Long,
         endDate: Long
     ): Flow<List<CategoryExpense>>

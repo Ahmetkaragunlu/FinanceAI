@@ -13,6 +13,7 @@ interface FinanceRepository {
     suspend fun insertTransaction(transaction: TransactionEntity): Long
     suspend fun deleteTransaction(transaction: TransactionEntity)
     suspend fun updateTransaction(transaction: TransactionEntity)
+    fun getAllTransactions(): Flow<List<TransactionEntity>>
     suspend fun deleteTransactionByFirestoreId(firestoreId: String)
     fun getAllTransactionsByDateRange(startDate: Long, endDate: Long): Flow<List<TransactionEntity>>
     fun getTransactionsByCategoryAndDate(
@@ -28,7 +29,7 @@ interface FinanceRepository {
         endDate: Long
     ): Flow<List<TransactionEntity>>
     fun getCategoryByTypeAndDateRange(
-        transactionType: String,
+        transactionType: TransactionType,
         startDate: Long,
         endDate: Long
     ): Flow<List<CategoryExpense>>

@@ -1,10 +1,13 @@
+
 package com.ahmetkaragunlu.financeai.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.roomdb.type.TransactionType
 import com.ahmetkaragunlu.financeai.roommodel.CategoryExpense
 import com.ahmetkaragunlu.financeai.roomrepository.financerepository.FinanceRepository
+import com.ahmetkaragunlu.financeai.utils.DateFormatter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
@@ -19,20 +22,12 @@ import javax.inject.Inject
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-     val repository: FinanceRepository,
+    val repository: FinanceRepository,
 ) : ViewModel() {
 
     // LAST MONTH FINANCIAL DATA
-    private val lastMonthDateRange: Pair<Long, Long> = run {
-        val calendar = Calendar.getInstance()
-        val endDate = calendar.timeInMillis
 
-        calendar.add(Calendar.MONTH, -1)
-        val startDate = calendar.timeInMillis
-
-        startDate to endDate
-    }
-
+    private val lastMonthDateRange = DateFormatter.getDateRange(R.string.last_month)
     private val currencyFormat = NumberFormat.getCurrencyInstance(Locale.getDefault())
 
     private fun Flow<Double?>.toFormattedCurrency(): StateFlow<String> =
@@ -42,8 +37,6 @@ class HomeViewModel @Inject constructor(
                 started = SharingStarted.WhileSubscribed(5_000),
                 initialValue = currencyFormat.format(0.0)
             )
-
-
     val lastMonthIncomeFormatted: StateFlow<String> =
         repository.getTotalIncomeByDateRange(lastMonthDateRange.first, lastMonthDateRange.second)
             .toFormattedCurrency()
@@ -110,7 +103,7 @@ class HomeViewModel @Inject constructor(
 
     val lastMonthCategoryExpenses: StateFlow<List<CategoryExpense>> =
         repository.getCategoryByTypeAndDateRange(
-            transactionType = TransactionType.EXPENSE.name,
+            transactionType = TransactionType.EXPENSE,
             startDate = lastMonthDateRange.first,
             endDate = lastMonthDateRange.second
         ).stateIn(
