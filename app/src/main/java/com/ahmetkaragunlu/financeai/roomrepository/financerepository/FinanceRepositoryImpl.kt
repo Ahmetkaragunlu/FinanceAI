@@ -32,6 +32,10 @@ class FinanceRepositoryImpl @Inject constructor(
     override  suspend fun deleteTransactionByFirestoreId(firestoreId: String) {
         transactionDao.deleteTransactionByFirestoreId(firestoreId)
     }
+    override fun getAllTransactions(): Flow<List<TransactionEntity>> =
+        transactionDao.getAllTransactions()
+            .distinctUntilChanged()
+            .flowOn(Dispatchers.IO)
 
 
     override fun getTransactionsByTypeAndDate(
@@ -68,7 +72,7 @@ class FinanceRepositoryImpl @Inject constructor(
             .flowOn(Dispatchers.IO)
 
     override fun getCategoryByTypeAndDateRange(
-        transactionType: String,
+        transactionType: TransactionType,
         startDate: Long,
         endDate: Long
     ): Flow<List<CategoryExpense>> =

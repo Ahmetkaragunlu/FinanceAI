@@ -1,34 +1,15 @@
 package com.ahmetkaragunlu.financeai.screens.main.history
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -41,16 +22,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.components.EditButton
+import com.ahmetkaragunlu.financeai.roomdb.entitiy.TransactionEntity
 import com.ahmetkaragunlu.financeai.roomdb.type.TransactionType
-import com.ahmetkaragunlu.financeai.utils.FinanceDropdownMenu
-import com.ahmetkaragunlu.financeai.utils.formatAsCurrency
-import com.ahmetkaragunlu.financeai.utils.toIconResId
-import com.ahmetkaragunlu.financeai.utils.toResId
+import com.ahmetkaragunlu.financeai.utils.*
 import com.ahmetkaragunlu.financeai.viewmodel.TransactionHistoryViewModel
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Locale
-import java.util.concurrent.TimeUnit
 
 @Composable
 fun TransactionHistoryScreen(
@@ -65,6 +40,7 @@ fun TransactionHistoryScreen(
             .background(colorResource(R.color.background)),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        // History / Scheduled Toggle
         Row(
             modifier = modifier
                 .widthIn(max = 400.dp)
@@ -102,6 +78,8 @@ fun TransactionHistoryScreen(
                 )
             }
         }
+
+        // Filter Row
         Row(
             modifier = modifier
                 .padding(horizontal = 16.dp)
@@ -109,18 +87,18 @@ fun TransactionHistoryScreen(
                 .fillMaxWidth(),
             verticalAlignment = Alignment.Top
         ) {
-            // Date
+            // Date Filter
             FinanceDropdownMenu(
                 modifier = modifier.weight(1f),
                 expanded = viewModel.isDateMenuOpen,
                 onExpandedChange = { viewModel.isDateMenuOpen = it },
                 options = viewModel.dateOptions,
-                onOptionSelected = { id -> viewModel.onDateOptionSelected(id) },
+                onOptionSelected = { id -> viewModel.onDateSelected(id) },
                 itemLabel = { id -> stringResource(id) },
                 trigger = {
                     EditButton(
                         modifier = Modifier.fillMaxWidth(),
-                        label = viewModel.selectedDateResIdUI,
+                        label = viewModel.selectedDateResId,
                         icon = R.drawable.calendar,
                         onClick = { viewModel.isDateMenuOpen = true }
                     )
@@ -128,7 +106,7 @@ fun TransactionHistoryScreen(
             )
             Spacer(modifier = modifier.width(8.dp))
 
-            // Category
+            // Category Filter
             Column(modifier = Modifier.weight(1f)) {
                 FinanceDropdownMenu(
                     modifier = Modifier.fillMaxWidth(),
@@ -140,12 +118,13 @@ fun TransactionHistoryScreen(
                     trigger = {
                         EditButton(
                             modifier = Modifier.fillMaxWidth(),
-                            label = viewModel.selectedCategoryResIdUI,
+                            label = viewModel.selectedCategory?.toResId() ?: R.string.category,
                             icon = R.drawable.categories,
                             onClick = { viewModel.onCategoryDropdownClicked() }
                         )
                     }
                 )
+
                 if (viewModel.showCategoryError) {
                     Text(
                         text = stringResource(R.string.error_select_type_first),
@@ -157,25 +136,28 @@ fun TransactionHistoryScreen(
             }
             Spacer(modifier = modifier.width(8.dp))
 
-            // Type
+            // Type Filter
             FinanceDropdownMenu(
                 modifier = modifier.weight(1f),
                 expanded = viewModel.isTypeMenuOpen,
                 onExpandedChange = { viewModel.isTypeMenuOpen = it },
-                options = viewModel.typeOptions,
+                options = TransactionType.entries,
                 onOptionSelected = { type -> viewModel.onTypeSelected(type) },
-                itemLabel = { type -> stringResource(viewModel.getTypeLabel(type)) },
+                itemLabel = { type -> stringResource(viewModel.getTypeResId(type)) },
                 trigger = {
                     EditButton(
                         modifier = Modifier.fillMaxWidth(),
-                        label = viewModel.getTypeLabel(viewModel.selectedTypeUI),
+                        label = viewModel.getTypeResId(viewModel.selectedType),
                         icon = R.drawable.type,
                         onClick = { viewModel.isTypeMenuOpen = true }
                     )
                 }
             )
         }
+
         Spacer(modifier = modifier.height(32.dp))
+
+        // Transaction List
         LazyColumn(
             modifier = modifier
                 .fillMaxWidth()
@@ -183,58 +165,17 @@ fun TransactionHistoryScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(transactions) { transaction ->
-                Card(
-                    modifier = modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF404349))
-                ) {
-                    Row(
-                        modifier = modifier.fillMaxWidth().padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = Color.Transparent
-                        ) {
-                            Icon(
-                                painter = painterResource(transaction.category.toIconResId()),
-                                contentDescription = null,
-                                tint = Color.Unspecified,
-                            )
-                        }
-                        Spacer(modifier = modifier.width(16.dp))
-                        Column {
-                            Text(
-                                text = stringResource(transaction.category.toResId()),
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                            Text(
-                                text = formatRelativeDate(transaction.date),
-                                color = Color.Gray,
-                                style = MaterialTheme.typography.labelSmall
-                            )
-                        }
-                        Spacer(modifier = modifier.weight(1f))
-                        val amountColor = if(transaction.transaction == TransactionType.INCOME) Color.Green else Color.Red
-                        Text(
-                            text = transaction.amount.formatAsCurrency(),
-                            color = amountColor
-                        )
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
-                            contentDescription = null,
-                            tint = Color.Gray
-                        )
-                    }
-                }
+                TransactionCard(transaction = transaction)
             }
-            if(transactions.isEmpty()) {
+
+            if (transactions.isEmpty()) {
                 item {
                     Text(
                         text = stringResource(R.string.no_record_found),
                         color = Color.Gray,
-                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
                         textAlign = TextAlign.Center
                     )
                 }
@@ -243,42 +184,65 @@ fun TransactionHistoryScreen(
     }
 }
 
-
-
-
-
-
 @Composable
-fun formatRelativeDate(timestamp: Long): String {
+private fun TransactionCard(
+    transaction: TransactionEntity,
+    modifier: Modifier = Modifier
+) {
     val context = LocalContext.current
-    val timeFormatter = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
-    val fullDateFormatter = remember { SimpleDateFormat("dd MMM, HH:mm", Locale.getDefault()) }
 
-    fun getMidnight(date: Long): Long {
-        return Calendar.getInstance().apply {
-            timeInMillis = date
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }.timeInMillis
-    }
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF404349))
+    ) {
+        Row(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = Color.Transparent
+            ) {
+                Icon(
+                    painter = painterResource(transaction.category.toIconResId()),
+                    contentDescription = null,
+                    tint = Color.Unspecified,
+                )
+            }
 
-    val now = System.currentTimeMillis()
-    val todayMidnight = getMidnight(now)
-    val yesterdayMidnight = getMidnight(now - TimeUnit.DAYS.toMillis(1))
+            Spacer(modifier = modifier.width(16.dp))
 
-    val timePart = timeFormatter.format(timestamp)
+            Column {
+                Text(
+                    text = stringResource(transaction.category.toResId()),
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    text = transaction.date.formatRelativeDate(context),
+                    color = Color.Gray,
+                    style = MaterialTheme.typography.labelSmall
+                )
+            }
 
-    return when {
-        timestamp >= todayMidnight -> {
-            context.getString(R.string.today) + ", " + timePart
-        }
-        timestamp >= yesterdayMidnight -> {
-            context.getString(R.string.yesterday) + ", " + timePart
-        }
-        else -> {
-            fullDateFormatter.format(timestamp)
+            Spacer(modifier = modifier.weight(1f))
+
+            val amountColor = if (transaction.transaction == TransactionType.INCOME)
+                Color.Green else Color.Red
+
+            Text(
+                text = transaction.amount.formatAsCurrency(),
+                color = amountColor
+            )
+
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+                contentDescription = null,
+                tint = Color.Gray
+            )
         }
     }
 }

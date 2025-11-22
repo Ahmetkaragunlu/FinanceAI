@@ -58,7 +58,7 @@ fun MainNavGraphScaffold() {
     ) { innerPadding ->
         NavHost(
             navController = mainNavController,
-            startDestination = Screens.TRANSACTION_HISTORY_SCREEN.route,
+            startDestination = Screens.HomeScreen.route,
             modifier = Modifier.padding(innerPadding)
         ) {
             mainNavGraph(navController = mainNavController)
