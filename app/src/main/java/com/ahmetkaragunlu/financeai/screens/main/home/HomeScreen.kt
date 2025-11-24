@@ -53,7 +53,6 @@ fun HomeScreen(
             .verticalScroll(rememberScrollState())
     ) {
         Card(
-            onClick = {},
             modifier = modifier
                 .fillMaxWidth()
                 .padding(8.dp)
