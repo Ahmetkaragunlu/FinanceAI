@@ -62,7 +62,6 @@ class TransactionHistoryViewModel @Inject constructor(
     private val _filterTrigger = MutableStateFlow(0)
 
     // Transactions flow
-    // Transactions flow
     @OptIn(ExperimentalCoroutinesApi::class)
     val transactions: StateFlow<List<TransactionEntity>> =
         _filterTrigger.flatMapLatest {

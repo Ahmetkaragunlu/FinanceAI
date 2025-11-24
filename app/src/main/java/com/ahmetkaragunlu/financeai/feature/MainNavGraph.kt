@@ -17,6 +17,7 @@ import com.ahmetkaragunlu.financeai.navigation.bottomnavigation.BottomBar
 import com.ahmetkaragunlu.financeai.screens.main.AiChatScreen
 import com.ahmetkaragunlu.financeai.screens.main.AnalysisScreen
 import com.ahmetkaragunlu.financeai.screens.main.addtransaction.AddTransactionScreen
+import com.ahmetkaragunlu.financeai.screens.main.history.DetailScreen
 import com.ahmetkaragunlu.financeai.screens.main.history.TransactionHistoryScreen
 import com.ahmetkaragunlu.financeai.screens.main.home.HomeScreen
 
@@ -25,8 +26,11 @@ fun NavGraphBuilder.mainNavGraph(navController: NavHostController) {
         HomeScreen()
     }
      composable(Screens.TRANSACTION_HISTORY_SCREEN.route) {
-         TransactionHistoryScreen()
+         TransactionHistoryScreen(navController = navController)
      }
+    composable(route = Screens.DetailScreen.route){
+        DetailScreen()
+    }
     composable(Screens.AiChatScreen.route) {
         AiChatScreen()
     }
@@ -36,8 +40,6 @@ fun NavGraphBuilder.mainNavGraph(navController: NavHostController) {
     composable(route = Screens.AddTransaction.route) {
         AddTransactionScreen(navController = navController)
     }
-
-
 }
 
 
@@ -58,7 +60,7 @@ fun MainNavGraphScaffold() {
     ) { innerPadding ->
         NavHost(
             navController = mainNavController,
-            startDestination = Screens.HomeScreen.route,
+            startDestination = Screens.DetailScreen.route,
             modifier = Modifier.padding(innerPadding)
         ) {
             mainNavGraph(navController = mainNavController)

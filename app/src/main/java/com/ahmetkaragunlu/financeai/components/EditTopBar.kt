@@ -40,7 +40,15 @@ fun EditTopBar(
 
         navigationIcon = {
             if (currentRoute != Screens.HomeScreen.route) {
-                IconButton(onClick = {navController.navigateSingleTopClear(Screens.HomeScreen.route)}) {
+                IconButton(
+                    onClick = {
+                        if (currentRoute == Screens.DetailScreen.route) {
+                            navController.navigate(Screens.TRANSACTION_HISTORY_SCREEN.route)
+                        } else {
+                            navController.navigateSingleTopClear(Screens.HomeScreen.route)
+                        }
+                    }
+                ) {
                     Icon(
                         imageVector = Icons.Default.ArrowBack,
                         contentDescription = null,
@@ -62,6 +70,7 @@ private fun topBarTitleForRoute(currentRoute: String): Int {
         Screens.AiChatScreen.route -> R.string.ai_assistant
         Screens.AnalysisScreen.route -> R.string.analysis
         Screens.AddTransaction.route -> R.string.add
+        Screens.DetailScreen.route -> R.string.detail_screen
         else -> R.string.welcome
     }
 }
@@ -75,7 +84,7 @@ private fun TopBarActionForRoute(
         Screens.HomeScreen.route -> {
             IconButton(onClick = {}) {
                 Icon(
-                   painter = painterResource(R.drawable.account),
+                    painter = painterResource(R.drawable.account),
                     contentDescription = null,
                     tint = Color.Unspecified
                 )

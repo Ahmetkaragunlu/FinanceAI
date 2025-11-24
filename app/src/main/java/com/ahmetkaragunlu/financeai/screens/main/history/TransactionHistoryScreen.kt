@@ -20,8 +20,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.navigation.NavHostController
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.components.EditButton
+import com.ahmetkaragunlu.financeai.navigation.Screens
+import com.ahmetkaragunlu.financeai.navigation.navigateSingleTopClear
 import com.ahmetkaragunlu.financeai.roomdb.entitiy.TransactionEntity
 import com.ahmetkaragunlu.financeai.roomdb.type.TransactionType
 import com.ahmetkaragunlu.financeai.utils.*
@@ -30,7 +33,8 @@ import com.ahmetkaragunlu.financeai.viewmodel.TransactionHistoryViewModel
 @Composable
 fun TransactionHistoryScreen(
     modifier: Modifier = Modifier,
-    viewModel: TransactionHistoryViewModel = hiltViewModel()
+    viewModel: TransactionHistoryViewModel = hiltViewModel(),
+    navController: NavHostController
 ) {
     val transactions by viewModel.transactions.collectAsState()
 
@@ -165,7 +169,10 @@ fun TransactionHistoryScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(transactions) { transaction ->
-                TransactionCard(transaction = transaction)
+                TransactionCard(
+                    transaction = transaction,
+                    navController = navController
+                )
             }
 
             if (transactions.isEmpty()) {
@@ -187,11 +194,13 @@ fun TransactionHistoryScreen(
 @Composable
 private fun TransactionCard(
     transaction: TransactionEntity,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    navController: NavHostController
 ) {
     val context = LocalContext.current
 
     Card(
+        onClick = {navController.navigateSingleTopClear(Screens.DetailScreen.route)} ,
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF404349))
@@ -210,6 +219,7 @@ private fun TransactionCard(
                     painter = painterResource(transaction.category.toIconResId()),
                     contentDescription = null,
                     tint = Color.Unspecified,
+                    modifier = modifier.padding(8.dp)
                 )
             }
 
