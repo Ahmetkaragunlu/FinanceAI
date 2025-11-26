@@ -506,6 +506,7 @@ class FirebaseSyncService @Inject constructor(
                                     DocumentChange.Type.REMOVED -> {
                                         val existing = localRepository.getTransactionByFirestoreId(firestoreId)
                                         existing?.let {
+                                            // Eğer local'de varsa sil (diğer cihazdan silinmiş demektir)
                                             localRepository.deleteTransaction(it)
                                         }
                                     }
@@ -685,6 +686,29 @@ class FirebaseSyncService @Inject constructor(
                     }
                 }
             }
+    }
+
+    // FirebaseSyncService.kt içine ekle
+    suspend fun deleteTransactionFromFirebase(firestoreId: String): Result<Unit> {
+        return try {
+            val doc = firestore.collection(TRANSACTIONS_COLLECTION).document(firestoreId).get().await()
+            val photoUrl = doc.getString("photoStorageUrl")
+
+            if (!photoUrl.isNullOrBlank()) {
+                scope.launch {
+                    try {
+                        photoStorageManager.deletePhoto(photoUrl)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error deleting photo", e)
+                    }
+                }
+            }
+
+            firestore.collection(TRANSACTIONS_COLLECTION).document(firestoreId).delete().await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
     fun stopListening() {
