@@ -1,171 +1,360 @@
 package com.ahmetkaragunlu.financeai.screens.main.history
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavHostController
+import coil.compose.rememberAsyncImagePainter
 import com.ahmetkaragunlu.financeai.R
+import com.ahmetkaragunlu.financeai.components.EditTextField
+import com.ahmetkaragunlu.financeai.navigation.Screens
+import com.ahmetkaragunlu.financeai.navigation.navigateSingleTopClear
+import com.ahmetkaragunlu.financeai.roomdb.type.TransactionType
+import com.ahmetkaragunlu.financeai.ui.theme.AddTransactionScreenTextFieldStyles
+import com.ahmetkaragunlu.financeai.utils.*
+import com.ahmetkaragunlu.financeai.viewmodel.DetailViewModel
+import java.io.File
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DetailScreen(modifier: Modifier = Modifier) {
+fun DetailScreen(
+    navController: NavHostController,
+    modifier: Modifier = Modifier,
+    viewModel: DetailViewModel = hiltViewModel()
+) {
+    val transaction by viewModel.transaction.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(color = colorResource(R.color.background))
-            .verticalScroll(
-                rememberScrollState()
-            )
-    ) {
-
-        Card(
+    transaction?.let { tx ->
+        Column(
             modifier = modifier
-                .fillMaxWidth()
-                .padding(8.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF404349))
+                .fillMaxSize()
+                .background(color = colorResource(R.color.background))
+                .verticalScroll(rememberScrollState())
         ) {
+            // Main Card
+            Card(
+                modifier = modifier
+                    .fillMaxWidth()
+                    .padding(8.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF404349))
+            ) {
+                Row(
+                    modifier = modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = Color.White.copy(alpha = 0.2f)
+                    ) {
+                        Icon(
+                            painter = painterResource(tx.category.toIconResId()),
+                            contentDescription = null,
+                            tint = Color.Unspecified,
+                        )
+                    }
+
+                    Spacer(modifier = modifier.width(16.dp))
+
+                    Column {
+                        Text(
+                            text = stringResource(tx.category.toResId()),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Text(
+                            text = tx.date.formatRelativeDate(context),
+                            color = Color.Gray,
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
+
+                    Spacer(modifier = modifier.weight(1f))
+
+                    Text(
+                        text = tx.amount.formatAsCurrency(),
+                        color = if (tx.transaction == TransactionType.INCOME) Color.Green else Color.Red
+                    )
+                }
+
+                // Optional Info Section
+                Column(
+                    modifier = modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Note
+                    if (tx.note.isNotBlank()) {
+                        Text(
+                            "Not: ${tx.note}",
+                            color = Color.White
+                        )
+                    }
+
+                    // Location
+                    if (tx.locationShort != null) {
+                        Text(
+                            "Konum: ${tx.locationShort}",
+                            color = Color.White
+                        )
+                    }
+
+                    // Photo
+                    if (tx.photoUri != null && File(tx.photoUri).exists()) {
+                        Spacer(modifier = modifier.height(8.dp))
+                        Card(
+                            modifier = modifier
+                                .fillMaxWidth()
+                                .height(180.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFF2D3748))
+                        ) {
+                            Image(
+                                painter = rememberAsyncImagePainter(File(tx.photoUri)),
+                                contentDescription = "İşlem Fotoğrafı",
+                                modifier = modifier
+                                    .fillMaxSize()
+                                    .clip(RoundedCornerShape(12.dp)),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Action Buttons
             Row(
                 modifier = modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(horizontal = 8.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Surface(
-                    shape = CircleShape,
-                    color = Color.White.copy(alpha = 0.2f)
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.rent),
-                        contentDescription = null,
-                        tint = Color.Unspecified,
-                    )
-                }
-
-                Spacer(modifier = modifier.width(16.dp))
-
-                Column {
-                    Text(
-                        text = "Rent",
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    Text(
-                        text = "21 Nov 21.36",
-                        color = Color.Gray,
-                        style = MaterialTheme.typography.labelSmall
-                    )
-                }
-
-                Spacer(modifier = modifier.weight(1f))
-                Text(
-                    text = "30,00$",
-                    color = Color.Green
-                )
-
-            }
-
-            Column(
-                modifier = modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    "Not : Haftalık Market Alışverişi ",
-                    color = Color.White
-                )
-                Text(
-                    "Konum: Kadiköy,İstanbul",
-                    color = Color.White
-                )
-
-                Spacer(modifier = modifier.height(8.dp))
-
-                // Fotoğraf Card
-                Card(
+                Button(
+                    onClick = { viewModel.openEditBottomSheet() },
                     modifier = modifier
-                        .fillMaxWidth()
-                        .height(180.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF2D3748))
+                        .weight(1f)
+                        .height(50.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF404349)),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Image(
-                        painter = painterResource(R.drawable.ai_suggestion),
-                        contentDescription = "İşlem Fotoğrafı",
-                        modifier = modifier
-                            .fillMaxSize()
-                            .clip(RoundedCornerShape(12.dp)),
-                        contentScale = ContentScale.Crop
+                    Text(
+                        text = "Düzenle",
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
+                }
 
+                Button(
+                    onClick = { viewModel.showDeleteDialog = true },
+                    modifier = modifier
+                        .weight(1f)
+                        .height(50.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF404349)),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        text = "Sil",
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
                 }
             }
         }
 
-        // Action Buttons
-        Row(
-            modifier = modifier
+        // Edit Bottom Sheet
+        if (viewModel.showEditBottomSheet) {
+            EditBottomSheet(
+                viewModel = viewModel,
+                onDismiss = { viewModel.showEditBottomSheet = false },
+                onSave = {
+                    viewModel.updateTransaction(
+                        onSuccess = {
+                            Toast.makeText(context, "Güncellendi", Toast.LENGTH_SHORT).show()
+                        },
+                        onError = { error ->
+                            Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
+                        }
+                    )
+                }
+            )
+        }
+
+        // Delete Dialog
+        if (viewModel.showDeleteDialog) {
+            AlertDialog(
+                onDismissRequest = { viewModel.showDeleteDialog = false },
+                title = { Text("İşlemi Sil") },
+                text = { Text("Bu işlemi silmek istediğinizden emin misiniz?") },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            viewModel.deleteTransaction(
+                                onSuccess = {
+                                    Toast.makeText(context, "Silindi", Toast.LENGTH_SHORT).show()
+                                    navController.navigateSingleTopClear(Screens.TRANSACTION_HISTORY_SCREEN.route)
+                                },
+                                onError = { error ->
+                                    Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
+                                }
+                            )
+                        }
+                    ) {
+                        Text("Sil", color = Color.Red)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { viewModel.showDeleteDialog = false }) {
+                        Text("İptal")
+                    }
+                }
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EditBottomSheet(
+    viewModel: DetailViewModel,
+    onDismiss: () -> Unit,
+    onSave: () -> Unit
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = Color(0xFF2B2D31)
+    ) {
+        Column(
+            modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            Text(
+                text = "İşlemi Düzenle",
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onPrimary
+            )
+
+            // Amount
+            EditTextField(
+                value = viewModel.editAmount,
+                onValueChange = { viewModel.editAmount = it },
+                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions.Default.copy(
+                    imeAction = ImeAction.Next,
+                    keyboardType = KeyboardType.Number
+                ),
+                placeholder = R.string.enter_amount,
+                colors = AddTransactionScreenTextFieldStyles.textFieldColors(),
+                trailingIcon = {
+                    Text(
+                        getCurrencySymbol(),
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
+            )
+
+            // Category Dropdown
+            FinanceDropdownMenu(
+                modifier = Modifier.fillMaxWidth(),
+                expanded = viewModel.isCategoryDropdownExpanded,
+                onExpandedChange = { viewModel.isCategoryDropdownExpanded = it },
+                options = viewModel.availableCategories,
+                onOptionSelected = { category ->
+                    viewModel.editCategory = category
+                    viewModel.isCategoryDropdownExpanded = false
+                },
+                itemLabel = { category -> stringResource(category.toResId()) },
+                trigger = {
+                    OutlinedTextField(
+                        value = viewModel.editCategory?.let { stringResource(it.toResId()) } ?: "",
+                        onValueChange = {},
+                        readOnly = true,
+                        placeholder = {
+                            Text(
+                                text = stringResource(R.string.select_category),
+                                color = Color.Gray
+                            )
+                        },
+                        trailingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.ArrowDropDown,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.clickable {
+                                    viewModel.isCategoryDropdownExpanded = true
+                                }
+                            )
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { viewModel.isCategoryDropdownExpanded = true },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            disabledContainerColor = Color(0xFF404349),
+                            disabledTextColor = MaterialTheme.colorScheme.onPrimary
+                        ),
+                        enabled = false,
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                }
+            )
+
+            // Note
+            EditTextField(
+                value = viewModel.editNote,
+                onValueChange = { viewModel.editNote = it },
+                keyboardOptions = KeyboardOptions.Default.copy(
+                    imeAction = ImeAction.Done,
+                    keyboardType = KeyboardType.Text
+                ),
+                placeholder = R.string.enter_your_note,
+                modifier = Modifier.fillMaxWidth(),
+                colors = AddTransactionScreenTextFieldStyles.textFieldColors()
+            )
+
+            // Save Button
             Button(
-                onClick = { /* Düzenle */ },
-                modifier = modifier
-                    .weight(1f)
+                onClick = onSave,
+                modifier = Modifier
+                    .fillMaxWidth()
                     .height(50.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF404349)),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text(
-                    text = "Düzenle",
+                    "Kaydet",
+                    style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onPrimary
                 )
             }
-
-            Button(
-                onClick = { /* Düzenle */ },
-                modifier = modifier
-                    .weight(1f)
-                    .height(50.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF404349)),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text(
-                    text = "Sil",
-                    color = MaterialTheme.colorScheme.onPrimary
-                )
-            }
-
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }

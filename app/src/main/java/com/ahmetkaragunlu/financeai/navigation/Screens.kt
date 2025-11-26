@@ -9,7 +9,7 @@ enum class Screens(val route : String){
     PasswordResetScreen("password_reset_screen?oobCode={oobCode}"),
     MAIN_GRAPH("Main_graph"),
     TRANSACTION_HISTORY_SCREEN("TransactionHistoryScreen"),
-    DetailScreen("Detail_Screen"),
+    DetailScreen("Detail_Screen/{transactionId}"),
 
     AnalysisScreen("AnalysisScreen"),
     AddTransaction("AddTransaction"),

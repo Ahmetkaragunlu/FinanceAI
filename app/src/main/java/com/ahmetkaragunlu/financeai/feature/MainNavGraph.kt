@@ -7,10 +7,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.ahmetkaragunlu.financeai.components.EditTopBar
 import com.ahmetkaragunlu.financeai.navigation.Screens
 import com.ahmetkaragunlu.financeai.navigation.bottomnavigation.BottomBar
@@ -28,8 +30,15 @@ fun NavGraphBuilder.mainNavGraph(navController: NavHostController) {
      composable(Screens.TRANSACTION_HISTORY_SCREEN.route) {
          TransactionHistoryScreen(navController = navController)
      }
-    composable(route = Screens.DetailScreen.route){
-        DetailScreen()
+    composable(
+        route = "Detail_Screen/{transactionId}",
+        arguments = listOf(navArgument("transactionId") {
+            type = NavType.IntType
+        })
+    ) { backStackEntry ->
+        DetailScreen(
+            navController = navController
+        )
     }
     composable(Screens.AiChatScreen.route) {
         AiChatScreen()
@@ -60,7 +69,7 @@ fun MainNavGraphScaffold() {
     ) { innerPadding ->
         NavHost(
             navController = mainNavController,
-            startDestination = Screens.DetailScreen.route,
+            startDestination = Screens.HomeScreen.route,
             modifier = Modifier.padding(innerPadding)
         ) {
             mainNavGraph(navController = mainNavController)

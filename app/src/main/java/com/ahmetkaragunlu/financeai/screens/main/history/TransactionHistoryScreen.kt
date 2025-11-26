@@ -200,7 +200,9 @@ private fun TransactionCard(
     val context = LocalContext.current
 
     Card(
-        onClick = {navController.navigateSingleTopClear(Screens.DetailScreen.route)} ,
+        onClick = {
+            navController.navigate("Detail_Screen/${transaction.id}")
+        },
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF404349))
