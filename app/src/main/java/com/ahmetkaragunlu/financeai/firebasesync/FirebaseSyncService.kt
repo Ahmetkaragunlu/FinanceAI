@@ -200,9 +200,38 @@ class FirebaseSyncService @Inject constructor(
     }
 
     suspend fun deleteScheduledTransactionFromFirebase(firestoreId: String): Result<Unit> {
-        return deleteDocAndPhoto(SCHEDULED_COLLECTION, firestoreId)
-    }
+        return try {
+            try {
+                val doc = firestore.collection(SCHEDULED_COLLECTION).document(firestoreId).get().await()
+                val photoUrl = doc.getString("photoStorageUrl")
+                if (!photoUrl.isNullOrBlank()) {
+                    scope.launch {
+                        try { photoStorageManager.deletePhoto(photoUrl) } catch (e: Exception) {}
+                    }
+                }
+            } catch (e: Exception) {
+            }
+            try {
+                val remindersQuery = firestore.collection("notification_reminders")
+                    .whereEqualTo("transactionId", firestoreId)
+                    .get()
+                    .await()
 
+                if (!remindersQuery.isEmpty) {
+                    val batch = firestore.batch()
+                    remindersQuery.documents.forEach { doc ->
+                        batch.delete(doc.reference)
+                    }
+                    batch.commit().await()
+                }
+            } catch (e: Exception) {
+            }
+            firestore.collection(SCHEDULED_COLLECTION).document(firestoreId).delete().await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
     private suspend fun deleteDocAndPhoto(collection: String, firestoreId: String): Result<Unit> {
         return try {
             val doc = firestore.collection(collection).document(firestoreId).get().await()
