@@ -15,6 +15,7 @@ import com.google.firebase.firestore.DocumentChange
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.MetadataChanges
+import com.google.firebase.firestore.SetOptions // EKLENDİ
 import com.google.firebase.functions.functions
 import com.google.firebase.messaging.FirebaseMessaging
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -60,6 +61,7 @@ class FirebaseSyncService @Inject constructor(
     }
 
     private fun getUserId(): String? = auth.currentUser?.uid
+
     private suspend fun sendPendingNotifications() {
         try {
             val currentToken = try {
@@ -105,6 +107,7 @@ class FirebaseSyncService @Inject constructor(
             }
         }
     }
+
     private suspend fun pushUnsyncedData() {
         try {
             val unsyncedTransactions = localRepository.getUnsyncedTransactions().firstOrNull() ?: emptyList()
@@ -139,8 +142,7 @@ class FirebaseSyncService @Inject constructor(
         }
     }
 
-
-
+    // GÜNCELLENDİ: SetOptions.merge() eklendi ve photoStorageUrl map'ten çıkarıldı.
     suspend fun syncTransactionToFirebase(transaction: TransactionEntity): Result<String> {
         return try {
             val userId = getUserId() ?: return Result.failure(Exception("User not logged in"))
@@ -160,20 +162,22 @@ class FirebaseSyncService @Inject constructor(
                 "note" to transaction.note,
                 "date" to transaction.date,
                 "category" to transaction.category.name,
-                "photoStorageUrl" to null,
+                // photoStorageUrl ÇIKARILDI: Null gönderip var olanı ezmesin diye.
                 "locationFull" to transaction.locationFull,
                 "locationShort" to transaction.locationShort,
                 "latitude" to transaction.latitude,
                 "longitude" to transaction.longitude,
                 "timestamp" to currentTimestamp
             )
-            docRef.set(data).await()
+            // Merge ile sadece değişen alanlar güncellenir
+            docRef.set(data, SetOptions.merge()).await()
             Result.success(firestoreId)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
+    // GÜNCELLENDİ: SetOptions.merge() eklendi
     suspend fun syncScheduledTransactionToFirebase(
         transaction: ScheduledTransactionEntity
     ): Result<String> {
@@ -196,15 +200,62 @@ class FirebaseSyncService @Inject constructor(
                 "scheduledDate" to transaction.scheduledDate,
                 "expirationNotificationSent" to transaction.expirationNotificationSent,
                 "notificationSent" to transaction.notificationSent,
-                "photoStorageUrl" to null,
+                // photoStorageUrl ÇIKARILDI
                 "locationFull" to transaction.locationFull,
                 "locationShort" to transaction.locationShort,
                 "latitude" to transaction.latitude,
                 "longitude" to transaction.longitude,
                 "timestamp" to currentTimestamp
             )
-            docRef.set(data).await()
+            docRef.set(data, SetOptions.merge()).await()
             Result.success(firestoreId)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    // YENİ EKLENDİ: Sadece fotoğrafı silmek için
+    suspend fun deleteTransactionPhoto(firestoreId: String): Result<Unit> {
+        return try {
+            val docRef = firestore.collection(TRANSACTIONS_COLLECTION).document(firestoreId)
+            val doc = docRef.get().await()
+            val photoUrl = doc.getString("photoStorageUrl")
+
+            if (!photoUrl.isNullOrBlank()) {
+                scope.launch {
+                    try {
+                        photoStorageManager.deletePhoto(photoUrl)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error deleting photo blob", e)
+                    }
+                }
+            }
+
+            // Firestore'dan URL alanını temizle
+            docRef.update("photoStorageUrl", null).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun deleteTransactionFromFirebase(firestoreId: String): Result<Unit> {
+        return try {
+            val doc = firestore.collection(TRANSACTIONS_COLLECTION).document(firestoreId).get().await()
+            val photoUrl = doc.getString("photoStorageUrl")
+
+            if (!photoUrl.isNullOrBlank()) {
+                scope.launch {
+                    try {
+                        photoStorageManager.deletePhoto(photoUrl)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error deleting photo", e)
+                    }
+                }
+            }
+
+            firestore.collection(TRANSACTIONS_COLLECTION).document(firestoreId).delete().await()
+            Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -220,13 +271,11 @@ class FirebaseSyncService @Inject constructor(
                         photoStorageManager.deletePhoto(photoUrl)
                     } catch (e: Exception) {
                         Log.e(TAG, "Error deleting photo", e)
-
                     }
                 }
             }
             firestore.collection(SCHEDULED_COLLECTION).document(firestoreId).delete().await()
             Result.success(Unit)
-
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -447,7 +496,22 @@ class FirebaseSyncService @Inject constructor(
                                         if (existing != null) {
                                             val storagePhotoUrl = doc.getString("photoStorageUrl")
                                             var localPhotoPath = existing.photoUri
-                                            if (!storagePhotoUrl.isNullOrBlank() && storagePhotoUrl != existing.photoUri) {
+
+                                            // 1. FOTOĞRAF SİLİNMİŞ Mİ KONTROLÜ
+                                            if (storagePhotoUrl == null && existing.photoUri != null) {
+                                                // Firebase'de silinmişse local'de de sil
+                                                try {
+                                                    // Dosya yolunu kullanarak silme işlemini yap (PhotoStorageUtil kullanılabilir
+                                                    // ama bu class içinde PhotoStorageManager var, dosya işlemi için context lazım)
+                                                    // Basitçe: ViewModel veya başka bir yer dosya varlığını kontrol edecektir.
+                                                    // Burada sadece DB kaydını null yapıyoruz.
+                                                    localPhotoPath = null
+                                                } catch(e:Exception){
+                                                    Log.e(TAG, "Error handling photo deletion", e)
+                                                }
+                                            }
+                                            // 2. FOTOĞRAF DEĞİŞMİŞ Mİ KONTROLÜ
+                                            else if (!storagePhotoUrl.isNullOrBlank() && storagePhotoUrl != existing.photoUri) {
                                                 scope.launch {
                                                     try {
                                                         val downloadResult = photoStorageManager.downloadAndSavePhoto(
@@ -476,6 +540,7 @@ class FirebaseSyncService @Inject constructor(
                                                     }
                                                 }
                                             }
+
                                             val transaction = existing.copy(
                                                 amount = doc.getDouble("amount") ?: existing.amount,
                                                 transaction = TransactionType.valueOf(
@@ -506,7 +571,6 @@ class FirebaseSyncService @Inject constructor(
                                     DocumentChange.Type.REMOVED -> {
                                         val existing = localRepository.getTransactionByFirestoreId(firestoreId)
                                         existing?.let {
-                                            // Eğer local'de varsa sil (diğer cihazdan silinmiş demektir)
                                             localRepository.deleteTransaction(it)
                                         }
                                     }
@@ -519,6 +583,7 @@ class FirebaseSyncService @Inject constructor(
                 }
             }
     }
+
     private fun startListeningToScheduledTransactions() {
         val userId = getUserId() ?: return
         scheduledListener?.remove()
@@ -608,7 +673,13 @@ class FirebaseSyncService @Inject constructor(
                                         if (existing != null) {
                                             val storagePhotoUrl = doc.getString("photoStorageUrl")
                                             var localPhotoPath = existing.photoUri
-                                            if (!storagePhotoUrl.isNullOrBlank() && storagePhotoUrl != existing.photoUri) {
+
+                                            // 1. FOTO SİLİNMİŞ Mİ
+                                            if (storagePhotoUrl == null && existing.photoUri != null) {
+                                                localPhotoPath = null
+                                            }
+                                            // 2. FOTO DEĞİŞMİŞ Mİ
+                                            else if (!storagePhotoUrl.isNullOrBlank() && storagePhotoUrl != existing.photoUri) {
                                                 scope.launch {
                                                     try {
                                                         val downloadResult = photoStorageManager.downloadAndSavePhoto(
@@ -686,29 +757,6 @@ class FirebaseSyncService @Inject constructor(
                     }
                 }
             }
-    }
-
-    // FirebaseSyncService.kt içine ekle
-    suspend fun deleteTransactionFromFirebase(firestoreId: String): Result<Unit> {
-        return try {
-            val doc = firestore.collection(TRANSACTIONS_COLLECTION).document(firestoreId).get().await()
-            val photoUrl = doc.getString("photoStorageUrl")
-
-            if (!photoUrl.isNullOrBlank()) {
-                scope.launch {
-                    try {
-                        photoStorageManager.deletePhoto(photoUrl)
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Error deleting photo", e)
-                    }
-                }
-            }
-
-            firestore.collection(TRANSACTIONS_COLLECTION).document(firestoreId).delete().await()
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
     }
 
     fun stopListening() {

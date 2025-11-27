@@ -1,6 +1,8 @@
 package com.ahmetkaragunlu.financeai.screens.main.history
 
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -11,7 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,6 +28,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
@@ -34,6 +38,8 @@ import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.components.EditTextField
 import com.ahmetkaragunlu.financeai.navigation.Screens
 import com.ahmetkaragunlu.financeai.navigation.navigateSingleTopClear
+import com.ahmetkaragunlu.financeai.photo.CameraHelper
+import com.ahmetkaragunlu.financeai.photo.PhotoSourceBottomSheet
 import com.ahmetkaragunlu.financeai.roomdb.type.TransactionType
 import com.ahmetkaragunlu.financeai.ui.theme.AddTransactionScreenTextFieldStyles
 import com.ahmetkaragunlu.financeai.utils.*
@@ -49,6 +55,48 @@ fun DetailScreen(
 ) {
     val transaction by viewModel.transaction.collectAsStateWithLifecycle()
     val context = LocalContext.current
+
+    // --- Kamera ve Galeri Başlatıcıları ---
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success) {
+            viewModel.onCameraPhotoTaken()
+        }
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        // İzin sonucunu doğrudan helper'a iletemiyoruz çünkü helper remember içinde.
+        // Ancak bu yapıda basitçe ekrandan toast veya yeniden başlatma yapabiliriz.
+        // Veya AddTransaction'daki gibi viewModel'da tutabiliriz.
+        // En temizi burada helper'ı kullanmaktır, helper değişkeni aşağıda tanımlı olduğu için erişemeyiz.
+        // Çözüm: remember içine almadan önce tanımlamak veya basit bir check yapmak.
+        // AddTransactionScreen ile birebir uyumlu olması için:
+        if (isGranted) {
+            // İzin verildiyse kamera tekrar başlatılabilir ama kullanıcı butona tekrar basabilir.
+            // Kullanıcı deneyimi için bir Toast yeterli.
+        } else {
+            Toast.makeText(context, "Kamera izni gerekli", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let { viewModel.onPhotoSelected(it) }
+    }
+
+    // Ortak Helper Kullanımı (Generic)
+    val cameraHelper = remember(context, cameraLauncher, permissionLauncher) {
+        CameraHelper(
+            context = context,
+            cameraLauncher = cameraLauncher,
+            permissionLauncher = permissionLauncher,
+            onPreparePhoto = viewModel::prepareCameraPhoto // ViewModel'daki fonksiyon
+        )
+    }
 
     transaction?.let { tx ->
         Column(
@@ -128,24 +176,49 @@ fun DetailScreen(
                         )
                     }
 
-                    // Photo
+                    // Photo Section
                     if (tx.photoUri != null && File(tx.photoUri).exists()) {
                         Spacer(modifier = modifier.height(8.dp))
+                        // Tıklanabilir Kart (Büyütme için)
                         Card(
                             modifier = modifier
                                 .fillMaxWidth()
-                                .height(180.dp),
+                                .height(180.dp)
+                                .clickable { viewModel.showPhotoZoomDialog = true },
                             shape = RoundedCornerShape(12.dp),
                             colors = CardDefaults.cardColors(containerColor = Color(0xFF2D3748))
                         ) {
-                            Image(
-                                painter = rememberAsyncImagePainter(File(tx.photoUri)),
-                                contentDescription = "İşlem Fotoğrafı",
-                                modifier = modifier
-                                    .fillMaxSize()
-                                    .clip(RoundedCornerShape(12.dp)),
-                                contentScale = ContentScale.Crop
-                            )
+                            Box(modifier = Modifier.fillMaxSize()) {
+                                Image(
+                                    painter = rememberAsyncImagePainter(File(tx.photoUri)),
+                                    contentDescription = "İşlem Fotoğrafı",
+                                    modifier = modifier
+                                        .fillMaxSize()
+                                        .clip(RoundedCornerShape(12.dp)),
+                                    contentScale = ContentScale.Crop
+                                )
+                                Icon(
+                                    imageVector = Icons.Default.ZoomIn,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .padding(8.dp)
+                                        .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                                        .padding(4.dp)
+                                )
+                            }
+                        }
+                    } else {
+                        // Fotoğraf Ekle Butonu
+                        OutlinedButton(
+                            onClick = { viewModel.showPhotoSourceSheet = true },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
+                        ) {
+                            Icon(Icons.Default.AddAPhoto, contentDescription = null)
+                            Spacer(Modifier.width(8.dp))
+                            Text("Fotoğraf Ekle")
                         }
                     }
                 }
@@ -188,57 +261,114 @@ fun DetailScreen(
             }
         }
 
-        // Edit Bottom Sheet
+        // --- Photo Zoom Dialog (Tam Ekran) ---
+        if (viewModel.showPhotoZoomDialog && tx.photoUri != null) {
+            Dialog(
+                onDismissRequest = { viewModel.showPhotoZoomDialog = false },
+                properties = DialogProperties(usePlatformDefaultWidth = false)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black)
+                ) {
+                    Image(
+                        painter = rememberAsyncImagePainter(File(tx.photoUri)),
+                        contentDescription = "Full Screen Photo",
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clickable { viewModel.showPhotoZoomDialog = false },
+                        contentScale = ContentScale.Fit
+                    )
+
+                    IconButton(
+                        onClick = { viewModel.showPhotoZoomDialog = false },
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(16.dp)
+                            .background(Color.Black.copy(0.5f), CircleShape)
+                    ) {
+                        Icon(Icons.Default.Close, contentDescription = "Kapat", tint = Color.White)
+                    }
+
+                    // Değiştir / Sil Butonları
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .align(Alignment.BottomCenter)
+                            .padding(24.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        Button(
+                            onClick = { viewModel.showPhotoSourceSheet = true },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(0.2f))
+                        ) {
+                            Icon(Icons.Default.Edit, contentDescription = null, tint = Color.White)
+                            Spacer(Modifier.width(8.dp))
+                            Text("Değiştir", color = Color.White)
+                        }
+
+                        Button(
+                            onClick = { viewModel.deletePhoto() },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Red.copy(0.7f))
+                        ) {
+                            Icon(Icons.Default.Delete, contentDescription = null, tint = Color.White)
+                            Spacer(Modifier.width(8.dp))
+                            Text("Sil", color = Color.White)
+                        }
+                    }
+                }
+            }
+        }
+
+        // --- Photo Source Bottom Sheet ---
+        if (viewModel.showPhotoSourceSheet) {
+            PhotoSourceBottomSheet(
+                onDismiss = { viewModel.showPhotoSourceSheet = false },
+                onCameraClick = { cameraHelper.launchCamera() }, // Yeni Helper Kullanımı
+                onGalleryClick = { galleryLauncher.launch("image/*") }
+            )
+        }
+
+        // Edit Bottom Sheet ve Delete Dialog (Aynı kalıyor)
         if (viewModel.showEditBottomSheet) {
             EditBottomSheet(
                 viewModel = viewModel,
                 onDismiss = { viewModel.showEditBottomSheet = false },
                 onSave = {
                     viewModel.updateTransaction(
-                        onSuccess = {
-                            Toast.makeText(context, "Güncellendi", Toast.LENGTH_SHORT).show()
-                        },
-                        onError = { error ->
-                            Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
-                        }
+                        onSuccess = { Toast.makeText(context, "Güncellendi", Toast.LENGTH_SHORT).show() },
+                        onError = { error -> Toast.makeText(context, error, Toast.LENGTH_SHORT).show() }
                     )
                 }
             )
         }
 
-        // Delete Dialog
         if (viewModel.showDeleteDialog) {
             AlertDialog(
                 onDismissRequest = { viewModel.showDeleteDialog = false },
                 title = { Text("İşlemi Sil") },
                 text = { Text("Bu işlemi silmek istediğinizden emin misiniz?") },
                 confirmButton = {
-                    TextButton(
-                        onClick = {
-                            viewModel.deleteTransaction(
-                                onSuccess = {
-                                    Toast.makeText(context, "Silindi", Toast.LENGTH_SHORT).show()
-                                    navController.navigateSingleTopClear(Screens.TRANSACTION_HISTORY_SCREEN.route)
-                                },
-                                onError = { error ->
-                                    Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
-                                }
-                            )
-                        }
-                    ) {
-                        Text("Sil", color = Color.Red)
-                    }
+                    TextButton(onClick = {
+                        viewModel.deleteTransaction(
+                            onSuccess = {
+                                Toast.makeText(context, "Silindi", Toast.LENGTH_SHORT).show()
+                                navController.navigateSingleTopClear(Screens.TRANSACTION_HISTORY_SCREEN.route)
+                            },
+                            onError = { error -> Toast.makeText(context, error, Toast.LENGTH_SHORT).show() }
+                        )
+                    }) { Text("Sil", color = Color.Red) }
                 },
                 dismissButton = {
-                    TextButton(onClick = { viewModel.showDeleteDialog = false }) {
-                        Text("İptal")
-                    }
+                    TextButton(onClick = { viewModel.showDeleteDialog = false }) { Text("İptal") }
                 }
             )
         }
     }
 }
 
+// ... EditBottomSheet aynı kalıyor ...
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EditBottomSheet(
