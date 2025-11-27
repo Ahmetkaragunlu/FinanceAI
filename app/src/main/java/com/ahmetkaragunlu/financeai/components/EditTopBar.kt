@@ -23,7 +23,7 @@ import com.ahmetkaragunlu.financeai.navigation.navigateSingleTopClear
 @Composable
 fun EditTopBar(
     currentRoute: String,
-    navController: NavHostController
+    navController: NavHostController,
 
 ) {
     CenterAlignedTopAppBar(
@@ -42,11 +42,7 @@ fun EditTopBar(
             if (currentRoute != Screens.HomeScreen.route) {
                 IconButton(
                     onClick = {
-                        if (currentRoute == Screens.DetailScreen.route) {
-                            navController.navigate(Screens.TRANSACTION_HISTORY_SCREEN.route)
-                        } else {
-                            navController.navigateSingleTopClear(Screens.HomeScreen.route)
-                        }
+                        navController.popBackStack()
                     }
                 ) {
                     Icon(
@@ -66,7 +62,7 @@ fun EditTopBar(
 private fun topBarTitleForRoute(currentRoute: String): Int {
     return when (currentRoute) {
         Screens.HomeScreen.route -> R.string.welcome
-        Screens.TRANSACTION_HISTORY_SCREEN.route -> R.string.history
+        Screens.TRANSACTION_HISTORY_SCREEN.route -> R.string.history_and_scheduled
         Screens.AiChatScreen.route -> R.string.ai_assistant
         Screens.AnalysisScreen.route -> R.string.analysis
         Screens.AddTransaction.route -> R.string.add

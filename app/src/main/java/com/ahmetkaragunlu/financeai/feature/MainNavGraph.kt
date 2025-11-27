@@ -40,6 +40,7 @@ fun NavGraphBuilder.mainNavGraph(navController: NavHostController) {
             navController = navController
         )
     }
+
     composable(Screens.AiChatScreen.route) {
         AiChatScreen()
     }

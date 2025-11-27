@@ -9,7 +9,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -19,14 +21,13 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.components.EditButton
-import com.ahmetkaragunlu.financeai.navigation.Screens
-import com.ahmetkaragunlu.financeai.navigation.navigateSingleTopClear
 import com.ahmetkaragunlu.financeai.roomdb.entitiy.TransactionEntity
 import com.ahmetkaragunlu.financeai.roomdb.type.TransactionType
+import com.ahmetkaragunlu.financeai.screens.main.schedule.ScheduledTransactionScreen
 import com.ahmetkaragunlu.financeai.utils.*
 import com.ahmetkaragunlu.financeai.viewmodel.TransactionHistoryViewModel
 
@@ -37,14 +38,12 @@ fun TransactionHistoryScreen(
     navController: NavHostController
 ) {
     val transactions by viewModel.transactions.collectAsState()
-
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(colorResource(R.color.background)),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // History / Scheduled Toggle
         Row(
             modifier = modifier
                 .widthIn(max = 400.dp)
@@ -82,8 +81,30 @@ fun TransactionHistoryScreen(
                 )
             }
         }
+        if (viewModel.isHistoryPage) {
+            HistoryContent(
+                viewModel = viewModel,
+                transactions = transactions,
+                navController = navController,
+                modifier = modifier
+            )
+        } else {
+            ScheduledTransactionScreen()
+        }
+    }
+}
 
-        // Filter Row
+@Composable
+private fun HistoryContent(
+    viewModel: TransactionHistoryViewModel,
+    transactions: List<TransactionEntity>,
+    navController: NavHostController,
+    modifier: Modifier
+) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
         Row(
             modifier = modifier
                 .padding(horizontal = 16.dp)
@@ -91,7 +112,6 @@ fun TransactionHistoryScreen(
                 .fillMaxWidth(),
             verticalAlignment = Alignment.Top
         ) {
-            // Date Filter
             FinanceDropdownMenu(
                 modifier = modifier.weight(1f),
                 expanded = viewModel.isDateMenuOpen,
@@ -109,8 +129,6 @@ fun TransactionHistoryScreen(
                 }
             )
             Spacer(modifier = modifier.width(8.dp))
-
-            // Category Filter
             Column(modifier = Modifier.weight(1f)) {
                 FinanceDropdownMenu(
                     modifier = Modifier.fillMaxWidth(),
@@ -128,7 +146,6 @@ fun TransactionHistoryScreen(
                         )
                     }
                 )
-
                 if (viewModel.showCategoryError) {
                     Text(
                         text = stringResource(R.string.error_select_type_first),
@@ -139,8 +156,6 @@ fun TransactionHistoryScreen(
                 }
             }
             Spacer(modifier = modifier.width(8.dp))
-
-            // Type Filter
             FinanceDropdownMenu(
                 modifier = modifier.weight(1f),
                 expanded = viewModel.isTypeMenuOpen,
@@ -158,15 +173,13 @@ fun TransactionHistoryScreen(
                 }
             )
         }
-
         Spacer(modifier = modifier.height(32.dp))
-
-        // Transaction List
         LazyColumn(
             modifier = modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(bottom = 80.dp)
         ) {
             items(transactions) { transaction ->
                 TransactionCard(
@@ -174,7 +187,6 @@ fun TransactionHistoryScreen(
                     navController = navController
                 )
             }
-
             if (transactions.isEmpty()) {
                 item {
                     Text(

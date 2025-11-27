@@ -10,7 +10,6 @@ enum class Screens(val route : String){
     MAIN_GRAPH("Main_graph"),
     TRANSACTION_HISTORY_SCREEN("TransactionHistoryScreen"),
     DetailScreen("Detail_Screen/{transactionId}"),
-
     AnalysisScreen("AnalysisScreen"),
     AddTransaction("AddTransaction"),
     AiChatScreen("AiChatScreen"),
