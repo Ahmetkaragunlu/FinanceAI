@@ -13,6 +13,7 @@ import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.workDataOf
+import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.firebasesync.FirebaseSyncService
 import com.ahmetkaragunlu.financeai.photo.PhotoStorageUtil
 import com.ahmetkaragunlu.financeai.photo.PhotoUploadWorker
@@ -79,9 +80,8 @@ class DetailViewModel @Inject constructor(
         }
     }
 
-    // --- FOTOĞRAF İŞLEMLERİ (PhotoStorageUtil Kullanılarak) ---
+    // --- FOTOĞRAF İŞLEMLERİ ---
 
-    // Generic CameraHelper tarafından çağrılır
     fun prepareCameraPhoto(): Pair<File, Uri>? {
         val result = PhotoStorageUtil.createTempPhotoFile(context)
         result?.let { (file, _) ->
@@ -104,12 +104,12 @@ class DetailViewModel @Inject constructor(
         val currentTx = _transaction.value ?: return
 
         viewModelScope.launch {
-            // 1. Eski fotoğrafı yerelden sil
+            // 1. Eski fotoğrafı sil
             currentTx.photoUri?.let { oldPath ->
                 PhotoStorageUtil.deletePhoto(oldPath)
             }
 
-            // 2. Yeni fotoğrafı kalıcı olarak kaydet
+            // 2. Yeni fotoğrafı kaydet
             val savedPath = if (tempCameraPhotoPath != null && uri.path?.contains(tempCameraPhotoPath!!) == true) {
                 PhotoStorageUtil.saveTempPhotoAsPermanent(context, tempCameraPhotoPath!!)
             } else {
@@ -152,19 +152,16 @@ class DetailViewModel @Inject constructor(
     fun deletePhoto() {
         val currentTx = _transaction.value ?: return
         viewModelScope.launch {
-            // Yerelden sil
             currentTx.photoUri?.let { path ->
                 PhotoStorageUtil.deletePhoto(path)
             }
 
-            // DB güncelle
             val updatedTx = currentTx.copy(photoUri = null, syncedToFirebase = false)
             repository.updateTransaction(updatedTx)
             _transaction.value = updatedTx
 
             showPhotoZoomDialog = false
 
-            // Firebase'den sil
             if (updatedTx.firestoreId.isNotEmpty()) {
                 launch {
                     firebaseSyncService.deleteTransactionPhoto(updatedTx.firestoreId)
@@ -181,18 +178,17 @@ class DetailViewModel @Inject constructor(
 
         val amount = editAmount.toDoubleOrNull()
         if (amount == null || amount <= 0) {
-            onError("Geçersiz tutar")
+            onError(context.getString(R.string.invalid_amount)) // XML'den
             return
         }
 
         if (editCategory == null) {
-            onError("Kategori seçiniz")
+            onError(context.getString(R.string.select_category_error)) // XML'den
             return
         }
 
         viewModelScope.launch {
             try {
-                // Mevcut photoUri korunur, sadece metin alanları güncellenir
                 val updatedTransaction = currentTransaction.copy(
                     amount = amount,
                     note = editNote,
@@ -202,7 +198,6 @@ class DetailViewModel @Inject constructor(
 
                 repository.updateTransaction(updatedTransaction)
 
-                // Firebase sync (merge ile)
                 if (updatedTransaction.firestoreId.isNotEmpty()) {
                     launch {
                         try {
@@ -216,7 +211,7 @@ class DetailViewModel @Inject constructor(
                 showEditBottomSheet = false
                 onSuccess()
             } catch (e: Exception) {
-                onError("Güncelleme başarısız: ${e.message}")
+                onError(context.getString(R.string.update_failed, e.message ?: "")) // XML'den
             }
         }
     }
@@ -246,7 +241,7 @@ class DetailViewModel @Inject constructor(
                 showDeleteDialog = false
                 onSuccess()
             } catch (e: Exception) {
-                onError("Silme başarısız: ${e.message}")
+                onError(context.getString(R.string.delete_failed, e.message ?: "")) // XML'den
             }
         }
     }

@@ -142,6 +142,25 @@
     <string name="location_info_unavailable">Unable to retrieve location information</string>
     <string name="location_label">Location</string>
     <string name="location_coordinates">Lat: %1$.6f, Lon: %2$.6f</string>
+    <string name="edit">Edit</string>
+    <string name="delete">Delete</string>
+    <string name="save">Save</string>
+    <string name="close">Close</string>
+    <string name="change">Change</string>
+    <string name="note_with_value">Note: %1$s</string>
+    <string name="location_with_value">Location: %1$s</string>
+    <string name="transaction_photo_desc">Transaction Photo</string>
+    <string name="full_screen_photo_desc">Full Screen Photo</string>
+    <string name="add_photo">Add Photo</string>
+    <string name="edit_transaction_title">Edit Transaction</string>
+    <string name="delete_transaction_title">Delete Transaction</string>
+    <string name="delete_transaction_message">Are you sure you want to delete this transaction?</string>
+    <string name="updated_successfully">Updated successfully</string>
+    <string name="camera_permission_required">Camera permission required</string>
+    <string name="invalid_amount">Invalid amount</string>
+    <string name="select_category_error">Please select a category</string>
+    <string name="update_failed">Update failed: %1$s</string>
+    <string name="delete_failed">Deletion failed: %1$s</string>
 
 
 
