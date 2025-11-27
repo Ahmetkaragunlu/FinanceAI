@@ -71,6 +71,11 @@ class FinanceRepositoryImpl @Inject constructor(
             .distinctUntilChanged()
             .flowOn(Dispatchers.IO)
 
+    override fun getTransactionById(id: Int): Flow<TransactionEntity?> =
+        transactionDao.getTransactionById(id)
+            .distinctUntilChanged()
+            .flowOn(Dispatchers.IO)
+
     override fun getCategoryByTypeAndDateRange(
         transactionType: TransactionType,
         startDate: Long,

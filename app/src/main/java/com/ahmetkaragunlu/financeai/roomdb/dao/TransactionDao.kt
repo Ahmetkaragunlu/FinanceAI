@@ -27,6 +27,8 @@ interface TransactionDao {
     @Query("DELETE FROM transaction_table WHERE firestoreId = :firestoreId")
     suspend fun deleteTransactionByFirestoreId(firestoreId: String)
 
+    @Query("SELECT * FROM transaction_table WHERE id = :id")
+    fun getTransactionById(id: Int): Flow<TransactionEntity?>
 
     @Query("SELECT * FROM transaction_table ORDER BY date DESC")
     fun getAllTransactions(): Flow<List<TransactionEntity>>

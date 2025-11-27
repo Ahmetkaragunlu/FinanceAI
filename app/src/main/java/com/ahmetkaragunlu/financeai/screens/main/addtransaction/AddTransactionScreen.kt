@@ -49,14 +49,12 @@ fun AddTransactionScreen(
     navController: NavHostController
 ) {
     val context = LocalContext.current
-
     // Photo Picker Launcher
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let { viewModel.onPhotoSelected(it) }
     }
-
     // Camera Launcher
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
@@ -67,21 +65,18 @@ fun AddTransactionScreen(
             viewModel.clearTempCameraPhoto()
         }
     }
-
     // Camera Permission Launcher
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         viewModel.cameraHelperRef?.onPermissionResult(isGranted)
     }
-
-    // GÜNCELLENDİ: CameraHelper artık onPreparePhoto parametresi alıyor
     val cameraHelper = remember(context, viewModel, cameraLauncher, cameraPermissionLauncher) {
         CameraHelper(
             context = context,
             cameraLauncher = cameraLauncher,
             permissionLauncher = cameraPermissionLauncher,
-            onPreparePhoto = viewModel::prepareCameraPhoto // ViewModel'daki fonksiyonu bağlıyoruz
+            onPreparePhoto = viewModel::prepareCameraPhoto
         ).also {
             viewModel.cameraHelperRef = it
         }
@@ -94,7 +89,6 @@ fun AddTransactionScreen(
             .background(color = colorResource(R.color.background))
             .verticalScroll(rememberScrollState())
     ) {
-        // ... (Kalan UI kodları tamamen aynı, değişiklik yok)
         // Transaction Type Selection
         Row(
             modifier = modifier
