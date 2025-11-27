@@ -35,6 +35,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import com.ahmetkaragunlu.financeai.R
+import com.ahmetkaragunlu.financeai.components.EditAlertDialog
 import com.ahmetkaragunlu.financeai.components.EditTextField
 import com.ahmetkaragunlu.financeai.navigation.Screens
 import com.ahmetkaragunlu.financeai.navigation.navigateSingleTopClear
@@ -55,7 +56,6 @@ fun DetailScreen(
 ) {
     val transaction by viewModel.transaction.collectAsStateWithLifecycle()
     val context = LocalContext.current
-
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { success ->
@@ -63,12 +63,10 @@ fun DetailScreen(
             viewModel.onCameraPhotoTaken()
         }
     }
-
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (!isGranted) {
-            // XML'den metin kullanımı
             Toast.makeText(context, context.getString(R.string.camera_permission_required), Toast.LENGTH_SHORT).show()
         }
     }
@@ -93,11 +91,13 @@ fun DetailScreen(
             modifier = modifier
                 .fillMaxSize()
                 .background(color = colorResource(R.color.background))
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Main Card
             Card(
                 modifier = modifier
+                    .widthIn(max = 450.dp)
                     .fillMaxWidth()
                     .padding(8.dp),
                 shape = RoundedCornerShape(16.dp),
@@ -119,9 +119,7 @@ fun DetailScreen(
                             tint = Color.Unspecified,
                         )
                     }
-
                     Spacer(modifier = modifier.width(16.dp))
-
                     Column {
                         Text(
                             text = stringResource(tx.category.toResId()),
@@ -150,19 +148,17 @@ fun DetailScreen(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Note - XML formatlı string kullanımı
                     if (tx.note.isNotBlank()) {
                         Text(
                             text = stringResource(R.string.note_with_value, tx.note),
-                            color = Color.White
+                            color = MaterialTheme.colorScheme.onPrimary
                         )
                     }
 
-                    // Location - XML formatlı string kullanımı
                     if (tx.locationShort != null) {
                         Text(
                             text = stringResource(R.string.location_with_value, tx.locationShort),
-                            color = Color.White
+                            color = MaterialTheme.colorScheme.onPrimary
                         )
                     }
 
@@ -180,7 +176,7 @@ fun DetailScreen(
                             Box(modifier = Modifier.fillMaxSize()) {
                                 Image(
                                     painter = rememberAsyncImagePainter(File(tx.photoUri)),
-                                    contentDescription = stringResource(R.string.transaction_photo_desc), // XML'den
+                                    contentDescription = stringResource(R.string.transaction_photo_desc),
                                     modifier = modifier
                                         .fillMaxSize()
                                         .clip(RoundedCornerShape(12.dp)),
@@ -189,7 +185,7 @@ fun DetailScreen(
                                 Icon(
                                     imageVector = Icons.Default.ZoomIn,
                                     contentDescription = null,
-                                    tint = Color.White,
+                                    tint = MaterialTheme.colorScheme.onPrimary,
                                     modifier = Modifier
                                         .align(Alignment.TopEnd)
                                         .padding(8.dp)
@@ -199,7 +195,6 @@ fun DetailScreen(
                             }
                         }
                     } else {
-                        // Fotoğraf Ekle Butonu - XML'den
                         OutlinedButton(
                             onClick = { viewModel.showPhotoSourceSheet = true },
                             modifier = Modifier.fillMaxWidth(),
@@ -216,6 +211,7 @@ fun DetailScreen(
             // Action Buttons
             Row(
                 modifier = modifier
+                    .widthIn(max = 400.dp)
                     .fillMaxWidth()
                     .padding(horizontal = 8.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -229,7 +225,7 @@ fun DetailScreen(
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
-                        text = stringResource(R.string.edit), // XML'den
+                        text = stringResource(R.string.edit),
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
@@ -243,7 +239,7 @@ fun DetailScreen(
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
-                        text = stringResource(R.string.delete), // XML'den
+                        text = stringResource(R.string.delete),
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
@@ -263,7 +259,7 @@ fun DetailScreen(
                 ) {
                     Image(
                         painter = rememberAsyncImagePainter(File(tx.photoUri)),
-                        contentDescription = stringResource(R.string.full_screen_photo_desc), // XML'den
+                        contentDescription = stringResource(R.string.full_screen_photo_desc),
                         modifier = Modifier
                             .fillMaxSize()
                             .clickable { viewModel.showPhotoZoomDialog = false },
@@ -277,10 +273,8 @@ fun DetailScreen(
                             .padding(16.dp)
                             .background(Color.Black.copy(0.5f), CircleShape)
                     ) {
-                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close), tint = Color.White) // XML'den
+                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close), tint = MaterialTheme.colorScheme.onPrimary)
                     }
-
-                    // Değiştir / Sil Butonları
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -290,26 +284,30 @@ fun DetailScreen(
                     ) {
                         Button(
                             onClick = { viewModel.showPhotoSourceSheet = true },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(0.2f))
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.Gray,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            )
                         ) {
-                            Icon(Icons.Default.Edit, contentDescription = null, tint = Color.White)
+                            Icon(Icons.Default.Edit, contentDescription = null)
                             Spacer(Modifier.width(8.dp))
-                            Text(stringResource(R.string.change), color = Color.White) // XML'den
+                            Text(stringResource(R.string.change))
                         }
-
                         Button(
                             onClick = { viewModel.deletePhoto() },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.Red.copy(0.7f))
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.Red,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            )
                         ) {
-                            Icon(Icons.Default.Delete, contentDescription = null, tint = Color.White)
+                            Icon(Icons.Default.Delete, contentDescription = null)
                             Spacer(Modifier.width(8.dp))
-                            Text(stringResource(R.string.delete), color = Color.White) // XML'den
+                            Text(stringResource(R.string.delete))
                         }
                     }
                 }
             }
         }
-
         // --- Photo Source Bottom Sheet ---
         if (viewModel.showPhotoSourceSheet) {
             PhotoSourceBottomSheet(
@@ -318,7 +316,6 @@ fun DetailScreen(
                 onGalleryClick = { galleryLauncher.launch("image/*") }
             )
         }
-
         // Edit Bottom Sheet
         if (viewModel.showEditBottomSheet) {
             EditBottomSheet(
@@ -327,7 +324,6 @@ fun DetailScreen(
                 onSave = {
                     viewModel.updateTransaction(
                         onSuccess = {
-                            // XML'den Başarı mesajı
                             Toast.makeText(context, context.getString(R.string.updated_successfully), Toast.LENGTH_SHORT).show()
                         },
                         onError = { error ->
@@ -337,28 +333,25 @@ fun DetailScreen(
                 }
             )
         }
-
-        // Delete Dialog
         if (viewModel.showDeleteDialog) {
-            AlertDialog(
+            EditAlertDialog(
+                title = R.string.delete_transaction_title,
+                text = R.string.delete_transaction_message,
                 onDismissRequest = { viewModel.showDeleteDialog = false },
-                title = { Text(stringResource(R.string.delete_transaction_title)) }, // XML'den
-                text = { Text(stringResource(R.string.delete_transaction_message)) }, // XML'den
                 confirmButton = {
                     TextButton(onClick = {
                         viewModel.deleteTransaction(
                             onSuccess = {
-                                // İSTEĞİNİZE GÖRE: "Success" yazısı
                                 Toast.makeText(context, context.getString(R.string.success), Toast.LENGTH_SHORT).show()
                                 navController.navigateSingleTopClear(Screens.TRANSACTION_HISTORY_SCREEN.route)
                             },
                             onError = { error -> Toast.makeText(context, error, Toast.LENGTH_SHORT).show() }
                         )
-                    }) { Text(stringResource(R.string.delete), color = Color.Red) } // XML'den
+                    }) { Text(stringResource(R.string.delete), color = Color.Red) }
                 },
                 dismissButton = {
                     TextButton(onClick = { viewModel.showDeleteDialog = false }) {
-                        Text(stringResource(R.string.cancel)) // XML'den
+                        Text(stringResource(R.string.cancel))
                     }
                 }
             )
@@ -384,11 +377,10 @@ private fun EditBottomSheet(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = stringResource(R.string.edit_transaction_title), // XML'den
+                text = stringResource(R.string.edit_transaction_title),
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onPrimary
             )
-
             // Amount
             EditTextField(
                 value = viewModel.editAmount,
@@ -407,7 +399,6 @@ private fun EditBottomSheet(
                     )
                 }
             )
-
             // Category Dropdown
             FinanceDropdownMenu(
                 modifier = Modifier.fillMaxWidth(),
@@ -452,8 +443,7 @@ private fun EditBottomSheet(
                     )
                 }
             )
-
-            // Note
+            //Note
             EditTextField(
                 value = viewModel.editNote,
                 onValueChange = { viewModel.editNote = it },
@@ -476,7 +466,7 @@ private fun EditBottomSheet(
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text(
-                    stringResource(R.string.save), // XML'den
+                    stringResource(R.string.save),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onPrimary
                 )

@@ -12,12 +12,14 @@ fun EditAlertDialog(
     @StringRes title: Int,
     @StringRes text: Int,
     confirmButton: @Composable () -> Unit,
-    onDismissRequest : () -> Unit = {}
+    onDismissRequest : () -> Unit = {},
+    dismissButton: @Composable (() -> Unit)? = null,
 ) {
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onDismissRequest,
         title = { Text(stringResource(id = title)) },
         text = { Text(stringResource(id = text)) },
         confirmButton = confirmButton,
+        dismissButton = dismissButton
     )
 }

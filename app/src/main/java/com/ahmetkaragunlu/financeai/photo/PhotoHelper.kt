@@ -9,7 +9,6 @@ import androidx.core.content.ContextCompat
 import com.ahmetkaragunlu.financeai.R
 import java.io.File
 
-// ARTIK BAĞIMSIZ: onPreparePhoto parametresi ile her yerden kullanılabilir.
 class CameraHelper(
     private val context: Context,
     private val cameraLauncher: ManagedActivityResultLauncher<Uri, Boolean>,
@@ -31,7 +30,6 @@ class CameraHelper(
 
     fun openCamera() {
         try {
-            // ViewModel'dan gelen hazırlama fonksiyonunu çağırır
             val cameraPhotoData = onPreparePhoto()
             cameraPhotoData?.let { (_, uri) ->
                 cameraLauncher.launch(uri)
