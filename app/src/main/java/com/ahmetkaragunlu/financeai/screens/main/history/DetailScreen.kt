@@ -56,7 +56,6 @@ fun DetailScreen(
     val transaction by viewModel.transaction.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    // --- Kamera ve Galeri Başlatıcıları ---
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { success ->
@@ -68,17 +67,9 @@ fun DetailScreen(
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
-        // İzin sonucunu doğrudan helper'a iletemiyoruz çünkü helper remember içinde.
-        // Ancak bu yapıda basitçe ekrandan toast veya yeniden başlatma yapabiliriz.
-        // Veya AddTransaction'daki gibi viewModel'da tutabiliriz.
-        // En temizi burada helper'ı kullanmaktır, helper değişkeni aşağıda tanımlı olduğu için erişemeyiz.
-        // Çözüm: remember içine almadan önce tanımlamak veya basit bir check yapmak.
-        // AddTransactionScreen ile birebir uyumlu olması için:
-        if (isGranted) {
-            // İzin verildiyse kamera tekrar başlatılabilir ama kullanıcı butona tekrar basabilir.
-            // Kullanıcı deneyimi için bir Toast yeterli.
-        } else {
-            Toast.makeText(context, "Kamera izni gerekli", Toast.LENGTH_SHORT).show()
+        if (!isGranted) {
+            // XML'den metin kullanımı
+            Toast.makeText(context, context.getString(R.string.camera_permission_required), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -88,13 +79,12 @@ fun DetailScreen(
         uri?.let { viewModel.onPhotoSelected(it) }
     }
 
-    // Ortak Helper Kullanımı (Generic)
     val cameraHelper = remember(context, cameraLauncher, permissionLauncher) {
         CameraHelper(
             context = context,
             cameraLauncher = cameraLauncher,
             permissionLauncher = permissionLauncher,
-            onPreparePhoto = viewModel::prepareCameraPhoto // ViewModel'daki fonksiyon
+            onPreparePhoto = viewModel::prepareCameraPhoto
         )
     }
 
@@ -160,18 +150,18 @@ fun DetailScreen(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Note
+                    // Note - XML formatlı string kullanımı
                     if (tx.note.isNotBlank()) {
                         Text(
-                            "Not: ${tx.note}",
+                            text = stringResource(R.string.note_with_value, tx.note),
                             color = Color.White
                         )
                     }
 
-                    // Location
+                    // Location - XML formatlı string kullanımı
                     if (tx.locationShort != null) {
                         Text(
-                            "Konum: ${tx.locationShort}",
+                            text = stringResource(R.string.location_with_value, tx.locationShort),
                             color = Color.White
                         )
                     }
@@ -179,7 +169,6 @@ fun DetailScreen(
                     // Photo Section
                     if (tx.photoUri != null && File(tx.photoUri).exists()) {
                         Spacer(modifier = modifier.height(8.dp))
-                        // Tıklanabilir Kart (Büyütme için)
                         Card(
                             modifier = modifier
                                 .fillMaxWidth()
@@ -191,7 +180,7 @@ fun DetailScreen(
                             Box(modifier = Modifier.fillMaxSize()) {
                                 Image(
                                     painter = rememberAsyncImagePainter(File(tx.photoUri)),
-                                    contentDescription = "İşlem Fotoğrafı",
+                                    contentDescription = stringResource(R.string.transaction_photo_desc), // XML'den
                                     modifier = modifier
                                         .fillMaxSize()
                                         .clip(RoundedCornerShape(12.dp)),
@@ -210,7 +199,7 @@ fun DetailScreen(
                             }
                         }
                     } else {
-                        // Fotoğraf Ekle Butonu
+                        // Fotoğraf Ekle Butonu - XML'den
                         OutlinedButton(
                             onClick = { viewModel.showPhotoSourceSheet = true },
                             modifier = Modifier.fillMaxWidth(),
@@ -218,7 +207,7 @@ fun DetailScreen(
                         ) {
                             Icon(Icons.Default.AddAPhoto, contentDescription = null)
                             Spacer(Modifier.width(8.dp))
-                            Text("Fotoğraf Ekle")
+                            Text(stringResource(R.string.add_photo))
                         }
                     }
                 }
@@ -240,7 +229,7 @@ fun DetailScreen(
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
-                        text = "Düzenle",
+                        text = stringResource(R.string.edit), // XML'den
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
@@ -254,14 +243,14 @@ fun DetailScreen(
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
-                        text = "Sil",
+                        text = stringResource(R.string.delete), // XML'den
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
             }
         }
 
-        // --- Photo Zoom Dialog (Tam Ekran) ---
+        // --- Photo Zoom Dialog ---
         if (viewModel.showPhotoZoomDialog && tx.photoUri != null) {
             Dialog(
                 onDismissRequest = { viewModel.showPhotoZoomDialog = false },
@@ -274,7 +263,7 @@ fun DetailScreen(
                 ) {
                     Image(
                         painter = rememberAsyncImagePainter(File(tx.photoUri)),
-                        contentDescription = "Full Screen Photo",
+                        contentDescription = stringResource(R.string.full_screen_photo_desc), // XML'den
                         modifier = Modifier
                             .fillMaxSize()
                             .clickable { viewModel.showPhotoZoomDialog = false },
@@ -288,7 +277,7 @@ fun DetailScreen(
                             .padding(16.dp)
                             .background(Color.Black.copy(0.5f), CircleShape)
                     ) {
-                        Icon(Icons.Default.Close, contentDescription = "Kapat", tint = Color.White)
+                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close), tint = Color.White) // XML'den
                     }
 
                     // Değiştir / Sil Butonları
@@ -305,7 +294,7 @@ fun DetailScreen(
                         ) {
                             Icon(Icons.Default.Edit, contentDescription = null, tint = Color.White)
                             Spacer(Modifier.width(8.dp))
-                            Text("Değiştir", color = Color.White)
+                            Text(stringResource(R.string.change), color = Color.White) // XML'den
                         }
 
                         Button(
@@ -314,7 +303,7 @@ fun DetailScreen(
                         ) {
                             Icon(Icons.Default.Delete, contentDescription = null, tint = Color.White)
                             Spacer(Modifier.width(8.dp))
-                            Text("Sil", color = Color.White)
+                            Text(stringResource(R.string.delete), color = Color.White) // XML'den
                         }
                     }
                 }
@@ -325,50 +314,58 @@ fun DetailScreen(
         if (viewModel.showPhotoSourceSheet) {
             PhotoSourceBottomSheet(
                 onDismiss = { viewModel.showPhotoSourceSheet = false },
-                onCameraClick = { cameraHelper.launchCamera() }, // Yeni Helper Kullanımı
+                onCameraClick = { cameraHelper.launchCamera() },
                 onGalleryClick = { galleryLauncher.launch("image/*") }
             )
         }
 
-        // Edit Bottom Sheet ve Delete Dialog (Aynı kalıyor)
+        // Edit Bottom Sheet
         if (viewModel.showEditBottomSheet) {
             EditBottomSheet(
                 viewModel = viewModel,
                 onDismiss = { viewModel.showEditBottomSheet = false },
                 onSave = {
                     viewModel.updateTransaction(
-                        onSuccess = { Toast.makeText(context, "Güncellendi", Toast.LENGTH_SHORT).show() },
-                        onError = { error -> Toast.makeText(context, error, Toast.LENGTH_SHORT).show() }
+                        onSuccess = {
+                            // XML'den Başarı mesajı
+                            Toast.makeText(context, context.getString(R.string.updated_successfully), Toast.LENGTH_SHORT).show()
+                        },
+                        onError = { error ->
+                            Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
+                        }
                     )
                 }
             )
         }
 
+        // Delete Dialog
         if (viewModel.showDeleteDialog) {
             AlertDialog(
                 onDismissRequest = { viewModel.showDeleteDialog = false },
-                title = { Text("İşlemi Sil") },
-                text = { Text("Bu işlemi silmek istediğinizden emin misiniz?") },
+                title = { Text(stringResource(R.string.delete_transaction_title)) }, // XML'den
+                text = { Text(stringResource(R.string.delete_transaction_message)) }, // XML'den
                 confirmButton = {
                     TextButton(onClick = {
                         viewModel.deleteTransaction(
                             onSuccess = {
-                                Toast.makeText(context, "Silindi", Toast.LENGTH_SHORT).show()
+                                // İSTEĞİNİZE GÖRE: "Success" yazısı
+                                Toast.makeText(context, context.getString(R.string.success), Toast.LENGTH_SHORT).show()
                                 navController.navigateSingleTopClear(Screens.TRANSACTION_HISTORY_SCREEN.route)
                             },
                             onError = { error -> Toast.makeText(context, error, Toast.LENGTH_SHORT).show() }
                         )
-                    }) { Text("Sil", color = Color.Red) }
+                    }) { Text(stringResource(R.string.delete), color = Color.Red) } // XML'den
                 },
                 dismissButton = {
-                    TextButton(onClick = { viewModel.showDeleteDialog = false }) { Text("İptal") }
+                    TextButton(onClick = { viewModel.showDeleteDialog = false }) {
+                        Text(stringResource(R.string.cancel)) // XML'den
+                    }
                 }
             )
         }
     }
 }
 
-// ... EditBottomSheet aynı kalıyor ...
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EditBottomSheet(
@@ -387,7 +384,7 @@ private fun EditBottomSheet(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = "İşlemi Düzenle",
+                text = stringResource(R.string.edit_transaction_title), // XML'den
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onPrimary
             )
@@ -479,7 +476,7 @@ private fun EditBottomSheet(
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text(
-                    "Kaydet",
+                    stringResource(R.string.save), // XML'den
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onPrimary
                 )
