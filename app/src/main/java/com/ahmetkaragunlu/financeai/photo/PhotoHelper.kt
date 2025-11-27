@@ -1,6 +1,5 @@
 package com.ahmetkaragunlu.financeai.photo
 
-
 import android.content.Context
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -8,13 +7,14 @@ import android.widget.Toast
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.core.content.ContextCompat
 import com.ahmetkaragunlu.financeai.R
-import com.ahmetkaragunlu.financeai.viewmodel.AddTransactionViewModel
+import java.io.File
 
+// ARTIK BAĞIMSIZ: onPreparePhoto parametresi ile her yerden kullanılabilir.
 class CameraHelper(
     private val context: Context,
-    private val viewModel: AddTransactionViewModel,
     private val cameraLauncher: ManagedActivityResultLauncher<Uri, Boolean>,
-    private val permissionLauncher: ManagedActivityResultLauncher<String, Boolean>
+    private val permissionLauncher: ManagedActivityResultLauncher<String, Boolean>,
+    private val onPreparePhoto: () -> Pair<File, Uri>?
 ) {
     fun launchCamera() {
         val hasPermission = ContextCompat.checkSelfPermission(
@@ -31,7 +31,8 @@ class CameraHelper(
 
     fun openCamera() {
         try {
-            val cameraPhotoData = viewModel.prepareCameraPhoto()
+            // ViewModel'dan gelen hazırlama fonksiyonunu çağırır
+            val cameraPhotoData = onPreparePhoto()
             cameraPhotoData?.let { (_, uri) ->
                 cameraLauncher.launch(uri)
             }

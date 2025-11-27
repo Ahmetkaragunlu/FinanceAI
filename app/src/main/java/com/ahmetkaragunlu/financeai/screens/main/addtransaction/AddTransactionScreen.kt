@@ -38,7 +38,7 @@ import com.ahmetkaragunlu.financeai.photo.CameraHelper
 import com.ahmetkaragunlu.financeai.photo.PhotoSourceBottomSheet
 import com.ahmetkaragunlu.financeai.roomdb.type.TransactionType
 import com.ahmetkaragunlu.financeai.ui.theme.AddTransactionScreenTextFieldStyles
-import com.ahmetkaragunlu.financeai.utils.* // FinanceDropdownMenu burada
+import com.ahmetkaragunlu.financeai.utils.*
 import com.ahmetkaragunlu.financeai.viewmodel.AddTransactionViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -75,8 +75,14 @@ fun AddTransactionScreen(
         viewModel.cameraHelperRef?.onPermissionResult(isGranted)
     }
 
+    // GÜNCELLENDİ: CameraHelper artık onPreparePhoto parametresi alıyor
     val cameraHelper = remember(context, viewModel, cameraLauncher, cameraPermissionLauncher) {
-        CameraHelper(context, viewModel, cameraLauncher, cameraPermissionLauncher).also {
+        CameraHelper(
+            context = context,
+            cameraLauncher = cameraLauncher,
+            permissionLauncher = cameraPermissionLauncher,
+            onPreparePhoto = viewModel::prepareCameraPhoto // ViewModel'daki fonksiyonu bağlıyoruz
+        ).also {
             viewModel.cameraHelperRef = it
         }
     }
@@ -88,6 +94,7 @@ fun AddTransactionScreen(
             .background(color = colorResource(R.color.background))
             .verticalScroll(rememberScrollState())
     ) {
+        // ... (Kalan UI kodları tamamen aynı, değişiklik yok)
         // Transaction Type Selection
         Row(
             modifier = modifier
