@@ -7,7 +7,6 @@ import android.content.Intent
 import androidx.core.app.NotificationCompat
 import androidx.hilt.work.HiltWorker
 import androidx.work.*
-import com.ahmetkaragunlu.financeai.MainActivity
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.roomdb.entitiy.ScheduledTransactionEntity
 import com.ahmetkaragunlu.financeai.roomdb.type.TransactionType
@@ -19,6 +18,7 @@ import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
+import androidx.core.net.toUri
 
 @HiltWorker
 class NotificationWorker @AssistedInject constructor(
@@ -46,6 +46,7 @@ class NotificationWorker @AssistedInject constructor(
             Result.failure()
         }
     }
+
     private suspend fun processSpecificTransaction(transactionId: Long) {
         val transaction = repository.getScheduledTransactionById(transactionId)
         transaction?.let {
@@ -80,6 +81,7 @@ class NotificationWorker @AssistedInject constructor(
 
         WorkManager.getInstance(appContext).enqueue(workRequest)
     }
+
     private fun scheduleDeleteExpiredTransaction(transactionId: Long) {
         val workRequest = OneTimeWorkRequestBuilder<DeleteExpiredNotification>()
             .setInitialDelay(24, TimeUnit.HOURS)
@@ -119,6 +121,7 @@ class NotificationWorker @AssistedInject constructor(
         }.timeInMillis
     }
 
+
     private fun showReminderNotification(transaction: ScheduledTransactionEntity) {
         val formattedAmount = transaction.amount.formatAsCurrency()
         val categoryName = transaction.category.name.replace("_", " ").lowercase()
@@ -145,6 +148,7 @@ class NotificationWorker @AssistedInject constructor(
                         )
             }
         }
+
         val confirmIntent = Intent(appContext, NotificationActionReceiver::class.java).apply {
             action = NotificationActionReceiver.ACTION_CONFIRM
             putExtra(FIRESTORE_ID_KEY, transaction.firestoreId)
@@ -155,6 +159,7 @@ class NotificationWorker @AssistedInject constructor(
             confirmIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+
         val cancelIntent = Intent(appContext, NotificationActionReceiver::class.java).apply {
             action = NotificationActionReceiver.ACTION_CANCEL
             putExtra(FIRESTORE_ID_KEY, transaction.firestoreId)
@@ -172,12 +177,14 @@ class NotificationWorker @AssistedInject constructor(
             cancelIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-
-        val mainIntent = Intent(appContext, MainActivity::class.java)
+        val deepLinkIntent = Intent(Intent.ACTION_VIEW).apply {
+            data = "financeai://main/schedule".toUri()
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
         val mainPendingIntent = PendingIntent.getActivity(
             appContext,
-            0,
-            mainIntent,
+            transaction.firestoreId.hashCode() + 30000,
+            deepLinkIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
@@ -187,7 +194,7 @@ class NotificationWorker @AssistedInject constructor(
             .setContentText(message)
             .setStyle(NotificationCompat.BigTextStyle().bigText(message))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setAutoCancel(false)
+            .setAutoCancel(true)
             .setOngoing(false)
             .setContentIntent(mainPendingIntent)
             .setDeleteIntent(deletePendingIntent)
@@ -232,11 +239,15 @@ class NotificationWorker @AssistedInject constructor(
                         )
             }
         }
-        val mainIntent = Intent(appContext, MainActivity::class.java)
+        val deepLinkIntent = Intent(Intent.ACTION_VIEW).apply {
+            data = "financeai://main/schedule".toUri()
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+
         val mainPendingIntent = PendingIntent.getActivity(
             appContext,
-            0,
-            mainIntent,
+            transaction.firestoreId.hashCode() + 40000,
+            deepLinkIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
