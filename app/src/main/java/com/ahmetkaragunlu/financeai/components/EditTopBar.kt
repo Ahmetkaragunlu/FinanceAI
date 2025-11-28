@@ -42,7 +42,7 @@ fun EditTopBar(
             if (currentRoute != Screens.HomeScreen.route) {
                 IconButton(
                     onClick = {
-                        navController.popBackStack()
+                        navController.navigateSingleTopClear(Screens.HomeScreen.route)
                     }
                 ) {
                     Icon(

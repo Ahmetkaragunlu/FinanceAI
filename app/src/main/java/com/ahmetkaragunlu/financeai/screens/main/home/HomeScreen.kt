@@ -32,6 +32,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.utils.ExpensePieChart
 import com.ahmetkaragunlu.financeai.viewmodel.HomeViewModel
@@ -41,7 +42,7 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.homeUiState.collectAsState()
+    val uiState by viewModel.homeUiState.collectAsStateWithLifecycle()
     val categoryExpenses by viewModel.lastMonthCategoryExpenses.collectAsState()
 
     BackHandler {}

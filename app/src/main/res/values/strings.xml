@@ -52,6 +52,9 @@
     <string name="date">Date</string>
     <string name="no_record_found">No record found</string>
     <string name="today">Today</string>
+    <string name="tomorrow">Tomorrow</string>
+    <string name="due_date_label">Last Day:</string>
+    <string name="is_transaction_completed">Transaction completed?</string>
     <string name="detail_screen">Detail Screen</string>
     <string name="scheduled_screen">Scheduled Screen</string>
     <string name="yesterday">Yesterday</string>
