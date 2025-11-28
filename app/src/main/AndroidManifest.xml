@@ -50,6 +50,7 @@
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
+            android:launchMode="singleTop"
             android:theme="@style/Theme.FinanceAI">
 
             <intent-filter>
@@ -65,6 +66,17 @@
                     android:scheme="financeai"
                     android:host="resetPassword"
                     tools:ignore="AppLinkUrlError" />
+            </intent-filter>
+
+            <!-- Schedule ekranı için deep link -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="financeai"
+                    android:host="main"
+                    android:pathPrefix="/schedule" />
             </intent-filter>
         </activity>
 

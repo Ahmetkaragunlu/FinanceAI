@@ -7,16 +7,16 @@ import com.ahmetkaragunlu.financeai.feature.authNavGraph
 import com.ahmetkaragunlu.financeai.navigation.Screens
 import com.ahmetkaragunlu.financeai.screens.splash.SplashScreen
 
-
 @Composable
 fun FinanceNavigation() {
     val navController = rememberNavController()
+
     NavHost(
         navController = navController,
         startDestination = Screens.SplashScreen.route
     ) {
         composable(Screens.SplashScreen.route) {
-            SplashScreen(navController=navController)
+            SplashScreen(navController = navController)
         }
 
         authNavGraph(navController = navController)
@@ -24,7 +24,5 @@ fun FinanceNavigation() {
         composable(route = Screens.MAIN_GRAPH.route) {
             MainNavGraphScaffold()
         }
-
-
     }
 }
