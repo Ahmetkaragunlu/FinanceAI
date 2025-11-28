@@ -5,16 +5,19 @@ import com.ahmetkaragunlu.financeai.R
 import java.text.SimpleDateFormat
 import java.util.*
 
-
 object DateFormatter {
 
-    // Thread-safe formatters (SimpleDateFormat is not thread-safe)
+    // Thread-safe formatters
     private val timeFormatter = ThreadLocal.withInitial {
         SimpleDateFormat("HH:mm", Locale.getDefault())
     }
 
     private val fullDateFormatter = ThreadLocal.withInitial {
         SimpleDateFormat("dd MMM, HH:mm", Locale.getDefault())
+    }
+
+    private val dateOnlyFormatter = ThreadLocal.withInitial {
+        SimpleDateFormat("dd MMM", Locale.getDefault())
     }
 
     // Cache for midnight calculations
@@ -42,6 +45,30 @@ object DateFormatter {
             }
         }
     }
+
+    fun formatScheduleDate(context: Context, timestamp: Long): String {
+        val now = System.currentTimeMillis()
+        val todayStart = getDayStart(now)
+
+        val calendar = Calendar.getInstance().apply {
+            timeInMillis = todayStart
+            add(Calendar.DAY_OF_YEAR, 1)
+        }
+        val tomorrowStart = calendar.timeInMillis
+        val targetStart = getDayStart(timestamp)
+        return when {
+            targetStart == todayStart -> context.getString(R.string.today)
+            targetStart == tomorrowStart -> {
+                try {
+                    context.getString(R.string.tomorrow)
+                } catch (e: Exception) {
+                    ""
+                }
+            }
+            else -> dateOnlyFormatter.get()!!.format(timestamp)
+        }
+    }
+
     private fun updateMidnightCache(now: Long) {
         cachedMidnightTimestamp = getDayStart(now)
         cachedTodayMidnight = cachedMidnightTimestamp
@@ -54,6 +81,7 @@ object DateFormatter {
             set(Calendar.MILLISECOND, 0)
         }.timeInMillis
     }
+
     private fun getDayStart(timestamp: Long): Long {
         return Calendar.getInstance().apply {
             timeInMillis = timestamp
@@ -63,6 +91,7 @@ object DateFormatter {
             set(Calendar.MILLISECOND, 0)
         }.timeInMillis
     }
+
     fun getDateRange(dateResId: Int): Pair<Long, Long> {
         return when (dateResId) {
             R.string.today -> getTodayRange()
@@ -84,6 +113,7 @@ object DateFormatter {
         val start = calendar.timeInMillis
         return Pair(start, end)
     }
+
     private fun getYesterdayRange(): Pair<Long, Long> {
         val calendar = Calendar.getInstance()
 
@@ -104,6 +134,7 @@ object DateFormatter {
 
         return Pair(start, end)
     }
+
     private fun getLastWeekRange(): Pair<Long, Long> {
         val calendar = Calendar.getInstance()
         val end = System.currentTimeMillis()
@@ -113,6 +144,7 @@ object DateFormatter {
 
         return Pair(start, end)
     }
+
     private fun getLastMonthRange(): Pair<Long, Long> {
         val calendar = Calendar.getInstance()
         val end = System.currentTimeMillis()
@@ -123,6 +155,12 @@ object DateFormatter {
         return Pair(start, end)
     }
 }
+
+
 fun Long.formatRelativeDate(context: Context): String {
     return DateFormatter.formatRelativeDate(context, this)
+}
+
+fun Long.formatScheduleDate(context: Context): String {
+    return DateFormatter.formatScheduleDate(context, this)
 }

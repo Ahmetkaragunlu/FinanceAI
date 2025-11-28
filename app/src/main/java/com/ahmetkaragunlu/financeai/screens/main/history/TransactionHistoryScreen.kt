@@ -22,6 +22,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.components.EditButton
@@ -37,7 +38,7 @@ fun TransactionHistoryScreen(
     viewModel: TransactionHistoryViewModel = hiltViewModel(),
     navController: NavHostController
 ) {
-    val transactions by viewModel.transactions.collectAsState()
+    val transactions by viewModel.transactions.collectAsStateWithLifecycle()
     Column(
         modifier = modifier
             .fillMaxSize()

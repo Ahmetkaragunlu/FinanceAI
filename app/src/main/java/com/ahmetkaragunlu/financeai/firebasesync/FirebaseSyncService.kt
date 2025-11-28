@@ -338,7 +338,6 @@ class FirebaseSyncService @Inject constructor(
 
                 handlePhotoDownloadAndInsert(doc, firestoreId, isScheduled)
             }
-
             DocumentChange.Type.MODIFIED -> {
                 if (isScheduled) {
                     val existing = localRepository.getScheduledTransactionByFirestoreId(firestoreId) ?: return
