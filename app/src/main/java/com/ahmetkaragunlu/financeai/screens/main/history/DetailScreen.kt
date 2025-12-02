@@ -19,6 +19,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -94,115 +95,129 @@ fun DetailScreen(
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Main Card
+            // Main Card with Gradient
             Card(
                 modifier = modifier
                     .widthIn(max = 450.dp)
                     .fillMaxWidth()
                     .padding(8.dp),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF404349))
+                colors = CardDefaults.cardColors(containerColor = Color.Transparent)
             ) {
-                Row(
-                    modifier = modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Surface(
-                        shape = CircleShape,
-                        color = Color.White.copy(alpha = 0.2f)
-                    ) {
-                        Icon(
-                            painter = painterResource(tx.category.toIconResId()),
-                            contentDescription = null,
-                            tint = Color.Unspecified,
-                        )
-                    }
-                    Spacer(modifier = modifier.width(16.dp))
-                    Column {
-                        Text(
-                            text = stringResource(tx.category.toResId()),
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        Text(
-                            text = tx.date.formatRelativeDate(context),
-                            color = Color.Gray,
-                            style = MaterialTheme.typography.labelSmall
-                        )
-                    }
-
-                    Spacer(modifier = modifier.weight(1f))
-
-                    Text(
-                        text = tx.amount.formatAsCurrency(),
-                        color = if (tx.transaction == TransactionType.INCOME) Color.Green else Color.Red
-                    )
-                }
-
-                // Optional Info Section
                 Column(
-                    modifier = modifier
+                    modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                        .background(
+                            brush = Brush.horizontalGradient(
+                                colors = listOf(
+                                    Color(0xFF3b4351),
+                                    Color(0xFF2d3139)
+                                )
+                            ),
+                            shape = RoundedCornerShape(16.dp)
+                        )
                 ) {
-                    if (tx.note.isNotBlank()) {
-                        Text(
-                            text = stringResource(R.string.note_with_value, tx.note),
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                    }
-
-                    if (tx.locationShort != null) {
-                        Text(
-                            text = stringResource(R.string.location_with_value, tx.locationShort),
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                    }
-
-                    // Photo Section
-                    if (tx.photoUri != null && File(tx.photoUri).exists()) {
-                        Spacer(modifier = modifier.height(8.dp))
-                        Card(
-                            modifier = modifier
-                                .fillMaxWidth()
-                                .height(180.dp)
-                                .clickable { viewModel.showPhotoZoomDialog = true },
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFF2D3748))
+                    Row(
+                        modifier = modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = Color.White.copy(alpha = 0.2f)
                         ) {
-                            Box(modifier = Modifier.fillMaxSize()) {
-                                Image(
-                                    painter = rememberAsyncImagePainter(File(tx.photoUri)),
-                                    contentDescription = stringResource(R.string.transaction_photo_desc),
-                                    modifier = modifier
-                                        .fillMaxSize()
-                                        .clip(RoundedCornerShape(12.dp)),
-                                    contentScale = ContentScale.Crop
-                                )
-                                Icon(
-                                    imageVector = Icons.Default.ZoomIn,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onPrimary,
-                                    modifier = Modifier
-                                        .align(Alignment.TopEnd)
-                                        .padding(8.dp)
-                                        .background(Color.Black.copy(alpha = 0.5f), CircleShape)
-                                        .padding(4.dp)
-                                )
-                            }
+                            Icon(
+                                painter = painterResource(tx.category.toIconResId()),
+                                contentDescription = null,
+                                tint = Color.Unspecified,
+                            )
                         }
-                    } else {
-                        OutlinedButton(
-                            onClick = { viewModel.showPhotoSourceSheet = true },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
-                        ) {
-                            Icon(Icons.Default.AddAPhoto, contentDescription = null)
-                            Spacer(Modifier.width(8.dp))
-                            Text(stringResource(R.string.add_photo))
+                        Spacer(modifier = modifier.width(16.dp))
+                        Column {
+                            Text(
+                                text = stringResource(tx.category.toResId()),
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Text(
+                                text = tx.date.formatRelativeDate(context),
+                                color = Color.Gray,
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
+
+                        Spacer(modifier = modifier.weight(1f))
+
+                        Text(
+                            text = tx.amount.formatAsCurrency(),
+                            color = if (tx.transaction == TransactionType.INCOME) Color.Green else Color.Red
+                        )
+                    }
+
+                    // Optional Info Section
+                    Column(
+                        modifier = modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        if (tx.note.isNotBlank()) {
+                            Text(
+                                text = stringResource(R.string.note_with_value, tx.note),
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
+
+                        if (tx.locationShort != null) {
+                            Text(
+                                text = stringResource(R.string.location_with_value, tx.locationShort),
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
+
+                        // Photo Section
+                        if (tx.photoUri != null && File(tx.photoUri).exists()) {
+                            Spacer(modifier = modifier.height(8.dp))
+                            Card(
+                                modifier = modifier
+                                    .fillMaxWidth()
+                                    .height(180.dp)
+                                    .clickable { viewModel.showPhotoZoomDialog = true },
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFF2D3748))
+                            ) {
+                                Box(modifier = Modifier.fillMaxSize()) {
+                                    Image(
+                                        painter = rememberAsyncImagePainter(File(tx.photoUri)),
+                                        contentDescription = stringResource(R.string.transaction_photo_desc),
+                                        modifier = modifier
+                                            .fillMaxSize()
+                                            .clip(RoundedCornerShape(12.dp)),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                    Icon(
+                                        imageVector = Icons.Default.ZoomIn,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onPrimary,
+                                        modifier = Modifier
+                                            .align(Alignment.TopEnd)
+                                            .padding(8.dp)
+                                            .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                                            .padding(4.dp)
+                                    )
+                                }
+                            }
+                        } else {
+                            OutlinedButton(
+                                onClick = { viewModel.showPhotoSourceSheet = true },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
+                            ) {
+                                Icon(Icons.Default.AddAPhoto, contentDescription = null)
+                                Spacer(Modifier.width(8.dp))
+                                Text(stringResource(R.string.add_photo))
+                            }
                         }
                     }
                 }
@@ -221,7 +236,7 @@ fun DetailScreen(
                     modifier = modifier
                         .weight(1f)
                         .height(50.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF404349)),
+                    colors = ButtonDefaults.buttonColors(containerColor =Color(0xFF353b45)),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
@@ -235,7 +250,7 @@ fun DetailScreen(
                     modifier = modifier
                         .weight(1f)
                         .height(50.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF404349)),
+                    colors = ButtonDefaults.buttonColors(containerColor =Color(0xFF353b45)),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(

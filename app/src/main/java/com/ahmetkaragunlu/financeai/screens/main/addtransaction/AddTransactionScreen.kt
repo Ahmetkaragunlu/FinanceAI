@@ -100,7 +100,7 @@ fun AddTransactionScreen(
                 onClick = { viewModel.updateTransactionType(TransactionType.EXPENSE) },
                 modifier = modifier.weight(1f),
                 colors = if (viewModel.selectedTransactionType == TransactionType.EXPENSE) {
-                    ButtonDefaults.buttonColors(containerColor = Color(0xFF404349))
+                    ButtonDefaults.buttonColors(containerColor = Color(0xFF353b45))
                 } else ButtonDefaults.outlinedButtonColors()
             ) {
                 Text(
@@ -113,7 +113,7 @@ fun AddTransactionScreen(
                 onClick = { viewModel.updateTransactionType(TransactionType.INCOME) },
                 modifier = Modifier.weight(1f),
                 colors = if (viewModel.selectedTransactionType == TransactionType.INCOME) {
-                    ButtonDefaults.buttonColors(containerColor = Color(0xFF404349))
+                    ButtonDefaults.buttonColors(containerColor = Color(0xFF353b45))
                 } else ButtonDefaults.outlinedButtonColors()
             ) {
                 Text(
@@ -187,7 +187,7 @@ fun AddTransactionScreen(
                             .fillMaxWidth()
                             .clickable { viewModel.toggleDropdown() },
                         colors = OutlinedTextFieldDefaults.colors(
-                            disabledContainerColor = Color(0xFF404349),
+                            disabledContainerColor = Color(0xFF353b45),
                             disabledTextColor = MaterialTheme.colorScheme.onPrimary
                         ),
                         enabled = false,
@@ -253,7 +253,7 @@ fun AddTransactionScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(Color(0xFF404349))
+                            .background(Color(0xFF353b45))
                     ) {
                         if (viewModel.selectedLocation == null) {
                             Row(
@@ -331,7 +331,7 @@ fun AddTransactionScreen(
                     Box(
                         modifier = modifier
                             .fillMaxSize()
-                            .background(Color(0xFF404349))
+                            .background(Color(0xFF353b45))
                     ) {
                         if (viewModel.selectedPhotoUri == null) {
                             Row(
@@ -402,7 +402,7 @@ fun AddTransactionScreen(
                     .widthIn(max = 450.dp)
                     .fillMaxWidth()
                     .height(50.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF404349)),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF353b45)),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text(

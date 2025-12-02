@@ -25,22 +25,22 @@
     <string name="enter_amount">Enter Amount</string>
     <string name="notification_channel_description">Reminders for scheduled transactions</string>
     <string name="expense">Expense</string>
-   <string name="category_food">Food</string>
-<string name="category_groceries">Groceries</string>
-<string name="category_coffee_tea">Coffee &amp; Tea</string>
-<string name="category_dessert_sweets">Dessert &amp; Sweets</string>
-<string name="category_transport">Transport</string>
-<string name="category_rent">Rent</string>
-<string name="category">Category</string>
-<string name="select_category"> Select Category</string>
-<string name="category_entertainment">Entertainment</string>
-<string name="category_health">Health</string>
-<string name="category_bills">Bills</string>
-<string name="category_clothing">Clothing</string>
-<string name="category_education">Education</string>
-<string name="category_home_decoration">Home Decoration</string>
-<string name="category_gifts_donation">Gifts &amp; Donation</string>
-<string name="category_other">Other</string>
+    <string name="category_food">Food</string>
+    <string name="category_groceries">Groceries</string>
+    <string name="category_coffee_tea">Coffee &amp; Tea</string>
+    <string name="category_dessert_sweets">Dessert &amp; Sweets</string>
+    <string name="category_transport">Transport</string>
+    <string name="category_rent">Rent</string>
+    <string name="category">Category</string>
+    <string name="select_category"> Select Category</string>
+    <string name="category_entertainment">Entertainment</string>
+    <string name="category_health">Health</string>
+    <string name="category_bills">Bills</string>
+    <string name="category_clothing">Clothing</string>
+    <string name="category_education">Education</string>
+    <string name="category_home_decoration">Home Decoration</string>
+    <string name="category_gifts_donation">Gifts &amp; Donation</string>
+    <string name="category_other">Other</string>
     <string name="this_months_summary">This Month’s Summary</string>
     <string name="ai_suggestion">AI Suggestion</string>
     <string name="expense_categories">Expense Categories</string>
@@ -168,6 +168,19 @@
     <string name="delete_failed">Deletion failed: %1$s</string>
     <string name="no_scheduled_transactions">No scheduled transactions found</string>
     <string name="confirm">Confirm</string>
+
+
+
+    <!-- Budget Analysis Screen -->
+    <string name="monthly_budget">Aylık Bütçe</string>
+    <string name="create">Oluştur</string>
+    <string name="not_set">Belirlenmedi</string>
+    <string name="set_monthly_budget_to_start">Aylık bütçe belirleyerek başla</string>
+    <string name="category_budgets">Kategori Bütçeleri</string>
+    <string name="no_budget_rules_yet">Henüz Bütçe Kuralı Yok</string>
+    <string name="create_first_budget_rule_description">İlk bütçe kuralını oluşturarak harcamalarını kategorilere göre takip etmeye başla.</string>
+    <string name="add_new_limit">Yeni Limit Ekle</string>
+    <string name="ai_welcome_message">Bütçe kuralları oluşturduğunda, harcamalarını analiz edip sana özel tavsiyeler vereceğim.</string>
 
 
 
