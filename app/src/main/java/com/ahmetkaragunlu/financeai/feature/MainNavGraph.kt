@@ -24,8 +24,8 @@ import com.ahmetkaragunlu.financeai.components.EditTopBar
 import com.ahmetkaragunlu.financeai.navigation.Screens
 import com.ahmetkaragunlu.financeai.navigation.bottomnavigation.BottomBar
 import com.ahmetkaragunlu.financeai.screens.main.AiChatScreen
-import com.ahmetkaragunlu.financeai.screens.main.AnalysisScreen
 import com.ahmetkaragunlu.financeai.screens.main.addtransaction.AddTransactionScreen
+import com.ahmetkaragunlu.financeai.screens.main.analysis.AnalysisScreen
 import com.ahmetkaragunlu.financeai.screens.main.history.DetailScreen
 import com.ahmetkaragunlu.financeai.screens.main.history.TransactionHistoryScreen
 import com.ahmetkaragunlu.financeai.screens.main.home.HomeScreen

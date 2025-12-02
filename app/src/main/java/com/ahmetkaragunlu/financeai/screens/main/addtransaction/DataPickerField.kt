@@ -38,7 +38,7 @@ fun DatePickerField(
         },
         modifier = modifier.clickable { onDateClick() },
         colors = OutlinedTextFieldDefaults.colors(
-            disabledContainerColor = Color(0xFF404349),
+            disabledContainerColor = Color(0xFF353b45),
             disabledTextColor = if(isRemenderEnabled) Color.White else Color.Gray,
         ),
         enabled = false,

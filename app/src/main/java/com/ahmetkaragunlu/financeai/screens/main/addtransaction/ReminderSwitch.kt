@@ -26,7 +26,7 @@ fun ReminderSwitch(
 ) {
     Row(
         modifier = modifier
-            .background(color = Color(0xFF404349), shape = RoundedCornerShape(12.dp))
+            .background(color = Color(0xFF353b45), shape = RoundedCornerShape(12.dp))
             .padding(16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically

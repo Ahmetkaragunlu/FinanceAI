@@ -20,16 +20,15 @@ object SignUpTextFieldStyles {
 object AddTransactionScreenTextFieldStyles {
     @Composable
     fun textFieldColors() = OutlinedTextFieldDefaults.colors(
-        focusedContainerColor = Color(0xFF404349),
-        unfocusedContainerColor = Color(0xFF404349),
+        focusedContainerColor = Color(0xFF353b45),
+        unfocusedContainerColor = Color(0xFF353b45),
         focusedPlaceholderColor = MaterialTheme.colorScheme.onPrimary,
         unfocusedPlaceholderColor = MaterialTheme.colorScheme.onPrimary,
         focusedTextColor = MaterialTheme.colorScheme.onPrimary,
         unfocusedTextColor = MaterialTheme.colorScheme.onPrimary,
-        focusedBorderColor = Color(0xFF404349),
-        unfocusedBorderColor = Color(0xFF404349),
+        focusedBorderColor = Color(0xFF353b45),
+        unfocusedBorderColor = Color(0xFF353b45),
         focusedLabelColor = MaterialTheme.colorScheme.onPrimary,
         unfocusedLabelColor = MaterialTheme.colorScheme.onPrimary,
-
     )
 }

@@ -10,10 +10,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
@@ -55,7 +55,7 @@ fun TransactionHistoryScreen(
                 onClick = { viewModel.isHistoryPage = true },
                 modifier = modifier.weight(1f),
                 colors = if (viewModel.isHistoryPage) {
-                    ButtonDefaults.buttonColors(containerColor = Color(0xFF404349))
+                    ButtonDefaults.buttonColors(containerColor = Color(0xFF353b45))
                 } else {
                     ButtonDefaults.outlinedButtonColors()
                 }
@@ -71,7 +71,7 @@ fun TransactionHistoryScreen(
                 onClick = { viewModel.isHistoryPage = false },
                 modifier = modifier.weight(1f),
                 colors = if (!viewModel.isHistoryPage) {
-                    ButtonDefaults.buttonColors(containerColor = Color(0xFF404349))
+                    ButtonDefaults.buttonColors(containerColor = Color(0xFF353b45))
                 } else {
                     ButtonDefaults.outlinedButtonColors()
                 }
@@ -218,11 +218,20 @@ private fun TransactionCard(
         },
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF404349))
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
     ) {
         Row(
             modifier = modifier
                 .fillMaxWidth()
+                .background(
+                    brush = Brush.horizontalGradient(
+                        colors = listOf(
+                            Color(0xFF3b4351),
+                            Color(0xFF2d3139)
+                        )
+                    ),
+                    shape = RoundedCornerShape(16.dp)
+                )
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -260,13 +269,14 @@ private fun TransactionCard(
 
             Text(
                 text = transaction.amount.formatAsCurrency(),
-                color = amountColor
+                color = amountColor,
             )
+            Spacer(modifier = modifier.width(8.dp))
 
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
                 contentDescription = null,
-                tint = Color.Gray
+                tint = Color.LightGray
             )
         }
     }

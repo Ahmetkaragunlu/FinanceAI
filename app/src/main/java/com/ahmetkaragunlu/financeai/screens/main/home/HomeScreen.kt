@@ -146,7 +146,7 @@ fun HomeScreen(
                     )
                     Text(
                         text = "Market harcamaların bütçeni yüzde 40 açtı. Tasarruf için tıkla",
-                        color = MaterialTheme.colorScheme.onPrimary,
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
                         style = MaterialTheme.typography.titleSmall
                     )
                 }
