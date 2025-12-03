@@ -154,7 +154,23 @@ object DateFormatter {
 
         return Pair(start, end)
     }
+    fun getCurrentMonthRange(): Pair<Long, Long> {
+        val calendar = Calendar.getInstance()
+
+        val end = System.currentTimeMillis()
+
+        calendar.set(Calendar.DAY_OF_MONTH, 1)
+        calendar.set(Calendar.HOUR_OF_DAY, 0)
+        calendar.set(Calendar.MINUTE, 0)
+        calendar.set(Calendar.SECOND, 0)
+        calendar.set(Calendar.MILLISECOND, 0)
+        val start = calendar.timeInMillis
+
+        return Pair(start, end)
+    }
+
 }
+
 
 
 fun Long.formatRelativeDate(context: Context): String {

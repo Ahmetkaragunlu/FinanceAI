@@ -183,5 +183,18 @@
     <string name="ai_welcome_message">Bütçe kuralları oluşturduğunda, harcamalarını analiz edip sana özel tavsiyeler vereceğim.</string>
 
 
+    <!-- Budget Analysis Screen - Filled State -->
+    <string name="november_budget">Kasım Bütçesi</string>
+    <string name="plus_income">+ GELİR</string>
+    <string name="minus_expense">- GİDER</string>
+    <string name="percent_spent">%1$s Harcandı</string>
+    <string name="attention_budget_exceeded">Dikkat! Bütçe Aşımı</string>
+    <string name="budget_warning_message">Eğlence bütçeni %10 oranında aştın. Bu ayki diğer harcamalarında dikkatli olmalısın!</string>
+    <string name="food_market">Gıda / Market</string>
+    <string name="entertainment_hobby">Eğlence / Hobi</string>
+    <string name="rent">Kira</string>
+    <string name="limit_with_value">Limit: %1$s</string>
+
+
 
 </resources>

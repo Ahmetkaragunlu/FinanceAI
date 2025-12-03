@@ -59,6 +59,14 @@ interface TransactionDao {
         endDate: Long
     ): Flow<List<CategoryExpense>>
 
+    @Query("""
+        SELECT category, SUM(amount) as totalAmount
+        FROM transaction_table
+        WHERE `transaction` = 'EXPENSE' AND date BETWEEN :startDate AND :endDate
+        GROUP BY category
+    """)
+    fun getCategoryExpensesByDateRange(startDate: Long, endDate: Long): Flow<List<CategoryExpense>>
+
     @Query("SELECT * FROM transaction_table WHERE firestoreId = :firestoreId LIMIT 1")
     suspend fun getTransactionByFirestoreId(firestoreId: String): TransactionEntity?
 

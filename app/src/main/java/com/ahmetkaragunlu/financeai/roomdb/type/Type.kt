@@ -1,6 +1,5 @@
 package com.ahmetkaragunlu.financeai.roomdb.type
 
-import com.ahmetkaragunlu.financeai.R
 
 enum class TransactionType {
     INCOME,
@@ -37,3 +36,9 @@ enum class CategoryType(val type: TransactionType) {
 
 }
 
+
+enum class BudgetType {
+    GENERAL_MONTHLY,
+    CATEGORY_AMOUNT,
+    CATEGORY_PERCENTAGE
+}
