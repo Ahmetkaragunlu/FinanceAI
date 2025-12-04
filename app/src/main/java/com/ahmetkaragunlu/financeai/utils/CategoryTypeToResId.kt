@@ -29,4 +29,5 @@ fun CategoryType.toResId(): Int {
         CategoryType.SALES_INCOME -> R.string.category_sales_income
         CategoryType.OTHER_INCOME -> R.string.category_other_income
     }
+
 }

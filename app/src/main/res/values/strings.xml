@@ -173,7 +173,6 @@
     <string name="budget_rule_exists_error">Bu kategori için zaten bir kural var.</string>
 
 
-
     <!-- Budget Analysis Screen -->
     <string name="monthly_budget">Aylık Bütçe</string>
     <string name="create">Oluştur</string>
@@ -198,6 +197,35 @@
     <string name="rent">Kira</string>
     <string name="limit_with_value">Limit: %1$s</string>
 
+
+    <string name="edit_budget_title">Bütçeyi Düzenle</string>
+    <string name="select_category_label">Kategori Seçin</string>
+    <string name="choose_placeholder">Seçiniz...</string>
+    <string name="percentage_label">Yüzde</string>
+    <string name="amount_label">Tutar</string>
+    <string name="currency_symbol">₺</string>
+    <string name="percent_symbol">%</string>
+
+    <string name="error_enter_percent">Lütfen bir yüzde girin</string>
+    <string name="error_enter_valid_amount">Lütfen geçerli bir tutar girin</string>
+    <string name="error_conflict_general">Genel bütçe için zaten bir plan var!</string>
+    <string name="error_conflict_category">Bu kategori için zaten bir plan var!</string>
+
+    <string name="budget_type_category">Kategori</string>
+    <string name="budget_type_percentage">Yüzde</string>
+    <string name="set_limit_label">Belirlenen Limit</string>
+    <string name="expense_format">Gider: -%1$s</string>
+    <string name="spent_percent_format">%%%1$d Harcandı</string>
+    <string name="limit_percent_format">Limit: %%%1$d (%2$s)</string>
+    <string name="limit_amount_format">Limit: %1$s</string>
+    <string name="spent_vs_limit_format">%1$s / %2$s</string>
+    <string name="percent_format">%%%1$d</string>
+    <string name="warning_budget_exceeded">Harcama limitinizi aştınız!</string>
+    <string name="warning_budget_near_end">Genel bütçenin sonuna yaklaştınız.</string>
+    <string name="warning_category_exceeded">%1$s limitini aştınız!</string>
+    <string name="warning_multiple_categories_exceeded">%1$d kategoride limit aşıldı!</string>
+    <string name="warning_budget_and_category_exceeded">Harcama limiti ve %1$s aşıldı!</string>
+    <string name="warning_budget_and_multiple_categories">Harcama limiti ve %1$d kategori aşıldı!</string>
 
 
 </resources>

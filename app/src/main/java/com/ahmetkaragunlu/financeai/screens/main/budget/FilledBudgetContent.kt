@@ -1,6 +1,5 @@
 package com.ahmetkaragunlu.financeai.screens.main.budget
 
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -21,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ahmetkaragunlu.financeai.R
+import com.ahmetkaragunlu.financeai.roomdb.type.CategoryType
 import com.ahmetkaragunlu.financeai.utils.formatAsCurrency
 import com.ahmetkaragunlu.financeai.utils.toIconResId
 import com.ahmetkaragunlu.financeai.utils.toResId
@@ -31,10 +31,7 @@ import com.ahmetkaragunlu.financeai.viewmodel.GeneralBudgetState
 @Composable
 fun FilledBudgetContent(
     uiState: BudgetUiState,
-    onAddLimitClick: () -> Unit,
-    onEditGeneralClick: (GeneralBudgetState) -> Unit,
-    onEditCategoryClick: (CategoryBudgetState) -> Unit,
-    onDeleteCategoryClick: (Int) -> Unit,
+    onEvent: (BudgetEvent) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -45,21 +42,29 @@ fun FilledBudgetContent(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(modifier = Modifier.height(16.dp))
-
-        uiState.generalBudgetState?.let { state ->
+        if (uiState.generalBudgetState != null) {
             GeneralBudgetCard(
-                state = state,
-                onEditClick = { onEditGeneralClick(state) }
+                state = uiState.generalBudgetState,
+                onEditClick = { onEvent(BudgetEvent.OnEditGeneralClick(uiState.generalBudgetState)) }
+            )
+        } else {
+            EmptyGeneralBudgetCard(
+                onCreateClick = { onEvent(BudgetEvent.OnCreateGeneralBudgetClick) }
             )
         }
-
         Spacer(modifier = Modifier.height(20.dp))
-
-        uiState.aiWarningMessage?.let { message ->
+        uiState.warningMessageResId?.let { resId ->
+            val message = if (uiState.warningMessageArgs.isNotEmpty()) {
+                val args = uiState.warningMessageArgs.map { arg ->
+                    if (arg is CategoryType) stringResource(arg.toResId()) else arg
+                }.toTypedArray()
+                stringResource(resId, *args)
+            } else {
+                stringResource(resId)
+            }
             WarningCard(message = message)
             Spacer(modifier = Modifier.height(24.dp))
         }
-
         Text(
             text = stringResource(R.string.category_budgets),
             style = MaterialTheme.typography.titleLarge,
@@ -69,20 +74,89 @@ fun FilledBudgetContent(
                 .widthIn(max = 450.dp)
                 .padding(start = 4.dp)
         )
-
         Spacer(modifier = Modifier.height(16.dp))
-
         CategoryBudgetList(
             categories = uiState.categoryBudgetStates,
-            onEditClick = onEditCategoryClick,
-            onDeleteClick = onDeleteCategoryClick
+            onEvent = onEvent
         )
-
         Spacer(modifier = Modifier.height(20.dp))
-
-        AddLimitButton(onClick = onAddLimitClick)
-
+        AddLimitButton(onClick = { onEvent(BudgetEvent.OnAddBudgetClick) })
         Spacer(modifier = Modifier.height(100.dp))
+    }
+}
+
+@Composable
+private fun EmptyGeneralBudgetCard(
+    onCreateClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .widthIn(max = 450.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    brush = Brush.linearGradient(
+                        colors = listOf(Color(0xFFb55ebf), Color(0xFF36a2cc))
+                    ),
+                    shape = RoundedCornerShape(20.dp)
+                )
+                .padding(24.dp)
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(R.string.monthly_budget),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Button(
+                        onClick = onCreateClick,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.White.copy(alpha = 0.2f)
+                        ),
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.edit),
+                            contentDescription = null,
+                            tint = Color.Unspecified,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = stringResource(R.string.create),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            fontSize = 13.sp
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(20.dp))
+                Text(
+                    text = stringResource(R.string.not_set),
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = stringResource(R.string.set_monthly_budget_to_start),
+                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
+                    style = MaterialTheme.typography.titleSmall
+                )
+            }
+        }
     }
 }
 
@@ -92,11 +166,10 @@ private fun GeneralBudgetCard(
     onEditClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val realPercentage =
-        if (state.limitAmount > 0) ((state.expenseAmount / state.limitAmount) * 100).toInt() else 0
+    val realPercentage = if (state.limitAmount > 0) ((state.expenseAmount / state.limitAmount) * 100).toInt() else 0
     val isOverBudget = state.remainingAmount < 0
 
-    val defaultTextColor = Color.White
+    val defaultTextColor = MaterialTheme.colorScheme.onPrimary
     val subTextColor = Color.White.copy(alpha = 0.7f)
     val expenseTextColor = if (isOverBudget) Color.Red else Color(0xFFEF5350)
     val percentageTextColor = if (isOverBudget) Color.Red else Color.White.copy(alpha = 0.9f)
@@ -129,7 +202,7 @@ private fun GeneralBudgetCard(
                     Text(
                         text = stringResource(R.string.this_month_budget),
                         style = MaterialTheme.typography.titleMedium,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onPrimary,
                         fontWeight = FontWeight.SemiBold
                     )
                     Button(
@@ -149,14 +222,12 @@ private fun GeneralBudgetCard(
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = stringResource(R.string.edit),
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onPrimary,
                             fontSize = 13.sp
                         )
                     }
                 }
-
                 Spacer(modifier = Modifier.height(20.dp))
-
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -164,7 +235,7 @@ private fun GeneralBudgetCard(
                 ) {
                     Column {
                         Text(
-                            text = "Belirlenen Limit",
+                            text = stringResource(R.string.set_limit_label),
                             style = MaterialTheme.typography.bodySmall,
                             color = subTextColor
                         )
@@ -200,21 +271,19 @@ private fun GeneralBudgetCard(
                         .fillMaxWidth()
                         .height(10.dp)
                 )
-
                 Spacer(modifier = Modifier.height(12.dp))
-
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "Gider: -${state.expenseAmount.formatAsCurrency()}",
+                        text = stringResource(R.string.expense_format, state.expenseAmount.formatAsCurrency()),
                         style = MaterialTheme.typography.titleMedium,
                         color = expenseTextColor,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "%$realPercentage Harcandı",
+                        text = stringResource(R.string.spent_percent_format, realPercentage),
                         style = MaterialTheme.typography.labelLarge,
                         color = percentageTextColor,
                         fontWeight = FontWeight.Bold
@@ -265,7 +334,7 @@ private fun WarningCard(
                     Text(
                         text = stringResource(R.string.attention_budget_exceeded),
                         style = MaterialTheme.typography.titleSmall,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onPrimary,
                         fontWeight = FontWeight.SemiBold
                     )
                     Spacer(modifier = Modifier.height(6.dp))
@@ -284,8 +353,7 @@ private fun WarningCard(
 @Composable
 private fun CategoryBudgetList(
     categories: List<CategoryBudgetState>,
-    onEditClick: (CategoryBudgetState) -> Unit,
-    onDeleteClick: (Int) -> Unit,
+    onEvent: (BudgetEvent) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -297,8 +365,8 @@ private fun CategoryBudgetList(
         categories.forEach { state ->
             CategoryBudgetCard(
                 state = state,
-                onEditClick = { onEditClick(state) },
-                onDeleteClick = { onDeleteClick(state.id) }
+                onEditClick = { onEvent(BudgetEvent.OnEditCategoryClick(state)) },
+                onDeleteClick = { onEvent(BudgetEvent.OnDeleteClick(state.id)) }
             )
         }
     }
@@ -318,9 +386,16 @@ private fun CategoryBudgetCard(
     }
 
     val limitText = if (state.limitPercentage != null && state.limitPercentage > 0) {
-        "Limit: %${state.limitPercentage.toInt()} (${state.limitAmount.formatAsCurrency()})"
+        stringResource(
+            R.string.limit_percent_format,
+            state.limitPercentage.toInt(),
+            state.limitAmount.formatAsCurrency()
+        )
     } else {
-        "Limit: ${state.limitAmount.formatAsCurrency()}"
+        stringResource(
+            R.string.limit_amount_format,
+            state.limitAmount.formatAsCurrency()
+        )
     }
 
     Card(
@@ -364,7 +439,7 @@ private fun CategoryBudgetCard(
                         Text(
                             text = stringResource(id = state.category.toResId()),
                             style = MaterialTheme.typography.titleMedium,
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onPrimary,
                             fontWeight = FontWeight.SemiBold
                         )
                         Spacer(modifier = Modifier.height(4.dp))
@@ -382,7 +457,7 @@ private fun CategoryBudgetCard(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Edit,
-                                contentDescription = "Düzenle",
+                                contentDescription = null,
                                 tint = Color.Gray.copy(alpha = 0.7f),
                                 modifier = Modifier.size(20.dp)
                             )
@@ -393,7 +468,7 @@ private fun CategoryBudgetCard(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Delete,
-                                contentDescription = "Sil",
+                                contentDescription = null,
                                 tint = Color.Gray.copy(alpha = 0.7f),
                                 modifier = Modifier.size(20.dp)
                             )
@@ -420,7 +495,11 @@ private fun CategoryBudgetCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "${state.spentAmount.formatAsCurrency()} / ${state.limitAmount.formatAsCurrency()}",
+                        text = stringResource(
+                            R.string.spent_vs_limit_format,
+                            state.spentAmount.formatAsCurrency(),
+                            state.limitAmount.formatAsCurrency()
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = Color.White.copy(alpha = 0.8f),
                         fontWeight = FontWeight.Medium
@@ -428,7 +507,7 @@ private fun CategoryBudgetCard(
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = "%${state.percentageUsed}",
+                            text = stringResource(R.string.percent_format, state.percentageUsed),
                             style = MaterialTheme.typography.labelLarge,
                             color = progressColor,
                             fontWeight = FontWeight.Bold

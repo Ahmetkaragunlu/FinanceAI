@@ -24,25 +24,27 @@ import com.ahmetkaragunlu.financeai.roomdb.type.CategoryType
 import com.ahmetkaragunlu.financeai.roomdb.type.TransactionType
 import com.ahmetkaragunlu.financeai.utils.FinanceDropdownMenu
 import com.ahmetkaragunlu.financeai.utils.toResId
-import com.ahmetkaragunlu.financeai.viewmodel.BudgetViewModel
+import com.ahmetkaragunlu.financeai.viewmodel.BudgetFormState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddBudgetBottomSheet(
-    viewModel: BudgetViewModel,
-    onDismiss: () -> Unit
+    formState: BudgetFormState,
+    isGeneralBudgetSet: Boolean,
+    onEvent: (BudgetEvent) -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val expenseCategories =
+        remember { CategoryType.entries.filter { it.type == TransactionType.EXPENSE } }
+    val isEditing = formState.editingId != 0
+    val isGeneralBudget = formState.selectedType == BudgetType.GENERAL_MONTHLY
 
-    val isEditing = viewModel.editingBudgetId != 0
-    val isGeneralBudget = viewModel.selectedType == BudgetType.GENERAL_MONTHLY
-
-    val expenseCategories = remember {
-        CategoryType.entries.filter { it.type == TransactionType.EXPENSE }
-    }
+    val primaryColor = Color(0xFF36a2cc)
+    val containerColor = Color(0xFF2A2D35)
+    val selectedColor = Color(0xFF404349)
 
     ModalBottomSheet(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { onEvent(BudgetEvent.OnDismissBottomSheet) },
         sheetState = sheetState,
         containerColor = colorResource(R.color.background),
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
@@ -50,56 +52,113 @@ fun AddBudgetBottomSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp)
-                .padding(bottom = 32.dp),
+                .padding(horizontal = 24.dp, vertical = 16.dp)
+                .padding(bottom = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = if (isEditing) "Bütçeyi Düzenle" else stringResource(R.string.add_new_limit),
+                text = if (isEditing) stringResource(R.string.edit_budget_title) else stringResource(
+                    R.string.add_new_limit
+                ),
                 style = MaterialTheme.typography.titleLarge,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onPrimary,
                 fontWeight = FontWeight.Bold
             )
-
             Spacer(modifier = Modifier.height(24.dp))
-
             if (!isGeneralBudget) {
                 BudgetTypeSelector(
-                    selectedType = viewModel.selectedType,
-                    isLocked = false,
-                    onTypeSelected = viewModel::updateSelectedType
+                    selectedType = formState.selectedType,
+                    onTypeSelected = { onEvent(BudgetEvent.OnTypeChange(it)) },
+                    containerColor = containerColor,
+                    selectedColor = selectedColor,
+                    isPercentageEnabled = isGeneralBudgetSet
                 )
                 Spacer(modifier = Modifier.height(24.dp))
-            }
-
-            if (viewModel.selectedType != BudgetType.GENERAL_MONTHLY) {
                 CategorySelector(
-                    selectedCategory = viewModel.selectedCategory,
+                    selectedCategory = formState.selectedCategory,
                     categories = expenseCategories,
-                    onCategorySelected = viewModel::updateSelectedCategory
+                    onCategorySelected = { onEvent(BudgetEvent.OnCategoryChange(it)) },
+                    errorResId = formState.categoryErrorResId
                 )
                 Spacer(modifier = Modifier.height(16.dp))
             }
-
-            if (viewModel.selectedType == BudgetType.CATEGORY_PERCENTAGE) {
-                PercentageInput(
-                    value = viewModel.inputPercentage,
+            if (formState.selectedType == BudgetType.CATEGORY_PERCENTAGE) {
+                FinanceInputTextField(
+                    value = formState.percentageInput,
                     onValueChange = {
-                        if (it.length <= 3) viewModel.updateInputPercentage(it.filter { char -> char.isDigit() })
-                    }
+                        if (it.length <= 3) onEvent(BudgetEvent.OnPercentageChange(it.filter { c -> c.isDigit() }))
+                    },
+                    label = stringResource(R.string.percentage_label),
+                    suffix = stringResource(R.string.percent_symbol),
+                    borderColor = primaryColor,
+                    errorResId = formState.amountErrorResId
                 )
             } else {
-                AmountInput(
-                    value = viewModel.inputAmount,
-                    onValueChange = viewModel::updateInputAmount
+                FinanceInputTextField(
+                    value = formState.amountInput,
+                    onValueChange = { onEvent(BudgetEvent.OnAmountChange(it)) },
+                    label = stringResource(R.string.amount_label),
+                    suffix = stringResource(R.string.currency_symbol),
+                    borderColor = primaryColor,
+                    errorResId = formState.amountErrorResId
                 )
             }
-
             Spacer(modifier = Modifier.height(32.dp))
+            Button(
+                onClick = { onEvent(BudgetEvent.OnSaveClick) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(54.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = selectedColor)
+            ) {
+                Text(
+                    text = stringResource(R.string.save),
+                    fontSize = 18.sp,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    }
+}
 
-            SaveButton(onClick = viewModel::addBudgetRule)
-
-            Spacer(modifier = Modifier.height(16.dp))
+@Composable
+private fun FinanceInputTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    suffix: String,
+    borderColor: Color,
+    errorResId: Int? = null,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            label = { Text(label) },
+            suffix = { Text(suffix) },
+            modifier = Modifier.fillMaxWidth(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            shape = RoundedCornerShape(12.dp),
+            isError = errorResId != null,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = MaterialTheme.colorScheme.onPrimary,
+                unfocusedTextColor = MaterialTheme.colorScheme.onPrimary,
+                focusedBorderColor = borderColor,
+                unfocusedBorderColor = Color.Gray,
+                errorBorderColor = Color.Red,
+                errorLabelColor = Color.Red
+            )
+        )
+        if (errorResId != null) {
+            Text(
+                text = stringResource(errorResId),
+                color = Color.Red,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(start = 8.dp, top = 4.dp)
+            )
         }
     }
 }
@@ -107,41 +166,44 @@ fun AddBudgetBottomSheet(
 @Composable
 private fun BudgetTypeSelector(
     selectedType: BudgetType,
-    isLocked: Boolean,
     onTypeSelected: (BudgetType) -> Unit,
-    modifier: Modifier = Modifier
+    containerColor: Color,
+    selectedColor: Color,
+    isPercentageEnabled: Boolean
 ) {
-    Box(modifier = modifier.alpha(if (isLocked) 0.5f else 1f)) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(45.dp)
-                .background(Color(0xFF2A2D35), RoundedCornerShape(12.dp))
-                .padding(4.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            val types = listOf(
-                Triple(BudgetType.CATEGORY_AMOUNT, "Kategori", "🏷️"),
-                Triple(BudgetType.CATEGORY_PERCENTAGE, "Yüzde %", "📊")
-            )
-            types.forEach { (type, label, _) ->
-                val isSelected = selectedType == type
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(if (isSelected) Color(0xFF404349) else Color.Transparent)
-                        .clickable { if (!isLocked) onTypeSelected(type) },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = label,
-                        color = if (isSelected) Color.White else Color.Gray,
-                        fontSize = 12.sp,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                    )
-                }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(45.dp)
+            .background(containerColor, RoundedCornerShape(12.dp))
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        val types = listOf(
+            Pair(BudgetType.CATEGORY_AMOUNT, stringResource(R.string.budget_type_category)),
+            Pair(BudgetType.CATEGORY_PERCENTAGE, stringResource(R.string.budget_type_percentage))
+        )
+
+        types.forEach { (type, label) ->
+            val isSelected = selectedType == type
+            val isEnabled = type != BudgetType.CATEGORY_PERCENTAGE || isPercentageEnabled
+
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(if (isSelected) selectedColor else Color.Transparent)
+                    .alpha(if (isEnabled) 1f else 0.5f)
+                    .clickable(enabled = isEnabled) { onTypeSelected(type) },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = label,
+                    color = if (isSelected) Color.White else Color.Gray,
+                    fontSize = 12.sp,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                )
             }
         }
     }
@@ -153,13 +215,13 @@ private fun CategorySelector(
     selectedCategory: CategoryType?,
     categories: List<CategoryType>,
     onCategorySelected: (CategoryType) -> Unit,
-    modifier: Modifier = Modifier
+    errorResId: Int? = null
 ) {
     var expanded by remember { mutableStateOf(false) }
 
-    Column(modifier = modifier.fillMaxWidth()) {
+    Column {
         Text(
-            text = "Kategori Seçin",
+            text = stringResource(R.string.select_category_label),
             color = Color.Gray,
             style = MaterialTheme.typography.labelMedium,
             modifier = Modifier.padding(bottom = 8.dp)
@@ -172,96 +234,38 @@ private fun CategorySelector(
             onOptionSelected = onCategorySelected,
             itemLabel = { stringResource(it.toResId()) },
             trigger = {
-                OutlinedTextField(
-                    value = selectedCategory?.let { stringResource(it.toResId()) } ?: "Seçiniz...",
-                    onValueChange = {},
-                    readOnly = true,
-                    trailingIcon = {
-                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { expanded = !expanded },
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = if (selectedCategory == null) Color.Gray else Color.White,
-                        focusedBorderColor = Color(0xFF36a2cc),
-                        unfocusedBorderColor = Color.Gray,
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent
+                Box(modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded }) {
+                    OutlinedTextField(
+                        value = selectedCategory?.let { stringResource(it.toResId()) }
+                            ?: stringResource(R.string.choose_placeholder),
+                        onValueChange = {},
+                        readOnly = true,
+                        enabled = false,
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        isError = errorResId != null,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            disabledTextColor = if (selectedCategory == null) Color.Gray else Color.White,
+                            disabledBorderColor = if (errorResId != null) Color.Red else Color.Gray,
+                            disabledLeadingIconColor = MaterialTheme.colorScheme.onPrimary,
+                            disabledTrailingIconColor = MaterialTheme.colorScheme.onPrimary,
+                            disabledLabelColor = MaterialTheme.colorScheme.onPrimary,
+                            errorBorderColor = Color.Red,
+                        )
                     )
-                )
+                }
             }
         )
-    }
-}
-
-@Composable
-private fun PercentageInput(
-    value: String,
-    onValueChange: (String) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text("Yüzde (%)") },
-        suffix = { Text("%") },
-        modifier = modifier.fillMaxWidth(),
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-        shape = RoundedCornerShape(12.dp),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedTextColor = Color.White,
-            unfocusedTextColor = Color.White,
-            focusedBorderColor = Color(0xFF36a2cc),
-            unfocusedBorderColor = Color.Gray
-        )
-    )
-}
-
-@Composable
-private fun AmountInput(
-    value: String,
-    onValueChange: (String) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text("Tutar (₺)") },
-        suffix = { Text("₺") },
-        modifier = modifier.fillMaxWidth(),
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-        shape = RoundedCornerShape(12.dp),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedTextColor = Color.White,
-            unfocusedTextColor = Color.White,
-            focusedBorderColor = Color(0xFF36a2cc),
-            unfocusedBorderColor = Color.Gray
-        )
-    )
-}
-
-@Composable
-private fun SaveButton(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Button(
-        onClick = onClick,
-        modifier = modifier
-            .fillMaxWidth()
-            .height(54.dp),
-        shape = RoundedCornerShape(14.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF404349)),
-        contentPadding = PaddingValues(0.dp)
-    ) {
-        Text(
-            text = stringResource(R.string.save),
-            fontSize = 18.sp,
-            color = Color.White,
-            fontWeight = FontWeight.Bold
-        )
+        if (errorResId != null) {
+            Text(
+                text = stringResource(errorResId),
+                color = Color.Red,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(start = 8.dp, top = 4.dp)
+            )
+        }
     }
 }

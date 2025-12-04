@@ -1,13 +1,34 @@
 package com.ahmetkaragunlu.financeai.viewmodel
-
 import com.ahmetkaragunlu.financeai.roomdb.type.BudgetType
 import com.ahmetkaragunlu.financeai.roomdb.type.CategoryType
+import androidx.annotation.StringRes
+
 
 data class BudgetUiState(
     val generalBudgetState: GeneralBudgetState? = null,
     val categoryBudgetStates: List<CategoryBudgetState> = emptyList(),
-    val aiWarningMessage: String? = null,
-    val isBudgetEmpty: Boolean = false
+    @StringRes val warningMessageResId: Int? = null,
+    val warningMessageArgs: List<Any> = emptyList(),
+    val isBudgetEmpty: Boolean = false,
+    val isLoading: Boolean = false
+)
+
+data class BudgetFormState(
+    val isVisible: Boolean = false,
+    val editingId: Int = 0,
+    val selectedType: BudgetType = BudgetType.CATEGORY_AMOUNT,
+    val amountInput: String = "",
+    val percentageInput: String = "",
+    val selectedCategory: CategoryType? = null,
+    val isConflictDialogOpen: Boolean = false,
+    @StringRes val conflictErrorResId: Int? = null,
+    @StringRes val amountErrorResId: Int? = null,
+    @StringRes val categoryErrorResId: Int? = null
+)
+
+data class DeleteDialogState(
+    val isVisible: Boolean = false,
+    val budgetIdToDelete: Int? = null
 )
 
 data class GeneralBudgetState(
