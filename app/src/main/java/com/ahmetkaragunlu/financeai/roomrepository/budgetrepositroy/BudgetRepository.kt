@@ -8,10 +8,9 @@ interface BudgetRepository {
     suspend fun insertBudget(budget: BudgetEntity): Long
     suspend fun updateBudget(budget: BudgetEntity)
     suspend fun deleteBudget(budget: BudgetEntity)
-
     fun getAllBudgets(): Flow<List<BudgetEntity>>
     fun getGeneralBudget(): Flow<BudgetEntity?>
-
     suspend fun getBudgetByCategory(category: CategoryType): BudgetEntity?
     fun getUnsyncedBudgets(): Flow<List<BudgetEntity>>
+    suspend fun getBudgetByFirestoreId(firestoreId: String): BudgetEntity?
 }

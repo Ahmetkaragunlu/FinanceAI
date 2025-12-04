@@ -1,4 +1,3 @@
-
 package com.ahmetkaragunlu.financeai.firebaserepo
 
 import com.ahmetkaragunlu.financeai.fcm.FCMTokenManager
@@ -23,12 +22,9 @@ class AuthRepositoryImpl @Inject constructor(
     private val firebaseSyncService: FirebaseSyncService,
     private val fcmTokenManager: FCMTokenManager
 ) : AuthRepository {
-
     override val currentUser get() = auth.currentUser
-
     override suspend fun signUp(email: String, password: String): AuthResult =
         auth.createUserWithEmailAndPassword(email, password).await()
-
     override suspend fun signIn(email: String, password: String): AuthResult =
         try {
             val result = auth.signInWithEmailAndPassword(email, password).await()

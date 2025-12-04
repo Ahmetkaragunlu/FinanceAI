@@ -29,4 +29,7 @@ interface BudgetDao {
     suspend fun deleteBudgetByFirestoreId(firestoreId: String)
     @Query("SELECT * FROM budget_table WHERE syncedToFirebase = 0")
     fun getUnsyncedBudgets(): Flow<List<BudgetEntity>>
+
+    @Query("SELECT * FROM budget_table WHERE firestoreId = :firestoreId LIMIT 1")
+    suspend fun getBudgetByFirestoreId(firestoreId: String): BudgetEntity?
 }
