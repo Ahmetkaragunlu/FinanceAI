@@ -25,7 +25,7 @@ import com.ahmetkaragunlu.financeai.navigation.Screens
 import com.ahmetkaragunlu.financeai.navigation.bottomnavigation.BottomBar
 import com.ahmetkaragunlu.financeai.screens.main.AiChatScreen
 import com.ahmetkaragunlu.financeai.screens.main.addtransaction.AddTransactionScreen
-import com.ahmetkaragunlu.financeai.screens.main.analysis.AnalysisScreen
+import com.ahmetkaragunlu.financeai.screens.main.budget.BudgetScreen
 import com.ahmetkaragunlu.financeai.screens.main.history.DetailScreen
 import com.ahmetkaragunlu.financeai.screens.main.history.TransactionHistoryScreen
 import com.ahmetkaragunlu.financeai.screens.main.home.HomeScreen
@@ -50,7 +50,7 @@ fun NavGraphBuilder.mainNavGraph(navController: NavHostController) {
         AiChatScreen()
     }
     composable(Screens.AnalysisScreen.route) {
-        AnalysisScreen()
+        BudgetScreen()
     }
     composable(route = Screens.AddTransaction.route) {
         AddTransactionScreen(navController = navController)
