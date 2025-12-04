@@ -18,11 +18,8 @@ class Converters {
     @TypeConverter
     fun toCategoryType(value: String): CategoryType = CategoryType.valueOf(value)
 
-
     @TypeConverter
-    fun fromBudgetType(value: BudgetType): String {
-        return value.name
-    }
+    fun fromBudgetType(value: BudgetType): String = value.name
 
     @TypeConverter
     fun toBudgetType(value: String): BudgetType {

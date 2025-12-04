@@ -42,7 +42,7 @@ val bottomNavItem = listOf(
         icon = BottomIcon.Drawable(R.drawable.ai_icon),
         screen = Screens.AiChatScreen.route ),
     BottomNavItem(
-        label = R.string.analysis,
+        label = R.string.budget,
         icon = BottomIcon.Vector(Icons.Default.Analytics),
         screen = Screens.AnalysisScreen.route
     )

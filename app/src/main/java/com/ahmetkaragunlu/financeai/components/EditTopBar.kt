@@ -64,7 +64,7 @@ private fun topBarTitleForRoute(currentRoute: String): Int {
         Screens.HomeScreen.route -> R.string.welcome
         Screens.TRANSACTION_HISTORY_SCREEN.route -> R.string.history_and_scheduled
         Screens.AiChatScreen.route -> R.string.ai_assistant
-        Screens.AnalysisScreen.route -> R.string.analysis
+        Screens.AnalysisScreen.route -> R.string.budget
         Screens.AddTransaction.route -> R.string.add
         Screens.DetailScreen.route -> R.string.detail_screen
         else -> R.string.welcome

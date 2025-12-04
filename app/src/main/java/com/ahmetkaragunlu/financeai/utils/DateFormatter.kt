@@ -157,14 +157,18 @@ object DateFormatter {
     fun getCurrentMonthRange(): Pair<Long, Long> {
         val calendar = Calendar.getInstance()
 
-        val end = System.currentTimeMillis()
-
+        // Başlangıç: Ayın 1'i, Saat 00:00:00
         calendar.set(Calendar.DAY_OF_MONTH, 1)
         calendar.set(Calendar.HOUR_OF_DAY, 0)
         calendar.set(Calendar.MINUTE, 0)
         calendar.set(Calendar.SECOND, 0)
         calendar.set(Calendar.MILLISECOND, 0)
         val start = calendar.timeInMillis
+
+        // Bitiş: Gelecek ayın başına git, 1 milisaniye geri gel (Ayın sonu 23:59:59)
+        calendar.add(Calendar.MONTH, 1)
+        calendar.add(Calendar.MILLISECOND, -1)
+        val end = calendar.timeInMillis
 
         return Pair(start, end)
     }

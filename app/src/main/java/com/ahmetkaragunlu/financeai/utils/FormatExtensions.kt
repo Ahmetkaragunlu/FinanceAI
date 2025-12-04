@@ -9,6 +9,10 @@ import java.util.Locale
 fun Double.formatAsCurrency(): String {
     val systemLocale = Locale.getDefault()
     val formatter = NumberFormat.getCurrencyInstance(systemLocale)
+    if (this % 1.0 == 0.0) {
+        formatter.maximumFractionDigits = 0
+    }
+
     return formatter.format(this)
 }
 

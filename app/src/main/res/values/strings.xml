@@ -7,7 +7,7 @@
     <string name="new_password">New Password</string>
     <string name="confirm_password">Confirm Password</string>
     <string name="email">Email</string>
-    <string name="analysis">Analysis</string>
+    <string name="budget">Budget</string>
     <string name="error_lastName">Must be at least 2 characters long</string>
     <string name="error_email">Enter a valid email address</string>
     <string name="error_password">Password must be at least 6 digits long</string>
@@ -47,6 +47,7 @@
     <string name="remaining_budget">Remaining Budget</string>
     <string name="ai_assistant">AI Assistant</string>
     <string name="history">History</string>
+    <string name="this_month_budget">This Month\'s Budget</string>
     <string name="history_and_scheduled">History and Scheduled</string>
     <string name="error_select_type_first">Please select the transaction type first</string>
     <string name="date">Date</string>
@@ -55,7 +56,7 @@
     <string name="tomorrow">Tomorrow</string>
     <string name="due_date_label">Last Day:</string>
     <string name="is_transaction_completed">Transaction completed?</string>
-    <string name="detail_screen">Detail Screen</string>
+    <string name="detail_screen">Details</string>
     <string name="scheduled_screen">Scheduled Screen</string>
     <string name="yesterday">Yesterday</string>
     <string name="last_week">Last Week</string>
@@ -168,6 +169,8 @@
     <string name="delete_failed">Deletion failed: %1$s</string>
     <string name="no_scheduled_transactions">No scheduled transactions found</string>
     <string name="confirm">Confirm</string>
+    <string name="warning">Uyarı</string>
+    <string name="budget_rule_exists_error">Bu kategori için zaten bir kural var.</string>
 
 
 
