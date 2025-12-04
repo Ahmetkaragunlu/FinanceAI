@@ -15,6 +15,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineDispatcher
 import javax.inject.Singleton
 
 
@@ -49,9 +50,10 @@ object RoomModule {
     @Provides
     @Singleton
     fun provideBudgetRepository(
-        budgetDao: BudgetDao
+        budgetDao: BudgetDao,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher
     ): BudgetRepository {
-        return BudgetRepositoryImpl(budgetDao)
+        return BudgetRepositoryImpl(budgetDao, ioDispatcher)
     }
     @Provides
     @Singleton
@@ -63,8 +65,9 @@ object RoomModule {
     @Singleton
     fun provideFinanceRepository(
         transactionDao: TransactionDao,
-        scheduledTransactionDao: ScheduledTransactionDao
+        scheduledTransactionDao: ScheduledTransactionDao,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher
     ): FinanceRepository {
-        return FinanceRepositoryImpl(transactionDao, scheduledTransactionDao)
+        return FinanceRepositoryImpl(transactionDao, scheduledTransactionDao,ioDispatcher)
     }
 }

@@ -3,6 +3,7 @@ package com.ahmetkaragunlu.financeai.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ahmetkaragunlu.financeai.R
+import com.ahmetkaragunlu.financeai.firebasesync.FirebaseSyncService
 import com.ahmetkaragunlu.financeai.roomdb.entitiy.BudgetEntity
 import com.ahmetkaragunlu.financeai.roomdb.type.BudgetType
 import com.ahmetkaragunlu.financeai.roomdb.type.CategoryType
@@ -20,15 +21,14 @@ import javax.inject.Inject
 @HiltViewModel
 class BudgetViewModel @Inject constructor(
     private val budgetRepository: BudgetRepository,
-    private val financeRepository: FinanceRepository
+    private val financeRepository: FinanceRepository,
+    private val firebaseSyncService: FirebaseSyncService
 ) : ViewModel() {
     private val currentMonthRange = DateFormatter.getCurrentMonthRange()
     private val _formState = MutableStateFlow(BudgetFormState())
     val formState = _formState.asStateFlow()
-
     private val _deleteDialogState = MutableStateFlow(DeleteDialogState())
     val deleteDialogState = _deleteDialogState.asStateFlow()
-
     private val budgetRulesFlow = budgetRepository.getAllBudgets()
     private val totalIncomeFlow = financeRepository.getTotalIncomeByDateRange(
         currentMonthRange.first, currentMonthRange.second
@@ -136,7 +136,6 @@ class BudgetViewModel @Inject constructor(
                 hasError = true
             }
         }
-
         if (!hasError) {
             saveBudgetRule()
         }
@@ -147,7 +146,6 @@ class BudgetViewModel @Inject constructor(
             val currentState = _formState.value
             val amount = currentState.amountInput.toDoubleOrNull() ?: 0.0
             val percentage = currentState.percentageInput.toDoubleOrNull()
-
             if (checkConflict(currentState)) {
                 val errorRes = if (currentState.selectedType == BudgetType.GENERAL_MONTHLY)
                     R.string.error_conflict_general
@@ -160,16 +158,32 @@ class BudgetViewModel @Inject constructor(
                     )
                 }
             } else {
+                var firestoreId = ""
+                if (currentState.editingId != 0) {
+                    val existingRules =
+                        budgetRepository.getAllBudgets().firstOrNull() ?: emptyList()
+                    val existingRule = existingRules.find { it.id == currentState.editingId }
+                    firestoreId = existingRule?.firestoreId ?: ""
+                }
+                if (firestoreId.isEmpty()) {
+                    firestoreId = firebaseSyncService.getNewBudgetId()
+                }
                 val entity = BudgetEntity(
                     id = currentState.editingId,
                     budgetType = currentState.selectedType,
                     amount = amount,
                     category = currentState.selectedCategory,
                     limitPercentage = percentage,
-                    firestoreId = "",
+                    firestoreId = firestoreId,
                     syncedToFirebase = false
                 )
                 budgetRepository.insertBudget(entity)
+                launch {
+                    firebaseSyncService.syncBudgetToFirebase(entity).onSuccess {
+                        budgetRepository.updateBudget(entity.copy(syncedToFirebase = true))
+                    }
+                }
+
                 _formState.update { it.copy(isVisible = false, isConflictDialogOpen = false) }
             }
         }
@@ -223,7 +237,18 @@ class BudgetViewModel @Inject constructor(
         viewModelScope.launch {
             _deleteDialogState.value.budgetIdToDelete?.let { id ->
                 val rules = budgetRepository.getAllBudgets().firstOrNull() ?: emptyList()
-                rules.find { it.id == id }?.let { budgetRepository.deleteBudget(it) }
+                val budgetToDelete = rules.find { it.id == id }
+
+                budgetToDelete?.let { budget ->
+                    val firestoreId = budget.firestoreId
+                    budgetRepository.deleteBudget(budget)
+
+                    if (firestoreId.isNotEmpty()) {
+                        launch {
+                            firebaseSyncService.deleteBudgetFromFirebase(firestoreId)
+                        }
+                    }
+                }
             }
             _deleteDialogState.update { it.copy(isVisible = false, budgetIdToDelete = null) }
         }
@@ -236,7 +261,6 @@ class BudgetViewModel @Inject constructor(
         categoryExpenses: List<com.ahmetkaragunlu.financeai.roommodel.CategoryExpense>
     ): BudgetUiState {
         val generalRule = rules.find { it.budgetType == BudgetType.GENERAL_MONTHLY }
-
         val generalBudgetState = generalRule?.let { rule ->
             val limit = rule.amount
             val spent = totalExpense
@@ -251,7 +275,6 @@ class BudgetViewModel @Inject constructor(
                 expenseAmount = spent
             )
         }
-
         val categoryBudgetStates = rules.filter { it.budgetType != BudgetType.GENERAL_MONTHLY }
             .map { rule ->
                 val categoryName = rule.category?.name

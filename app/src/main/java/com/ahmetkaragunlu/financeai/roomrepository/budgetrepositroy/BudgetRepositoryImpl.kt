@@ -1,16 +1,18 @@
 package com.ahmetkaragunlu.financeai.roomrepository.budgetrepositroy
 
+import com.ahmetkaragunlu.financeai.di.module.IoDispatcher
 import com.ahmetkaragunlu.financeai.roomdb.dao.BudgetDao
 import com.ahmetkaragunlu.financeai.roomdb.entitiy.BudgetEntity
 import com.ahmetkaragunlu.financeai.roomdb.type.CategoryType
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOn
 import javax.inject.Inject
 
 class BudgetRepositoryImpl @Inject constructor(
-    private val budgetDao: BudgetDao
+    private val budgetDao: BudgetDao,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) : BudgetRepository {
 
     override suspend fun insertBudget(budget: BudgetEntity): Long =
@@ -25,12 +27,12 @@ class BudgetRepositoryImpl @Inject constructor(
     override fun getAllBudgets(): Flow<List<BudgetEntity>> =
         budgetDao.getAllBudgets()
             .distinctUntilChanged()
-            .flowOn(Dispatchers.IO)
+            .flowOn(ioDispatcher)
 
     override fun getGeneralBudget(): Flow<BudgetEntity?> =
         budgetDao.getGeneralBudget()
             .distinctUntilChanged()
-            .flowOn(Dispatchers.IO)
+            .flowOn(ioDispatcher)
 
     override suspend fun getBudgetByCategory(category: CategoryType): BudgetEntity? =
         budgetDao.getBudgetByCategory(category)
@@ -38,5 +40,8 @@ class BudgetRepositoryImpl @Inject constructor(
     override fun getUnsyncedBudgets(): Flow<List<BudgetEntity>> =
         budgetDao.getUnsyncedBudgets()
             .distinctUntilChanged()
-            .flowOn(Dispatchers.IO)
+            .flowOn(ioDispatcher)
+
+    override suspend fun getBudgetByFirestoreId(firestoreId: String): BudgetEntity? =
+        budgetDao.getBudgetByFirestoreId(firestoreId)
 }

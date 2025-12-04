@@ -19,7 +19,7 @@ import com.ahmetkaragunlu.financeai.roomdb.entitiy.TransactionEntity
         ScheduledTransactionEntity::class,
         BudgetEntity::class
                ],
-    version = 11,
+    version = 12,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

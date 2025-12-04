@@ -1,5 +1,6 @@
 package com.ahmetkaragunlu.financeai.roomrepository.financerepository
 
+import com.ahmetkaragunlu.financeai.di.module.IoDispatcher
 import com.ahmetkaragunlu.financeai.roomdb.dao.ScheduledTransactionDao
 import com.ahmetkaragunlu.financeai.roomdb.dao.TransactionDao
 import com.ahmetkaragunlu.financeai.roomdb.entitiy.ScheduledTransactionEntity
@@ -7,6 +8,7 @@ import com.ahmetkaragunlu.financeai.roomdb.entitiy.TransactionEntity
 import com.ahmetkaragunlu.financeai.roomdb.type.CategoryType
 import com.ahmetkaragunlu.financeai.roomdb.type.TransactionType
 import com.ahmetkaragunlu.financeai.roommodel.CategoryExpense
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -15,7 +17,8 @@ import javax.inject.Inject
 
 class FinanceRepositoryImpl @Inject constructor(
     private val transactionDao: TransactionDao,
-    private val scheduledTransactionDao: ScheduledTransactionDao
+    private val scheduledTransactionDao: ScheduledTransactionDao,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) : FinanceRepository {
 
     // Transaction
@@ -35,7 +38,7 @@ class FinanceRepositoryImpl @Inject constructor(
     override fun getAllTransactions(): Flow<List<TransactionEntity>> =
         transactionDao.getAllTransactions()
             .distinctUntilChanged()
-            .flowOn(Dispatchers.IO)
+            .flowOn(ioDispatcher)
 
 
     override fun getTransactionsByTypeAndDate(
@@ -45,12 +48,12 @@ class FinanceRepositoryImpl @Inject constructor(
     ): Flow<List<TransactionEntity>> =
         transactionDao.getTransactionsByTypeAndDate(transactionType, startDate, endDate)
             .distinctUntilChanged()
-            .flowOn(Dispatchers.IO)
+            .flowOn(ioDispatcher)
 
     override fun getAllTransactionsByDateRange(startDate: Long, endDate: Long): Flow<List<TransactionEntity>> =
         transactionDao.getAllTransactionsByDateRange(startDate, endDate)
             .distinctUntilChanged()
-            .flowOn(Dispatchers.IO)
+            .flowOn(ioDispatcher)
 
     override fun getTransactionsByCategoryAndDate(
         category: CategoryType,
@@ -59,22 +62,22 @@ class FinanceRepositoryImpl @Inject constructor(
     ): Flow<List<TransactionEntity>> =
         transactionDao.getTransactionsByCategoryAndDate(category, startDate, endDate)
             .distinctUntilChanged()
-            .flowOn(Dispatchers.IO)
+            .flowOn(ioDispatcher)
 
     override fun getTotalIncomeByDateRange(startDate: Long, endDate: Long): Flow<Double?> =
         transactionDao.getTotalIncomeByDateRange(startDate, endDate)
             .distinctUntilChanged()
-            .flowOn(Dispatchers.IO)
+            .flowOn(ioDispatcher)
 
     override fun getTotalExpenseByDateRange(startDate: Long, endDate: Long): Flow<Double?> =
         transactionDao.getTotalExpenseByDateRange(startDate, endDate)
             .distinctUntilChanged()
-            .flowOn(Dispatchers.IO)
+            .flowOn(ioDispatcher)
 
     override fun getTransactionById(id: Int): Flow<TransactionEntity?> =
         transactionDao.getTransactionById(id)
             .distinctUntilChanged()
-            .flowOn(Dispatchers.IO)
+            .flowOn(ioDispatcher)
 
     override fun getCategoryByTypeAndDateRange(
         transactionType: TransactionType,
@@ -83,7 +86,7 @@ class FinanceRepositoryImpl @Inject constructor(
     ): Flow<List<CategoryExpense>> =
         transactionDao.getCategoryByTypeAndDateRange(transactionType, startDate, endDate)
             .distinctUntilChanged()
-            .flowOn(Dispatchers.IO)
+            .flowOn(ioDispatcher)
 
     override suspend fun getTransactionByFirestoreId(firestoreId: String): TransactionEntity? =
         transactionDao.getTransactionByFirestoreId(firestoreId)
@@ -91,7 +94,7 @@ class FinanceRepositoryImpl @Inject constructor(
     override fun getUnsyncedTransactions(): Flow<List<TransactionEntity>> =
         transactionDao.getUnsyncedTransactions()
             .distinctUntilChanged()
-            .flowOn(Dispatchers.IO)
+            .flowOn(ioDispatcher)
 
     // Scheduled Transaction
     override suspend fun insertScheduledTransaction(transaction: ScheduledTransactionEntity): Long =
@@ -106,12 +109,12 @@ class FinanceRepositoryImpl @Inject constructor(
     override fun getAllScheduledTransactions(): Flow<List<ScheduledTransactionEntity>> =
         scheduledTransactionDao.getAllScheduledTransactions()
             .distinctUntilChanged()
-            .flowOn(Dispatchers.IO)
+            .flowOn(ioDispatcher)
 
     override fun getPendingScheduledTransactions(currentTime: Long): Flow<List<ScheduledTransactionEntity>> =
         scheduledTransactionDao.getPendingScheduledTransactions(currentTime)
             .distinctUntilChanged()
-            .flowOn(Dispatchers.IO)
+            .flowOn(ioDispatcher)
 
     override suspend fun getScheduledTransactionByFirestoreId(firestoreId: String): ScheduledTransactionEntity? =
         scheduledTransactionDao.getScheduledTransactionByFirestoreId(firestoreId)
@@ -125,5 +128,5 @@ class FinanceRepositoryImpl @Inject constructor(
     override fun getUnsyncedScheduledTransactions(): Flow<List<ScheduledTransactionEntity>> =
         scheduledTransactionDao.getUnsyncedScheduledTransactions()
             .distinctUntilChanged()
-            .flowOn(Dispatchers.IO)
+            .flowOn(ioDispatcher)
 }
