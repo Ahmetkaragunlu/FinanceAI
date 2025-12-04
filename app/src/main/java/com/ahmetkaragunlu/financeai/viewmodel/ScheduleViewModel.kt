@@ -15,6 +15,7 @@ import com.ahmetkaragunlu.financeai.roomrepository.financerepository.FinanceRepo
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -27,7 +28,7 @@ class ScheduleViewModel @Inject constructor(
 ) : ViewModel() {
     val scheduledTransactions: StateFlow<List<ScheduledTransactionEntity>> =
         repository.getAllScheduledTransactions()
-            .stateIn(
+            .distinctUntilChanged().stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5000),
                 initialValue = emptyList()

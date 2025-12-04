@@ -42,14 +42,11 @@ fun BudgetScreen(
                 onEvent = viewModel::onEvent
             )
         }
-
         if (formState.isVisible) {
-            // Genel bütçe limiti var mı ve 0'dan büyük mü kontrolü
             val isGeneralBudgetSet = (uiState.generalBudgetState?.limitAmount ?: 0.0) > 0
-
             AddBudgetBottomSheet(
                 formState = formState,
-                isGeneralBudgetSet = isGeneralBudgetSet, // Yeni parametre
+                isGeneralBudgetSet = isGeneralBudgetSet,
                 onEvent = viewModel::onEvent
             )
         }
@@ -65,7 +62,7 @@ fun BudgetScreen(
                 },
                 dismissButton = {
                     TextButton(onClick = { viewModel.onEvent(BudgetEvent.OnDismissDeleteDialog) }) {
-                        Text(stringResource(R.string.cancel), color = Color.White)
+                        Text(stringResource(R.string.cancel), color = Color.Gray)
                     }
                 },
                 onDismissRequest = { viewModel.onEvent(BudgetEvent.OnDismissDeleteDialog) }
@@ -79,7 +76,7 @@ fun BudgetScreen(
                 text = formState.conflictErrorResId ?: R.string.budget_rule_exists_error,
                 confirmButton = {
                     TextButton(onClick = { viewModel.onEvent(BudgetEvent.OnDismissConflictDialog) }) {
-                        Text(stringResource(R.string.ok), color = Color.White)
+                        Text(stringResource(R.string.ok), color = Color.Gray)
                     }
                 }
             )

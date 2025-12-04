@@ -17,6 +17,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
@@ -25,7 +26,6 @@ import javax.inject.Inject
 class TransactionHistoryViewModel @Inject constructor(
     private val repository: FinanceRepository
 ) : ViewModel() {
-
     var isHistoryPage by mutableStateOf(true)
 
     // Filter states
@@ -88,7 +88,7 @@ class TransactionHistoryViewModel @Inject constructor(
                     else -> repository.getAllTransactionsByDateRange(startDate, endDate)
                 }
             }
-        }.stateIn(
+        }.distinctUntilChanged().stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
