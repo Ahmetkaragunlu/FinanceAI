@@ -24,6 +24,7 @@ class BudgetViewModel @Inject constructor(
     private val financeRepository: FinanceRepository,
     private val firebaseSyncService: FirebaseSyncService
 ) : ViewModel() {
+
     private val currentMonthRange = DateFormatter.getCurrentMonthRange()
     private val _formState = MutableStateFlow(BudgetFormState())
     val formState = _formState.asStateFlow()
@@ -52,7 +53,7 @@ class BudgetViewModel @Inject constructor(
         } else {
             calculateBudgetState(rules, totalIncome ?: 0.0, totalExpense ?: 0.0, categoryExpenses)
         }
-    }.debounce(300).distinctUntilChanged().stateIn(
+    }.distinctUntilChanged().stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = BudgetUiState(isLoading = true)

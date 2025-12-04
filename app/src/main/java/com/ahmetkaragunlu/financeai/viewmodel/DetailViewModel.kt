@@ -34,6 +34,7 @@ class DetailViewModel @Inject constructor(
 
     private val transactionId: Int = savedStateHandle.get<Int>("transactionId") ?: 0
     val transaction: StateFlow<TransactionEntity?> = repository.getTransactionById(transactionId)
+        .distinctUntilChanged()
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),

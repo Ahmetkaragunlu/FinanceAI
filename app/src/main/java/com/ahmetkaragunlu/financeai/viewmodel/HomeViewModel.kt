@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import java.text.NumberFormat
@@ -32,6 +33,7 @@ class HomeViewModel @Inject constructor(
 
     private fun Flow<Double?>.toFormattedCurrency(): StateFlow<String> =
         this.map { currencyFormat.format(it ?: 0.0) }
+            .distinctUntilChanged()
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5_000),
@@ -51,7 +53,7 @@ class HomeViewModel @Inject constructor(
             repository.getTotalExpenseByDateRange(lastMonthDateRange.first, lastMonthDateRange.second)
         ) { income, expense ->
             (income ?: 0.0) - (expense ?: 0.0)
-        }.stateIn(
+        }.distinctUntilChanged().stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = 0.0
@@ -74,7 +76,7 @@ class HomeViewModel @Inject constructor(
             } else {
                 0.0
             }
-        }.stateIn(
+        }.distinctUntilChanged().stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = 0.0
@@ -95,7 +97,7 @@ class HomeViewModel @Inject constructor(
             remainingBalanceFormatted = balanceFormatted,
             spendingPercentage = percentage
         )
-    }.stateIn(
+    }.distinctUntilChanged().stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = HomeUiState()
@@ -106,7 +108,7 @@ class HomeViewModel @Inject constructor(
             transactionType = TransactionType.EXPENSE,
             startDate = lastMonthDateRange.first,
             endDate = lastMonthDateRange.second
-        ).stateIn(
+        ).distinctUntilChanged().stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = emptyList()
