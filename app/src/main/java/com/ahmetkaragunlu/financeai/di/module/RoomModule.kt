@@ -2,6 +2,7 @@ package com.ahmetkaragunlu.financeai.di.module
 
 import android.content.Context
 import androidx.room.Room
+import com.ahmetkaragunlu.financeai.roomdb.dao.AiMessageDao
 import com.ahmetkaragunlu.financeai.roomdb.dao.BudgetDao
 import com.ahmetkaragunlu.financeai.roomdb.dao.ScheduledTransactionDao
 import com.ahmetkaragunlu.financeai.roomdb.dao.TransactionDao
@@ -44,6 +45,12 @@ object RoomModule {
     @Singleton
     fun provideBudgetDao(database: FinanceDatabase): BudgetDao {
         return database.BudgetDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideAiMessageDao(database: FinanceDatabase): AiMessageDao {
+        return database.aiMessageDao()
     }
 
     // BudgetRepository Provider

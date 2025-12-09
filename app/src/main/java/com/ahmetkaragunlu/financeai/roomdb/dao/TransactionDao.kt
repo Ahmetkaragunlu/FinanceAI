@@ -30,6 +30,8 @@ interface TransactionDao {
     @Query("SELECT * FROM transaction_table WHERE id = :id")
     fun getTransactionById(id: Int): Flow<TransactionEntity?>
 
+    @Query("SELECT * FROM transaction_table")
+    suspend fun getAllTransactionsOneShot(): List<TransactionEntity>
     @Query("SELECT * FROM transaction_table ORDER BY date DESC")
     fun getAllTransactions(): Flow<List<TransactionEntity>>
     @Query("SELECT * FROM transaction_table WHERE date BETWEEN :startDate AND :endDate ORDER BY date DESC")
