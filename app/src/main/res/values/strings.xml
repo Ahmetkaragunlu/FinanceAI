@@ -173,6 +173,22 @@
     <string name="budget_rule_exists_error">Bu kategori için zaten bir kural var.</string>
 
 
+    <!-- AI -->
+    <string name="ai_prompt_no_data">Kullanıcının henüz kaydedilmiş bir harcama verisi yok. Bu bilgiye göre genel tavsiyeler ver.</string>
+    <string name="ai_prompt_system_instruction">Sen uzman bir finans asistanısın. Kullanıcının verileri:\nToplam Gelir: %1$s\nToplam Gider: %2$s\nBu verilere dayanarak, samimi ve kısa cevaplar ver.</string>
+    <string name="ai_prompt_user_prefix">Verilen bağlama göre şu soruyu cevapla: %1$s</string>
+    <string name="ai_response_error_empty">Üzgünüm, şu an bu soruya yanıt oluşturulamadı.</string>
+    <string name="ai_response_error_generic">Bir bağlantı hatası oluştu: %s</string>
+    <string name="ai_chat_placeholder">Buraya bir şeyler yaz...</string>
+    <string name="ai_chat_send_desc">Gönder</string>
+    <string name="ai_chat_ai_icon_desc">Yapay Zeka Asistanı</string>
+    <string name="ai_chat_loading">Yazıyor...</string>
+    <string name="ai_suggestion_summary">📊 Aylık Özet</string>
+    <string name="ai_suggestion_saving">💰 Tasarruf Önerisi</string>
+    <string name="ai_suggestion_risk">🚨 Bütçe Riskleri</string>
+    <string name="ai_suggestion_top_expense">🍔 En Çok Nereye Harcadım?</string>
+
+
     <!-- Budget Analysis Screen -->
     <string name="monthly_budget">Aylık Bütçe</string>
     <string name="create">Oluştur</string>
