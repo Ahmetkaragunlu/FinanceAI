@@ -152,6 +152,7 @@ fun AddTransactionScreen(
                 }
             )
 
+            // Category Dropdown
             FinanceDropdownMenu(
                 modifier = modifier
                     .widthIn(max = 450.dp)
@@ -163,10 +164,10 @@ fun AddTransactionScreen(
                 },
                 options = viewModel.availableCategories,
                 onOptionSelected = { category -> viewModel.updateCategory(category) },
-                itemLabel = { category -> category.name.replace("_", " ") },
+                itemLabel = { category -> stringResource(category.toResId()) },
                 trigger = {
                     OutlinedTextField(
-                        value = viewModel.selectedCategory?.name?.replace("_", " ") ?: "",
+                        value = viewModel.selectedCategory?.let { stringResource(it.toResId()) } ?: "",
                         onValueChange = {},
                         readOnly = true,
                         placeholder = {

@@ -406,7 +406,12 @@ private fun EditBottomSheet(
                     keyboardType = KeyboardType.Number
                 ),
                 placeholder = R.string.enter_amount,
-                colors = AddTransactionScreenTextFieldStyles.textFieldColors(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedContainerColor =Color(0xFF404349),
+                    focusedContainerColor =Color(0xFF404349),
+                    focusedTextColor = MaterialTheme.colorScheme.onPrimary,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onPrimary,
+                ),
                 trailingIcon = {
                     Text(
                         getCurrencySymbol(),
@@ -468,7 +473,12 @@ private fun EditBottomSheet(
                 ),
                 placeholder = R.string.enter_your_note,
                 modifier = Modifier.fillMaxWidth(),
-                colors = AddTransactionScreenTextFieldStyles.textFieldColors()
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedContainerColor =Color(0xFF404349),
+                    focusedContainerColor =Color(0xFF404349),
+                    focusedTextColor = MaterialTheme.colorScheme.onPrimary,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onPrimary,
+                )
             )
 
             // Save Button

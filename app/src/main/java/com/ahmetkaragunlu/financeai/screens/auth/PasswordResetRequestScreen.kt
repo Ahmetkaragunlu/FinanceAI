@@ -30,6 +30,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -75,13 +76,9 @@ fun PasswordResetRequestScreen(
         modifier =
             modifier.fillMaxSize().verticalScroll(rememberScrollState())
                 .background(
-                    brush = Brush.linearGradient(
-                        colors = listOf(
-                            Color(0xFF475ce1),
-                            Color(0xFF4e91f0)
-                        )
+                   color = colorResource(R.color.background)
                     )
-                )
+
     ){
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -149,16 +146,8 @@ fun PasswordResetRequestScreen(
                     modifier
                         .padding(top = 8.dp)
                         .width(280.dp)
-                        .clip(shape = RoundedCornerShape(12.dp))
-                        .background(
-                            brush = Brush.linearGradient(
-                                colors = listOf(
-                                    Color(0xFF5547e3),
-                                    Color(0xFF3a77f5)
-                                )
-                            )
-                        ),
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+                        .clip(shape = RoundedCornerShape(12.dp)),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF404349)),
 
                 ) {
                 Text(

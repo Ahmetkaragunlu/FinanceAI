@@ -32,4 +32,7 @@ interface BudgetDao {
 
     @Query("SELECT * FROM budget_table WHERE firestoreId = :firestoreId LIMIT 1")
     suspend fun getBudgetByFirestoreId(firestoreId: String): BudgetEntity?
+
+    @Query("SELECT * FROM budget_table")
+    suspend fun getAllBudgetsOneShot(): List<BudgetEntity>
 }

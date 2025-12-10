@@ -37,17 +37,35 @@ import com.ahmetkaragunlu.financeai.viewmodel.AiViewModel
 fun AiChatScreen(
     viewModel: AiViewModel = hiltViewModel()
 ) {
-    // ViewModel'den gelen canlı veriler
+    // ViewModel'den gelen gerçek veriler
     val messages by viewModel.chatMessages.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
-    // Liste kontrolü (Otomatik kaydırma için)
+    // Liste kontrolü
     val listState = rememberLazyListState()
 
+    // BOŞ DURUM İÇİN SAHTE MESAJ (GÖRÜNTÜ AMAÇLI)
+    val initialMessageText = stringResource(R.string.ai_chat_initial_message)
+
+    // Eğer mesaj listesi boşsa, bu 'hayalet' mesajı içeren bir liste kullan.
+    // Doluysa gerçek listeyi kullan.
+    val displayMessages = remember(messages) {
+        messages.ifEmpty {
+            listOf(
+                AiMessageEntity(
+                    id = -1, // Geçici ID
+                    text = initialMessageText,
+                    isAi = true,
+                    isSynced = false
+                )
+            )
+        }
+    }
+
     // Yeni mesaj gelince en alta kaydır
-    LaunchedEffect(messages.size, isLoading) {
-        if (messages.isNotEmpty()) {
-            listState.animateScrollToItem(messages.size) // Loading dahil en son elemana git
+    LaunchedEffect(displayMessages.size, isLoading) {
+        if (displayMessages.isNotEmpty()) {
+            listState.animateScrollToItem(displayMessages.size)
         }
     }
 
@@ -63,9 +81,9 @@ fun AiChatScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            // R.color.background yoksa MaterialTheme.colorScheme.background kullanabilirsin
             .background(colorResource(id = R.color.background))
     ) {
+        // Sohbet Alanı
         LazyColumn(
             state = listState,
             modifier = Modifier
@@ -75,13 +93,11 @@ fun AiChatScreen(
             contentPadding = PaddingValues(top = 16.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Veritabanından gelen mesajları listele
-            items(messages) { message ->
-                // Entity içindeki 'isAi' alanını kullanıyoruz
+            items(displayMessages) { message ->
                 ChatBubble(message = message)
             }
 
-            // Eğer yapay zeka düşünüyorsa (Loading) göster
+            // Yükleniyor animasyonu
             if (isLoading) {
                 item {
                     AiTypingIndicator()
@@ -111,13 +127,13 @@ fun AiChatScreen(
             onTextChanged = { textState = it },
             onSendClicked = {
                 viewModel.sendMessage(textState)
-                textState = "" // Mesaj gidince kutuyu temizle
+                textState = ""
             }
         )
     }
 }
 
-// --- Alt Bileşenler (Tasarımı Temiz Tutmak İçin Ayırdım) ---
+// --- Alt Bileşenler ---
 
 @Composable
 fun ChatBubble(message: AiMessageEntity) {
@@ -243,7 +259,7 @@ fun ChatInputArea(
                 .size(50.dp)
                 .clip(CircleShape)
                 .background(color = Color(0xFF414853))
-                .clickable { onSendClicked() }, // Tıklama özelliği eklendi
+                .clickable { onSendClicked() },
             contentAlignment = Alignment.Center
         ) {
             Icon(
