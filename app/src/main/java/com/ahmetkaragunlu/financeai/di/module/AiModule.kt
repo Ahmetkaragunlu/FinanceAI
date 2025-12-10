@@ -6,6 +6,7 @@ import com.ahmetkaragunlu.financeai.ai_repository.AiRepository
 import com.ahmetkaragunlu.financeai.ai_repository.AiRepositoryImpl
 import com.ahmetkaragunlu.financeai.roomdb.dao.AiMessageDao
 import com.ahmetkaragunlu.financeai.roomdb.dao.TransactionDao
+import com.ahmetkaragunlu.financeai.roomrepository.budgetrepositroy.BudgetRepository
 import com.google.ai.client.generativeai.GenerativeModel
 import dagger.Module
 import dagger.Provides
@@ -33,9 +34,10 @@ object AiModule {
         generativeModel: GenerativeModel,
         aiMessageDao: AiMessageDao,
         transactionDao: TransactionDao,
+        budgetRepository: BudgetRepository,
         @ApplicationContext context: Context
     ): AiRepository {
-        return AiRepositoryImpl(generativeModel, aiMessageDao, transactionDao, context)
+        return AiRepositoryImpl(generativeModel, aiMessageDao, transactionDao, budgetRepository,context)
     }
 }
 

@@ -44,4 +44,8 @@ class BudgetRepositoryImpl @Inject constructor(
 
     override suspend fun getBudgetByFirestoreId(firestoreId: String): BudgetEntity? =
         budgetDao.getBudgetByFirestoreId(firestoreId)
+
+    override suspend fun getAllBudgetsOneShot(): List<BudgetEntity>  =
+        budgetDao.getAllBudgetsOneShot()
+
 }
