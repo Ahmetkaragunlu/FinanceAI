@@ -33,7 +33,7 @@ import com.ahmetkaragunlu.financeai.screens.main.schedule.ScheduledTransactionSc
 
 fun NavGraphBuilder.mainNavGraph(navController: NavHostController) {
     composable(Screens.HomeScreen.route) {
-        HomeScreen()
+        HomeScreen(navController = navController)
     }
     composable(Screens.TRANSACTION_HISTORY_SCREEN.route) {
         TransactionHistoryScreen(navController = navController)
