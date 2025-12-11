@@ -24,4 +24,7 @@ interface AiMessageDao {
 
     @Query("DELETE FROM ai_messages")
     suspend fun clearAllMessages()
+
+    @Query("DELETE FROM ai_messages WHERE firebaseId = :firebaseId")
+    suspend fun deleteMessageByFirebaseId(firebaseId: String)
 }

@@ -4,6 +4,8 @@ import android.content.Context
 import android.util.Log
 import androidx.work.WorkManager
 import com.ahmetkaragunlu.financeai.photo.PhotoStorageManager
+import com.ahmetkaragunlu.financeai.roomdb.dao.AiMessageDao
+import com.ahmetkaragunlu.financeai.roomdb.entitiy.AiMessageEntity
 import com.ahmetkaragunlu.financeai.roomdb.entitiy.BudgetEntity
 import com.ahmetkaragunlu.financeai.roomdb.entitiy.ScheduledTransactionEntity
 import com.ahmetkaragunlu.financeai.roomdb.entitiy.TransactionEntity
@@ -31,6 +33,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import java.util.Date
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -40,6 +43,7 @@ class FirebaseSyncService @Inject constructor(
     private val auth: FirebaseAuth,
     private val localRepository: FinanceRepository,
     private val budgetRepository: BudgetRepository,
+    private val aiMessageDao: AiMessageDao,
     private val photoStorageManager: PhotoStorageManager,
     private val messaging: FirebaseMessaging,
     @ApplicationContext private val context: Context
@@ -47,6 +51,7 @@ class FirebaseSyncService @Inject constructor(
     private var transactionListener: ListenerRegistration? = null
     private var scheduledListener: ListenerRegistration? = null
     private var budgetListener: ListenerRegistration? = null
+    private var aiMessageListener: ListenerRegistration? = null
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var isInitialized = false
@@ -57,16 +62,15 @@ class FirebaseSyncService @Inject constructor(
         private const val TRANSACTIONS_COLLECTION = "transactions"
         private const val SCHEDULED_COLLECTION = "scheduled_transactions"
         private const val BUDGET_COLLECTION = "budgets"
+        private const val AI_MESSAGES_COLLECTION = "ai_messages"
         private const val RECENTLY_ADDED_TIMEOUT = 3000L
     }
 
-    private enum class SyncType { TRANSACTION, SCHEDULED, BUDGET }
+    private enum class SyncType { TRANSACTION, SCHEDULED, BUDGET, AI_MESSAGE }
 
     // --- ID GENERATION ---
     fun getNewTransactionId(): String = firestore.collection(TRANSACTIONS_COLLECTION).document().id
-    fun getNewScheduledTransactionId(): String =
-        firestore.collection(SCHEDULED_COLLECTION).document().id
-
+    fun getNewScheduledTransactionId(): String = firestore.collection(SCHEDULED_COLLECTION).document().id
     fun getNewBudgetId(): String = firestore.collection(BUDGET_COLLECTION).document().id
 
     private fun getUserId(): String? = auth.currentUser?.uid
@@ -82,6 +86,7 @@ class FirebaseSyncService @Inject constructor(
                 startListeningToTransactions()
                 startListeningToScheduledTransactions()
                 startListeningToBudgets()
+                startListeningToAiMessages()
                 delay(500)
                 sendPendingNotifications()
                 isInitialized = true
@@ -127,8 +132,39 @@ class FirebaseSyncService @Inject constructor(
                     budgetRepository.updateBudget(budget.copy(syncedToFirebase = true))
                 }
             }
+            // ✨ YENİ: Unsynced AI Messages
+            aiMessageDao.getUnsyncedMessages().forEach { message ->
+                syncAiMessageToFirebase(message).onSuccess { firestoreId ->
+                    aiMessageDao.updateSyncStatus(message.id, firestoreId)
+                }
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Error pushing unsynced data", e)
+        }
+    }
+
+    suspend fun syncAiMessageToFirebase(message: AiMessageEntity): Result<String> {
+        return try {
+            val userId = getUserId() ?: return Result.failure(Exception("User not logged in"))
+            // Eğer firebaseId zaten varsa (null değilse) onu kullan, yoksa yeni oluştur
+            val docRef = if (!message.firebaseId.isNullOrEmpty()) {
+                firestore.collection(AI_MESSAGES_COLLECTION).document(message.firebaseId)
+            } else {
+                firestore.collection(AI_MESSAGES_COLLECTION).document()
+            }
+            val firestoreId = docRef.id
+            markAsRecentlyAdded(firestoreId)
+
+            val data = hashMapOf(
+                "userId" to userId,
+                "text" to message.text,
+                "isAi" to message.isAi,
+                "timestamp" to message.timestamp.time // Date -> Long
+            )
+            docRef.set(data, SetOptions.merge()).await()
+            Result.success(firestoreId)
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 
@@ -318,24 +354,22 @@ class FirebaseSyncService @Inject constructor(
         val userId = getUserId() ?: return
         try {
             val tJob = scope.async {
-                fetchAllFromFirebase(
-                    TRANSACTIONS_COLLECTION,
-                    userId,
-                    SyncType.TRANSACTION
-                )
+                fetchAllFromFirebase(TRANSACTIONS_COLLECTION, userId, SyncType.TRANSACTION)
             }
             val sJob = scope.async {
-                fetchAllFromFirebase(
-                    SCHEDULED_COLLECTION,
-                    userId,
-                    SyncType.SCHEDULED
-                )
+                fetchAllFromFirebase(SCHEDULED_COLLECTION, userId, SyncType.SCHEDULED)
             }
-            val bJob =
-                scope.async { fetchAllFromFirebase(BUDGET_COLLECTION, userId, SyncType.BUDGET) }
+            val bJob = scope.async {
+                fetchAllFromFirebase(BUDGET_COLLECTION, userId, SyncType.BUDGET)
+            }
+            // ✨ YENİ: Sohbet geçmişini çek
+            val aiJob = scope.async {
+                fetchAllFromFirebase(AI_MESSAGES_COLLECTION, userId, SyncType.AI_MESSAGE)
+            }
             tJob.await()
             sJob.await()
             bJob.await()
+            aiJob.await()
         } catch (e: Exception) {
             Log.e(TAG, "Error during initial sync", e)
         }
@@ -351,15 +385,16 @@ class FirebaseSyncService @Inject constructor(
                 val firestoreId = doc.id
                 val exists = when (type) {
                     SyncType.TRANSACTION -> localRepository.getTransactionByFirestoreId(firestoreId) != null
-                    SyncType.SCHEDULED -> localRepository.getScheduledTransactionByFirestoreId(
-                        firestoreId
-                    ) != null
-
+                    SyncType.SCHEDULED -> localRepository.getScheduledTransactionByFirestoreId(firestoreId) != null
                     SyncType.BUDGET -> budgetRepository.getBudgetByFirestoreId(firestoreId) != null
+                    SyncType.AI_MESSAGE -> false
                 }
+
                 if (!exists) {
                     if (type == SyncType.BUDGET) {
                         handleBudgetInsert(doc, firestoreId)
+                    } else if (type == SyncType.AI_MESSAGE) {
+                        handleAiMessageInsert(doc, firestoreId)
                     } else {
                         handlePhotoDownloadAndInsert(doc, firestoreId, type)
                     }
@@ -387,6 +422,12 @@ class FirebaseSyncService @Inject constructor(
         val userId = getUserId() ?: return
         budgetListener?.remove()
         budgetListener = createListener(BUDGET_COLLECTION, userId, SyncType.BUDGET)
+    }
+
+    private fun startListeningToAiMessages() {
+        val userId = getUserId() ?: return
+        aiMessageListener?.remove()
+        aiMessageListener = createListener(AI_MESSAGES_COLLECTION, userId, SyncType.AI_MESSAGE)
     }
 
     private fun createListener(
@@ -421,16 +462,17 @@ class FirebaseSyncService @Inject constructor(
 
                 val exists = when (type) {
                     SyncType.TRANSACTION -> localRepository.getTransactionByFirestoreId(firestoreId) != null
-                    SyncType.SCHEDULED -> localRepository.getScheduledTransactionByFirestoreId(
-                        firestoreId
-                    ) != null
-
+                    SyncType.SCHEDULED -> localRepository.getScheduledTransactionByFirestoreId(firestoreId) != null
                     SyncType.BUDGET -> budgetRepository.getBudgetByFirestoreId(firestoreId) != null
+                    SyncType.AI_MESSAGE -> false
                 }
+
                 if (exists) return
 
                 if (type == SyncType.BUDGET) {
                     handleBudgetInsert(doc, firestoreId)
+                } else if (type == SyncType.AI_MESSAGE) {
+                    handleAiMessageInsert(doc, firestoreId)
                 } else {
                     handlePhotoDownloadAndInsert(doc, firestoreId, type)
                 }
@@ -439,11 +481,9 @@ class FirebaseSyncService @Inject constructor(
             DocumentChange.Type.MODIFIED -> {
                 when (type) {
                     SyncType.TRANSACTION -> {
-                        val existing =
-                            localRepository.getTransactionByFirestoreId(firestoreId) ?: return
-                        val localPhotoPath =
-                            handlePhotoUpdate(doc, existing.photoUri, firestoreId, type)
-
+                        // ... (Mevcut kodlar)
+                        val existing = localRepository.getTransactionByFirestoreId(firestoreId) ?: return
+                        val localPhotoPath = handlePhotoUpdate(doc, existing.photoUri, firestoreId, type)
                         val updated = existing.copy(
                             amount = doc.getDouble("amount") ?: existing.amount,
                             transaction = TransactionType.valueOf(
@@ -456,8 +496,7 @@ class FirebaseSyncService @Inject constructor(
                             ),
                             photoUri = localPhotoPath,
                             locationFull = doc.getString("locationFull") ?: existing.locationFull,
-                            locationShort = doc.getString("locationShort")
-                                ?: existing.locationShort,
+                            locationShort = doc.getString("locationShort") ?: existing.locationShort,
                             latitude = doc.getDouble("latitude") ?: existing.latitude,
                             longitude = doc.getDouble("longitude") ?: existing.longitude,
                             syncedToFirebase = true
@@ -466,12 +505,8 @@ class FirebaseSyncService @Inject constructor(
                     }
 
                     SyncType.SCHEDULED -> {
-                        val existing =
-                            localRepository.getScheduledTransactionByFirestoreId(firestoreId)
-                                ?: return
-                        val localPhotoPath =
-                            handlePhotoUpdate(doc, existing.photoUri, firestoreId, type)
-
+                        val existing = localRepository.getScheduledTransactionByFirestoreId(firestoreId) ?: return
+                        val localPhotoPath = handlePhotoUpdate(doc, existing.photoUri, firestoreId, type)
                         val updated = existing.copy(
                             amount = doc.getDouble("amount") ?: existing.amount,
                             type = TransactionType.valueOf(
@@ -498,8 +533,7 @@ class FirebaseSyncService @Inject constructor(
                     }
 
                     SyncType.BUDGET -> {
-                        val existing =
-                            budgetRepository.getBudgetByFirestoreId(firestoreId) ?: return
+                        val existing = budgetRepository.getBudgetByFirestoreId(firestoreId) ?: return
                         val updated = existing.copy(
                             budgetType = BudgetType.valueOf(
                                 doc.getString("budgetType") ?: existing.budgetType.name
@@ -511,6 +545,7 @@ class FirebaseSyncService @Inject constructor(
                         )
                         budgetRepository.updateBudget(updated)
                     }
+                    SyncType.AI_MESSAGE -> TODO()
                 }
             }
 
@@ -521,7 +556,6 @@ class FirebaseSyncService @Inject constructor(
                             localRepository.deleteTransaction(it)
                         }
                     }
-
                     SyncType.SCHEDULED -> {
                         localRepository.getScheduledTransactionByFirestoreId(firestoreId)?.let {
                             localRepository.deleteScheduledTransaction(it)
@@ -531,11 +565,13 @@ class FirebaseSyncService @Inject constructor(
                                 .cancelAllWorkByTag("delete_expired_${it.id}")
                         }
                     }
-
                     SyncType.BUDGET -> {
                         budgetRepository.getBudgetByFirestoreId(firestoreId)?.let {
                             budgetRepository.deleteBudget(it)
                         }
+                    }
+                    SyncType.AI_MESSAGE -> {
+                        aiMessageDao.deleteMessageByFirebaseId(firestoreId)
                     }
                 }
             }
@@ -554,6 +590,19 @@ class FirebaseSyncService @Inject constructor(
             syncedToFirebase = true
         )
         budgetRepository.insertBudget(entity)
+    }
+
+    private suspend fun handleAiMessageInsert(doc: DocumentSnapshot, firestoreId: String) {
+        val timestampLong = doc.getLong("timestamp") ?: System.currentTimeMillis()
+
+        val entity = AiMessageEntity(
+            firebaseId = firestoreId,
+            text = doc.getString("text") ?: "",
+            isAi = doc.getBoolean("isAi") ?: false,
+            timestamp = Date(timestampLong),
+            isSynced = true
+        )
+        aiMessageDao.insertMessage(entity)
     }
 
     private suspend fun handlePhotoDownloadAndInsert(
@@ -694,8 +743,10 @@ class FirebaseSyncService @Inject constructor(
         transactionListener?.remove()
         scheduledListener?.remove()
         budgetListener?.remove()
+        aiMessageListener?.remove()
         transactionListener = null
         scheduledListener = null
         budgetListener = null
+        aiMessageListener = null
     }
 }
