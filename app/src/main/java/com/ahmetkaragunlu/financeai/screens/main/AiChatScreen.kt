@@ -32,6 +32,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.roomdb.entitiy.AiMessageEntity
 import com.ahmetkaragunlu.financeai.viewmodel.AiViewModel
+import kotlinx.coroutines.delay
 
 @Composable
 fun AiChatScreen(
@@ -43,6 +44,13 @@ fun AiChatScreen(
 
     // Liste kontrolü
     val listState = rememberLazyListState()
+
+    // ✨ YENİ: Sayfa açıldığında bekleyen prompt varsa gönder
+    // Bu işlem bu sayfada tetiklendiği için isLoading bu sayfada aktifleşecek
+    // ve "Yazıyor..." animasyonu görünecektir.
+    LaunchedEffect(Unit) {
+        viewModel.sendPendingPrompt()
+    }
 
     // BOŞ DURUM İÇİN SAHTE MESAJ (GÖRÜNTÜ AMAÇLI)
     val initialMessageText = stringResource(R.string.ai_chat_initial_message)

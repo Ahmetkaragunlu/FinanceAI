@@ -1,6 +1,5 @@
 package com.ahmetkaragunlu.financeai.screens.main.home
 
-
 import android.annotation.SuppressLint
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -33,17 +32,23 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavHostController
 import com.ahmetkaragunlu.financeai.R
+import com.ahmetkaragunlu.financeai.navigation.Screens
 import com.ahmetkaragunlu.financeai.utils.ExpensePieChart
+import com.ahmetkaragunlu.financeai.viewmodel.AiViewModel
 import com.ahmetkaragunlu.financeai.viewmodel.HomeViewModel
 
 @Composable
 fun HomeScreen(
     modifier: Modifier = Modifier,
-    viewModel: HomeViewModel = hiltViewModel()
+    navController: NavHostController,
+    viewModel: HomeViewModel = hiltViewModel(),
+    aiViewModel: AiViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.homeUiState.collectAsStateWithLifecycle()
     val categoryExpenses by viewModel.lastMonthCategoryExpenses.collectAsState()
+    val aiSuggestion by viewModel.aiSuggestion.collectAsState()
 
     BackHandler {}
 
@@ -53,6 +58,7 @@ fun HomeScreen(
             .background(color = colorResource(R.color.background))
             .verticalScroll(rememberScrollState())
     ) {
+        // Monthly Summary Card
         Card(
             modifier = modifier
                 .fillMaxWidth()
@@ -100,7 +106,6 @@ fun HomeScreen(
                     color = MaterialTheme.colorScheme.onPrimary,
                     style = MaterialTheme.typography.titleLarge,
                 )
-
                 Text(
                     text = uiState.remainingBalanceFormatted,
                     color = if (uiState.remainingBalance >= 0) Color.Green else Color.Red,
@@ -111,6 +116,7 @@ fun HomeScreen(
             }
         }
 
+        // ✨ GÜNCEL: Dinamik AI Suggestion Card
         Card(
             modifier = modifier
                 .fillMaxWidth()
@@ -126,7 +132,15 @@ fun HomeScreen(
                     shape = RoundedCornerShape(12.dp)
                 ),
             colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-            onClick = {}
+            onClick = {
+                // AI sayfasına gitmeden önce prompt'u "bekleyen" olarak kaydet.
+                if (aiSuggestion.aiPrompt.isNotBlank()) {
+                    aiViewModel.setPendingPrompt(aiSuggestion.aiPrompt)
+                }
+                navController.navigate(Screens.AiChatScreen.route) {
+                    launchSingleTop = true
+                }
+            }
         ) {
             Row(
                 modifier = modifier
@@ -145,7 +159,7 @@ fun HomeScreen(
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                     Text(
-                        text = "Market harcamaların bütçeni yüzde 40 açtı. Tasarruf için tıkla",
+                        text = aiSuggestion.messageText,
                         color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
                         style = MaterialTheme.typography.titleSmall
                     )
@@ -153,6 +167,7 @@ fun HomeScreen(
             }
         }
 
+        // Expense Categories Section
         Text(
             text = stringResource(R.string.expense_categories),
             style = MaterialTheme.typography.bodyLarge,
@@ -161,7 +176,6 @@ fun HomeScreen(
         )
 
         ExpensePieChart(categoryExpenses = categoryExpenses)
-
     }
 }
 
@@ -187,7 +201,6 @@ fun FinanceProgressBar(
             strokeCap = StrokeCap.Round,
             color = if (spendingPercentage == 0.0) Color.Transparent else Color.White
         )
-
         Text(
             text = percentageText,
             color = MaterialTheme.colorScheme.onPrimary,
