@@ -4,6 +4,7 @@ import android.content.Context
 import com.ahmetkaragunlu.financeai.BuildConfig
 import com.ahmetkaragunlu.financeai.ai_repository.AiRepository
 import com.ahmetkaragunlu.financeai.ai_repository.AiRepositoryImpl
+import com.ahmetkaragunlu.financeai.firebasesync.FirebaseSyncService
 import com.ahmetkaragunlu.financeai.roomdb.dao.AiMessageDao
 import com.ahmetkaragunlu.financeai.roomdb.dao.TransactionDao
 import com.ahmetkaragunlu.financeai.roomrepository.budgetrepositroy.BudgetRepository
@@ -35,9 +36,10 @@ object AiModule {
         aiMessageDao: AiMessageDao,
         transactionDao: TransactionDao,
         budgetRepository: BudgetRepository,
+        firebaseSyncService: FirebaseSyncService,
         @ApplicationContext context: Context
     ): AiRepository {
-        return AiRepositoryImpl(generativeModel, aiMessageDao, transactionDao, budgetRepository,context)
+        return AiRepositoryImpl(generativeModel, aiMessageDao, transactionDao, budgetRepository, firebaseSyncService,context)
     }
 }
 

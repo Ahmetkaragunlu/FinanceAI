@@ -38,30 +38,24 @@ import kotlinx.coroutines.delay
 fun AiChatScreen(
     viewModel: AiViewModel = hiltViewModel()
 ) {
-    // ViewModel'den gelen gerçek veriler
     val messages by viewModel.chatMessages.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
     // Liste kontrolü
     val listState = rememberLazyListState()
 
-    // ✨ YENİ: Sayfa açıldığında bekleyen prompt varsa gönder
-    // Bu işlem bu sayfada tetiklendiği için isLoading bu sayfada aktifleşecek
-    // ve "Yazıyor..." animasyonu görünecektir.
     LaunchedEffect(Unit) {
         viewModel.sendPendingPrompt()
     }
 
-    // BOŞ DURUM İÇİN SAHTE MESAJ (GÖRÜNTÜ AMAÇLI)
     val initialMessageText = stringResource(R.string.ai_chat_initial_message)
 
-    // Eğer mesaj listesi boşsa, bu 'hayalet' mesajı içeren bir liste kullan.
-    // Doluysa gerçek listeyi kullan.
+
     val displayMessages = remember(messages) {
         messages.ifEmpty {
             listOf(
                 AiMessageEntity(
-                    id = -1, // Geçici ID
+                    id = -1,
                     text = initialMessageText,
                     isAi = true,
                     isSynced = false
@@ -70,7 +64,6 @@ fun AiChatScreen(
         }
     }
 
-    // Yeni mesaj gelince en alta kaydır
     LaunchedEffect(displayMessages.size, isLoading) {
         if (displayMessages.isNotEmpty()) {
             listState.animateScrollToItem(displayMessages.size)
