@@ -1,11 +1,13 @@
 package com.ahmetkaragunlu.financeai.di.module
 
 import android.content.Context
+import androidx.work.WorkManager
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.fcm.FCMTokenManager
 import com.ahmetkaragunlu.financeai.firebaserepo.AuthRepository
 import com.ahmetkaragunlu.financeai.firebaserepo.AuthRepositoryImpl
 import com.ahmetkaragunlu.financeai.firebasesync.FirebaseSyncService
+import com.ahmetkaragunlu.financeai.roomdb.database.FinanceDatabase
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
@@ -46,12 +48,16 @@ object RepositoryModule {
         auth: FirebaseAuth,
         firestore: FirebaseFirestore,
         firebaseSyncService: FirebaseSyncService,
-        fcmTokenManager: FCMTokenManager
+        fcmTokenManager: FCMTokenManager,
+        financeDatabase: FinanceDatabase,
+        workManager: WorkManager
     ): AuthRepository = AuthRepositoryImpl(
         auth,
         firestore,
         firebaseSyncService,
-        fcmTokenManager
+        fcmTokenManager,
+        financeDatabase,
+        workManager
     )
 }
 

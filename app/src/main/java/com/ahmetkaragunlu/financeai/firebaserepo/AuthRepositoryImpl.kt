@@ -1,8 +1,10 @@
 package com.ahmetkaragunlu.financeai.firebaserepo
 
+import androidx.work.WorkManager
 import com.ahmetkaragunlu.financeai.fcm.FCMTokenManager
 import com.ahmetkaragunlu.financeai.firebasemodel.User
 import com.ahmetkaragunlu.financeai.firebasesync.FirebaseSyncService
+import com.ahmetkaragunlu.financeai.roomdb.database.FinanceDatabase
 import com.ahmetkaragunlu.financeai.screens.auth.AuthException
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.firebase.auth.AuthResult
@@ -13,18 +15,24 @@ import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Source
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 class AuthRepositoryImpl @Inject constructor(
     private val auth: FirebaseAuth,
     private val firestore: FirebaseFirestore,
     private val firebaseSyncService: FirebaseSyncService,
-    private val fcmTokenManager: FCMTokenManager
+    private val fcmTokenManager: FCMTokenManager,
+    private val database: FinanceDatabase,
+    private val workManager: WorkManager
 ) : AuthRepository {
     override val currentUser get() = auth.currentUser
+
     override suspend fun signUp(email: String, password: String): AuthResult =
         auth.createUserWithEmailAndPassword(email, password).await()
+
     override suspend fun signIn(email: String, password: String): AuthResult =
         try {
             val result = auth.signInWithEmailAndPassword(email, password).await()
@@ -40,6 +48,7 @@ class AuthRepositoryImpl @Inject constructor(
                 else -> throw e
             }
         }
+
     override suspend fun saveUserFirestore(user: User) {
         firestore.collection("users").document(user.uid).set(user).await()
     }
@@ -122,6 +131,10 @@ class AuthRepositoryImpl @Inject constructor(
     override suspend fun signOut() {
         fcmTokenManager.removeFCMToken()
         firebaseSyncService.resetSync()
+        workManager.cancelAllWork()
         auth.signOut()
+        withContext(Dispatchers.IO) {
+            database.clearAllTables()
+        }
     }
 }

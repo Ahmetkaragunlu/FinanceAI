@@ -24,7 +24,7 @@ import com.ahmetkaragunlu.financeai.navigation.navigateSingleTopClear
 fun EditTopBar(
     currentRoute: String,
     navController: NavHostController,
-
+    onLogoutClicked: () -> Unit = {}
 ) {
     CenterAlignedTopAppBar(
         title = {
@@ -35,7 +35,10 @@ fun EditTopBar(
             )
         },
         actions = {
-            TopBarActionForRoute(currentRoute = currentRoute, navController = navController)
+            TopBarActionForRoute(
+                currentRoute = currentRoute,
+                onLogoutClicked = onLogoutClicked
+            )
         },
 
         navigationIcon = {
@@ -74,13 +77,15 @@ private fun topBarTitleForRoute(currentRoute: String): Int {
 @Composable
 private fun TopBarActionForRoute(
     currentRoute: String,
-    navController: NavHostController,
+    onLogoutClicked: () -> Unit
 ) {
     when (currentRoute) {
         Screens.HomeScreen.route -> {
-            IconButton(onClick = {}) {
+            IconButton(
+                onClick = onLogoutClicked
+            ) {
                 Icon(
-                    painter = painterResource(R.drawable.account),
+                    painter = painterResource(R.drawable.logout),
                     contentDescription = null,
                     tint = Color.Unspecified
                 )
