@@ -19,7 +19,7 @@ fun FinanceNavigation() {
         }
         authNavGraph(navController = navController)
         composable(route = Screens.MAIN_GRAPH.route) {
-            MainNavGraphScaffold()
+            MainNavGraphScaffold(navController = navController)
         }
     }
 }

@@ -116,7 +116,6 @@ fun HomeScreen(
             }
         }
 
-        // ✨ GÜNCEL: Dinamik AI Suggestion Card
         Card(
             modifier = modifier
                 .fillMaxWidth()

@@ -29,6 +29,7 @@ class AuthViewModel @Inject constructor(
 
     private val _authState = MutableStateFlow(AuthState.EMPTY)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
+
     fun signUp(email: String, password: String, firstName: String, lastName: String) {
         viewModelScope.launch {
             _authState.value = try {
@@ -63,6 +64,19 @@ class AuthViewModel @Inject constructor(
             }
         }
     }
+
+    fun performSignOut(onSignOutComplete: () -> Unit) {
+        viewModelScope.launch {
+            try {
+                authRepository.signOut()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                onSignOutComplete()
+            }
+        }
+    }
+
     fun login() {
         if (inputEmail.isBlank() || inputPassword.isBlank()) {
             _authState.value = AuthState.FAILURE

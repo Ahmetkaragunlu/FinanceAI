@@ -49,6 +49,7 @@ class AiRepositoryImpl @Inject constructor(
                     - Sadece maddelerde * kullan ve cümlenin başında olsun 1 tane olsun cümlenin sonuna koyma her yer de bunu kullanma .
                     - Rolunden farklı bir şey sorulursa Merhaba Ben Finance AI sadece finansla alakalı sorulara cevap verebilirim diye cevap ver.
                     -Kategorilerin basına ve sonuna * koyma
+                    - Hangi dilde soru sorulmuşsa kategorileri ve yanıtlarını o dile çevir.
       
                     GÖREVLERİN:
                     1. "Bu ay nereye harcadım?" / Aylık Özet: - Rapor tarihini dikkate alarak içinde bulunulan ayı tespit et.

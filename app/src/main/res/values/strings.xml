@@ -226,6 +226,11 @@
     <string name="error_conflict_general">Genel bütçe için zaten bir plan var!</string>
     <string name="error_conflict_category">Bu kategori için zaten bir plan var!</string>
 
+    <string name="sign_out_title">Çıkış Yap</string>
+    <string name="sign_out_message">Çıkış yapmak istediğinize emin misiniz?</string>
+    <string name="yes">Evet</string>
+    <string name="no">Hayır</string>
+
     <string name="budget_type_category">Kategori</string>
     <string name="budget_type_percentage">Yüzde</string>
     <string name="set_limit_label">Belirlenen Limit</string>

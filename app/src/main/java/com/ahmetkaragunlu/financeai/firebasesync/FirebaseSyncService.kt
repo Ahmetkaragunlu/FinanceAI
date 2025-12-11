@@ -132,7 +132,7 @@ class FirebaseSyncService @Inject constructor(
                     budgetRepository.updateBudget(budget.copy(syncedToFirebase = true))
                 }
             }
-            // ✨ YENİ: Unsynced AI Messages
+            // Unsynced AI Messages
             aiMessageDao.getUnsyncedMessages().forEach { message ->
                 syncAiMessageToFirebase(message).onSuccess { firestoreId ->
                     aiMessageDao.updateSyncStatus(message.id, firestoreId)
@@ -146,7 +146,6 @@ class FirebaseSyncService @Inject constructor(
     suspend fun syncAiMessageToFirebase(message: AiMessageEntity): Result<String> {
         return try {
             val userId = getUserId() ?: return Result.failure(Exception("User not logged in"))
-            // Eğer firebaseId zaten varsa (null değilse) onu kullan, yoksa yeni oluştur
             val docRef = if (!message.firebaseId.isNullOrEmpty()) {
                 firestore.collection(AI_MESSAGES_COLLECTION).document(message.firebaseId)
             } else {
@@ -159,7 +158,7 @@ class FirebaseSyncService @Inject constructor(
                 "userId" to userId,
                 "text" to message.text,
                 "isAi" to message.isAi,
-                "timestamp" to message.timestamp.time // Date -> Long
+                "timestamp" to message.timestamp.time
             )
             docRef.set(data, SetOptions.merge()).await()
             Result.success(firestoreId)
@@ -362,7 +361,6 @@ class FirebaseSyncService @Inject constructor(
             val bJob = scope.async {
                 fetchAllFromFirebase(BUDGET_COLLECTION, userId, SyncType.BUDGET)
             }
-            // ✨ YENİ: Sohbet geçmişini çek
             val aiJob = scope.async {
                 fetchAllFromFirebase(AI_MESSAGES_COLLECTION, userId, SyncType.AI_MESSAGE)
             }
@@ -387,7 +385,7 @@ class FirebaseSyncService @Inject constructor(
                     SyncType.TRANSACTION -> localRepository.getTransactionByFirestoreId(firestoreId) != null
                     SyncType.SCHEDULED -> localRepository.getScheduledTransactionByFirestoreId(firestoreId) != null
                     SyncType.BUDGET -> budgetRepository.getBudgetByFirestoreId(firestoreId) != null
-                    SyncType.AI_MESSAGE -> false
+                    SyncType.AI_MESSAGE -> aiMessageDao.getMessageByFirebaseId(firestoreId) != null
                 }
 
                 if (!exists) {
@@ -464,7 +462,7 @@ class FirebaseSyncService @Inject constructor(
                     SyncType.TRANSACTION -> localRepository.getTransactionByFirestoreId(firestoreId) != null
                     SyncType.SCHEDULED -> localRepository.getScheduledTransactionByFirestoreId(firestoreId) != null
                     SyncType.BUDGET -> budgetRepository.getBudgetByFirestoreId(firestoreId) != null
-                    SyncType.AI_MESSAGE -> false
+                    SyncType.AI_MESSAGE -> aiMessageDao.getMessageByFirebaseId(firestoreId) != null
                 }
 
                 if (exists) return
@@ -481,7 +479,6 @@ class FirebaseSyncService @Inject constructor(
             DocumentChange.Type.MODIFIED -> {
                 when (type) {
                     SyncType.TRANSACTION -> {
-                        // ... (Mevcut kodlar)
                         val existing = localRepository.getTransactionByFirestoreId(firestoreId) ?: return
                         val localPhotoPath = handlePhotoUpdate(doc, existing.photoUri, firestoreId, type)
                         val updated = existing.copy(
@@ -545,7 +542,9 @@ class FirebaseSyncService @Inject constructor(
                         )
                         budgetRepository.updateBudget(updated)
                     }
-                    SyncType.AI_MESSAGE -> TODO()
+                    SyncType.AI_MESSAGE -> {
+                        // Mesaj güncellemesi genellikle olmaz ama gerekirse burası doldurulur
+                    }
                 }
             }
 
