@@ -17,6 +17,7 @@ import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.navigation.NavController
 import com.ahmetkaragunlu.financeai.navigation.Screens
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.delay
 
 
@@ -27,11 +28,16 @@ fun SplashScreen(
 ) {
     LaunchedEffect(key1 = Unit) {
         delay(3000)
-        navController.navigate(Screens.SignInScreen.route) {
-            popUpTo(Screens.SplashScreen.route) { inclusive = true }
+        if (FirebaseAuth.getInstance().currentUser != null) {
+            navController.navigate(Screens.MAIN_GRAPH.route) {
+                popUpTo(Screens.SplashScreen.route) { inclusive = true }
+            }
+        } else {
+           navController.navigate(Screens.SignInScreen.route)
         }
-
     }
+
+
     Column(
         modifier = modifier
             .fillMaxSize()

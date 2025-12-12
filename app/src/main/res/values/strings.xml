@@ -32,7 +32,7 @@
     <string name="your_password_has_been_changed_successfully">Şifreniz başarıyla değiştirildi</string>
     <string name="your_link_has_expired">Bağlantınızın süresi doldu</string>
     <string name="have_an_account_sign_up">Hesabınız yok mu? Kayıt olun</string>
-    <string name="welcome">Hoş geldin, Ahmet</string>
+    <string name="welcome">Hoş geldin, %s</string>
     <string name="fill_all_fields_correctly">Lütfen tüm alanları doğru doldurun</string>
     <string name="failure">Başarısız</string>
     <string name="please_verify_your_email">Lütfen e-postanızı doğrulayın</string>

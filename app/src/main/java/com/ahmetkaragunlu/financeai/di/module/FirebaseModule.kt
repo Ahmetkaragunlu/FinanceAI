@@ -20,6 +20,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineDispatcher
 import javax.inject.Singleton
 
 @InstallIn(SingletonComponent::class)
@@ -50,14 +51,14 @@ object RepositoryModule {
         firebaseSyncService: FirebaseSyncService,
         fcmTokenManager: FCMTokenManager,
         financeDatabase: FinanceDatabase,
-        workManager: WorkManager
+        workManager: WorkManager,
     ): AuthRepository = AuthRepositoryImpl(
         auth,
         firestore,
         firebaseSyncService,
         fcmTokenManager,
         financeDatabase,
-        workManager
+        workManager,
     )
 }
 

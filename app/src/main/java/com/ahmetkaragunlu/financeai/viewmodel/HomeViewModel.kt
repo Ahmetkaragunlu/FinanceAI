@@ -1,9 +1,13 @@
 package com.ahmetkaragunlu.financeai.viewmodel
 
 import android.content.Context
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ahmetkaragunlu.financeai.R
+import com.ahmetkaragunlu.financeai.firebaserepo.AuthRepository
 import com.ahmetkaragunlu.financeai.roomdb.type.BudgetType
 import com.ahmetkaragunlu.financeai.roomdb.type.TransactionType
 import com.ahmetkaragunlu.financeai.roommodel.CategoryExpense
@@ -18,8 +22,10 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.util.Locale
 import javax.inject.Inject
@@ -33,12 +39,26 @@ data class AiSuggestionState(
 class HomeViewModel @Inject constructor(
     val repository: FinanceRepository,
     private val budgetRepository: BudgetRepository,
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val authRepository: AuthRepository,
 ) : ViewModel() {
 
     private val lastMonthDateRange = DateFormatter.getDateRange(R.string.last_month)
     private val currencyFormat = NumberFormat.getCurrencyInstance(Locale.getDefault())
 
+
+    val userName: StateFlow<String> = flow {
+        val name = authRepository.getUserName()
+        if (name != null) {
+            emit(name.lowercase().replaceFirstChar { it.uppercase() })
+        } else {
+            emit("")
+        }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = ""
+    )
     private fun Flow<Double?>.toFormattedCurrency(): StateFlow<String> =
         this.map { currencyFormat.format(it ?: 0.0) }
             .distinctUntilChanged()
@@ -120,7 +140,6 @@ class HomeViewModel @Inject constructor(
             initialValue = emptyList()
         )
 
-    // ✨ GÜNCEL: AI Önerisi State
     val aiSuggestion: StateFlow<AiSuggestionState> = combine(
         budgetRepository.getAllBudgets(),
         repository.getTotalExpenseByDateRange(lastMonthDateRange.first, lastMonthDateRange.second),
