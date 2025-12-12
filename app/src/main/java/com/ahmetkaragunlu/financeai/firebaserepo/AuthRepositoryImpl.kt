@@ -1,6 +1,7 @@
 package com.ahmetkaragunlu.financeai.firebaserepo
 
 import androidx.work.WorkManager
+import com.ahmetkaragunlu.financeai.di.module.IoDispatcher
 import com.ahmetkaragunlu.financeai.fcm.FCMTokenManager
 import com.ahmetkaragunlu.financeai.firebasemodel.User
 import com.ahmetkaragunlu.financeai.firebasesync.FirebaseSyncService
@@ -15,9 +16,12 @@ import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Source
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
-import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 class AuthRepositoryImpl @Inject constructor(
@@ -26,9 +30,10 @@ class AuthRepositoryImpl @Inject constructor(
     private val firebaseSyncService: FirebaseSyncService,
     private val fcmTokenManager: FCMTokenManager,
     private val database: FinanceDatabase,
-    private val workManager: WorkManager
+    private val workManager: WorkManager,
 ) : AuthRepository {
-    override val currentUser get() = auth.currentUser
+
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override suspend fun signUp(email: String, password: String): AuthResult =
         auth.createUserWithEmailAndPassword(email, password).await()
@@ -128,12 +133,23 @@ class AuthRepositoryImpl @Inject constructor(
         return !snapshot.isEmpty
     }
 
+    override suspend fun getUserName(): String? {
+        val uid = auth.currentUser?.uid ?: return null
+        return try {
+            val document = firestore.collection("users").document(uid).get().await()
+            document.getString("firstName")
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+
     override suspend fun signOut() {
         fcmTokenManager.removeFCMToken()
         firebaseSyncService.resetSync()
         workManager.cancelAllWork()
         auth.signOut()
-        withContext(Dispatchers.IO) {
+        scope.launch {
             database.clearAllTables()
         }
     }

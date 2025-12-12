@@ -24,12 +24,18 @@ import com.ahmetkaragunlu.financeai.navigation.navigateSingleTopClear
 fun EditTopBar(
     currentRoute: String,
     navController: NavHostController,
+    userName: String = "",
     onLogoutClicked: () -> Unit = {}
 ) {
     CenterAlignedTopAppBar(
         title = {
+            val titleText = if (currentRoute == Screens.HomeScreen.route && userName.isNotBlank()) {
+                stringResource(id = R.string.welcome, userName)
+            } else {
+                stringResource(topBarTitleForRoute(currentRoute))
+            }
             Text(
-                text = stringResource(topBarTitleForRoute(currentRoute)),
+                text = titleText,
                 color = MaterialTheme.colorScheme.onPrimary,
                 style = MaterialTheme.typography.labelLarge
             )
@@ -59,7 +65,6 @@ fun EditTopBar(
         colors = TopAppBarDefaults.topAppBarColors(containerColor = colorResource(R.color.background))
     )
 }
-
 
 @Composable
 private fun topBarTitleForRoute(currentRoute: String): Int {

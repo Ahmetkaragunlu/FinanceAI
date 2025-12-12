@@ -5,7 +5,6 @@ import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.firebase.auth.AuthResult
 
 interface AuthRepository {
-    val currentUser: Any?
     suspend fun signUp(email: String, password: String): AuthResult
     suspend fun signIn(email: String, password: String): AuthResult
     suspend fun saveUser(email: String, password: String, firstName: String, lastName: String)
@@ -16,5 +15,7 @@ interface AuthRepository {
     suspend fun signInWithGoogle(account: GoogleSignInAccount): AuthResult
     suspend fun isUserRegistered(email: String): Boolean
     suspend fun signOut()
+
+    suspend fun getUserName(): String?
 
 }

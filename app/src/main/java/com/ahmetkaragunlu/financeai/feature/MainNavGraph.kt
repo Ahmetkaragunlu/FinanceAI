@@ -19,6 +19,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -42,6 +43,7 @@ import com.ahmetkaragunlu.financeai.screens.main.history.TransactionHistoryScree
 import com.ahmetkaragunlu.financeai.screens.main.home.HomeScreen
 import com.ahmetkaragunlu.financeai.screens.main.schedule.ScheduledTransactionScreen
 import com.ahmetkaragunlu.financeai.viewmodel.AuthViewModel
+import com.ahmetkaragunlu.financeai.viewmodel.HomeViewModel
 
 fun NavGraphBuilder.mainNavGraph(navController: NavHostController) {
     composable(Screens.HomeScreen.route) {
@@ -85,7 +87,8 @@ fun MainNavGraphScaffold(navController: NavHostController) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val authViewModel: AuthViewModel = hiltViewModel()
-
+    val homeViewModel: HomeViewModel = hiltViewModel()
+    val userName by homeViewModel.userName.collectAsStateWithLifecycle()
     var showLogoutDialog by rememberSaveable { mutableStateOf(false) }
 
     DisposableEffect(lifecycleOwner) {
@@ -142,6 +145,7 @@ fun MainNavGraphScaffold(navController: NavHostController) {
             EditTopBar(
                 currentRoute = currentRoute,
                 navController = mainNavController,
+                userName = userName,
                 onLogoutClicked = {
                     showLogoutDialog = true
                 }

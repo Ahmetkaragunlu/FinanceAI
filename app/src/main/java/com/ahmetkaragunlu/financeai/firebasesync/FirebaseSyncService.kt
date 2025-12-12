@@ -2,7 +2,11 @@ package com.ahmetkaragunlu.financeai.firebasesync
 
 import android.content.Context
 import android.util.Log
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import androidx.work.workDataOf
+import com.ahmetkaragunlu.financeai.notification.NotificationWorker
 import com.ahmetkaragunlu.financeai.photo.PhotoStorageManager
 import com.ahmetkaragunlu.financeai.roomdb.dao.AiMessageDao
 import com.ahmetkaragunlu.financeai.roomdb.entitiy.AiMessageEntity
@@ -34,6 +38,7 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.util.Date
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -101,6 +106,8 @@ class FirebaseSyncService @Inject constructor(
         recentlyAddedIds.clear()
         isInitialized = false
     }
+
+
 
     private fun markAsRecentlyAdded(firestoreId: String) {
         recentlyAddedIds.add(firestoreId)
@@ -368,8 +375,48 @@ class FirebaseSyncService @Inject constructor(
             sJob.await()
             bJob.await()
             aiJob.await()
+
+            // ✅ YENİ: Scheduled transaction'lar için bildirimleri planla
+            scheduleNotificationsForPendingTransactions()
+
         } catch (e: Exception) {
             Log.e(TAG, "Error during initial sync", e)
+        }
+    }
+
+    private suspend fun scheduleNotificationsForPendingTransactions() {
+        try {
+            val allScheduled = localRepository.getAllScheduledTransactions().firstOrNull() ?: return
+            val now = System.currentTimeMillis()
+
+            Log.d(TAG, "Found ${allScheduled.size} scheduled transactions")
+
+            allScheduled.forEach { transaction ->
+                // ✅ BASİT: Sadece scheduled date kontrolü
+                if (transaction.scheduledDate > now) {
+                    Log.d(TAG, "Scheduling notification for transaction ${transaction.id}")
+
+                    val workRequest = OneTimeWorkRequestBuilder<NotificationWorker>()
+                        .setInitialDelay(5, TimeUnit.SECONDS)
+                        .setInputData(
+                            workDataOf(NotificationWorker.TRANSACTION_ID_KEY to transaction.id)
+                        )
+                        .addTag("scheduled_notification_${transaction.id}")
+                        .build()
+
+                    WorkManager.getInstance(context).enqueueUniqueWork(
+                        "scheduled_notification_${transaction.id}",
+                        ExistingWorkPolicy.REPLACE,
+                        workRequest
+                    )
+                } else {
+                    Log.d(TAG, "Transaction ${transaction.id} is in the past, skipping")
+                }
+            }
+
+            Log.d(TAG, "Notification scheduling completed")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error scheduling notifications", e)
         }
     }
 
