@@ -52,7 +52,6 @@ import com.ahmetkaragunlu.financeai.components.EditTextField
 import com.ahmetkaragunlu.financeai.navigation.Screens
 import com.ahmetkaragunlu.financeai.navigation.navigateSingleTopClear
 import com.ahmetkaragunlu.financeai.ui.theme.SignUpTextFieldStyles
-import com.ahmetkaragunlu.financeai.viewmodel.AuthViewModel
 
 @Composable
 fun SignUpScreen(
@@ -69,25 +68,27 @@ fun SignUpScreen(
     }
 
     LaunchedEffect(uiState) {
-        when(uiState) {
-            AuthState.FAILURE ->  {
-                    Toast.makeText(
-                        context,
-                        context.getString(R.string.something_went_wrong),
-                        Toast.LENGTH_SHORT
-                    ).show()
-            }
-            AuthState.VERIFICATION_EMAIL_SENT ->  {
-              authViewModel.showDialog = true
+        when (uiState) {
+            AuthState.FAILURE -> {
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.something_went_wrong),
+                    Toast.LENGTH_SHORT
+                ).show()
             }
 
-            AuthState.VERIFICATION_EMAIL_FAILED ->  {
+            AuthState.VERIFICATION_EMAIL_SENT -> {
+                authViewModel.showDialog = true
+            }
+
+            AuthState.VERIFICATION_EMAIL_FAILED -> {
                 Toast.makeText(
                     context,
                     context.getString(R.string.email_verification_could_not_be_sent),
                     Toast.LENGTH_SHORT
                 ).show()
             }
+
             AuthState.USER_ALREADY_EXISTS -> {
                 Toast.makeText(
                     context,
@@ -95,6 +96,7 @@ fun SignUpScreen(
                     Toast.LENGTH_SHORT
                 ).show()
             }
+
             else -> {}
 
         }
@@ -112,7 +114,7 @@ fun SignUpScreen(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .background(
-                 color = colorResource(R.color.background)
+                    color = colorResource(R.color.background)
                 )
     ) {
         Column(
@@ -213,8 +215,10 @@ fun SignUpScreen(
                     },
                     modifier =
                         modifier
-                            .padding(top = 8.dp).widthIn(max = 380.dp)
-                            .fillMaxWidth().padding(horizontal = 48.dp)
+                            .padding(top = 8.dp)
+                            .widthIn(max = 380.dp)
+                            .fillMaxWidth()
+                            .padding(horizontal = 48.dp)
                             .clip(shape = RoundedCornerShape(12.dp))
                             .background(
                                 brush = Brush.linearGradient(
@@ -233,7 +237,7 @@ fun SignUpScreen(
                 }
                 TextButton(
                     onClick = {
-                       navController.navigateSingleTopClear(Screens.SignInScreen.route)
+                        navController.navigateSingleTopClear(Screens.SignInScreen.route)
 
                     }
                 ) {
@@ -250,27 +254,21 @@ fun SignUpScreen(
 }
 
 
-
-
-
-
-
-
 @Composable
- private fun ShowDialog(
+private fun ShowDialog(
     authViewModel: AuthViewModel = hiltViewModel(),
     navController: NavController
 ) {
     if (authViewModel.showDialog) {
         EditAlertDialog(
-            title =  R.string.email_verification_sent ,
-            text = (R.string.email_diaolog) ,
+            title = R.string.email_verification_sent,
+            text = (R.string.email_diaolog),
             confirmButton = {
                 TextButton(
                     onClick = {
                         authViewModel.showDialog = false
                         authViewModel.resetAuthState()
-                      navController.navigateSingleTopClear(Screens.SignInScreen.route)
+                        navController.navigateSingleTopClear(Screens.SignInScreen.route)
                     }
                 ) {
                     Text(text = stringResource(R.string.ok))

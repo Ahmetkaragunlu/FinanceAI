@@ -6,25 +6,24 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.components.EditAlertDialog
-import com.ahmetkaragunlu.financeai.viewmodel.BudgetViewModel
 
 @Composable
 fun BudgetScreen(
     viewModel: BudgetViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    val formState by viewModel.formState.collectAsState()
-    val deleteState by viewModel.deleteDialogState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val formState by viewModel.formState.collectAsStateWithLifecycle()
+    val deleteState by viewModel.deleteDialogState.collectAsStateWithLifecycle()
 
     Box(
         modifier = modifier
@@ -68,7 +67,6 @@ fun BudgetScreen(
                 onDismissRequest = { viewModel.onEvent(BudgetEvent.OnDismissDeleteDialog) }
             )
         }
-
         if (formState.isConflictDialogOpen) {
             EditAlertDialog(
                 onDismissRequest = { viewModel.onEvent(BudgetEvent.OnDismissConflictDialog) },

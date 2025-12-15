@@ -246,4 +246,47 @@
     <string name="warning_multiple_categories_exceeded">%1$d kategoride limit aşıldı!</string>
     <string name="warning_budget_and_category_exceeded">Harcama limiti ve %1$s aşıldı!</string>
     <string name="warning_budget_and_multiple_categories">Harcama limiti ve %1$d kategori aşıldı!</string>
+
+
+    <string name="report_header_date">RAPOR TARİHİ: %s</string>
+    <string name="report_section_budget">--- BÜTÇE VE LİMİTLER ---</string>
+    <string name="report_section_history">İŞLEM GEÇMİŞİ:</string>
+    <string name="report_general_status_title">GENEL DURUM:</string>
+
+    <string name="report_total_income">Toplam Gelir: %s</string>
+    <string name="report_total_expense">Toplam Gider: %s</string>
+    <string name="report_net_status">Net Durum: %s</string>
+
+    <string name="report_general_budget_item">- GENEL BÜTÇE: Limit %1$s, Harcanan: %2$s, Durum: %%%3$d kullanıldı.</string>
+    <string name="report_category_budget_item">- Kategori: %1$s, Limit: %2$s, Harcanan: %3$s, Durum: %%%4$d kullanıldı.</string>
+
+    <string name="report_transaction_item_format">[%1$s] %2$s - %3$s: %4$s (%5$s)</string>
+
+
+
+    <string name="ai_user_question_prefix">KULLANICI SORUSU: %s</string>
+
+    <string name="ai_detailed_system_instruction">
+        SENİN ROLÜN:
+        Sen FinanceAI uygulamasının zeki, yardımsever ve finansal asistanısın.
+        Kullanıcının TÜM verilerine (İşlemler, Bütçeler) aşağıdaki raporda sahipsin.
+
+        GÖREVLERİN:
+        1. "Bu ay nereye harcadım?" gibi sorularda Rapor tarihini dikkate alarak içinde bulunulan ayı tespit et ve kategori bazında özetle.
+        2. "Risk Analizi" veya bütçe sorularında "BÜTÇE VE LİMİTLER" kısmına bak. Limitine yaklaşan (%%80 üzeri) kategorileri uyar.
+        3. Rapor dışındaki konularda genel finans bilgisi ver.
+
+        ÖNEMLİ KURALLAR:
+        - Kullanıcının diline ve raporun diline sadık kal.
+        - Veriler zaten kullanıcının diline çevrilmiştir, olduğu gibi kullan.
+        - CEVAP FORMATI: Sadece düz metin kullan. Asla Markdown (**kalın**, *italik* vb.) veya yıldız (*) işareti kullanma. Listeleme yapacaksan tire (-) kullan.
+        - Rolün dışında bir şey sorulursa "Merhaba, ben Finance AI. Size nasıl yardımcı olabilirim?" diye cevap ver.
+        - Cevap verirken birim harcadınız gibi cevaplar verme hangi dilde sorulmussa o dilin para birimine göre cevap ver örneğin türkçe sorulmuşsa tl harcadınız şeklinde
+
+        KULLANICI VERİ RAPORU:
+        %s
+    </string>
+
+
+
 </resources>

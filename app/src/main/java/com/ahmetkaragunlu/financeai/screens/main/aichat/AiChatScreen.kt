@@ -1,10 +1,11 @@
-package com.ahmetkaragunlu.financeai.screens.main
+package com.ahmetkaragunlu.financeai.screens.main.aichat
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -12,9 +13,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Send
-import androidx.compose.material3.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,29 +31,24 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.roomdb.entitiy.AiMessageEntity
-import com.ahmetkaragunlu.financeai.viewmodel.AiViewModel
-import kotlinx.coroutines.delay
 
 @Composable
 fun AiChatScreen(
-    viewModel: AiViewModel = hiltViewModel()
+    modifier: Modifier = Modifier,
+    viewModel: AiViewModel = hiltViewModel(),
 ) {
-    val messages by viewModel.chatMessages.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-
-    // Liste kontrolü
+    val messages by viewModel.chatMessages.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
+    val suggestions = viewModel.suggestionResIds.map { stringResource(it) }
 
     LaunchedEffect(Unit) {
         viewModel.sendPendingPrompt()
     }
-
     val initialMessageText = stringResource(R.string.ai_chat_initial_message)
-
-
     val displayMessages = remember(messages) {
         messages.ifEmpty {
             listOf(
@@ -63,78 +61,86 @@ fun AiChatScreen(
             )
         }
     }
-
-    LaunchedEffect(displayMessages.size, isLoading) {
+    LaunchedEffect(displayMessages.size, viewModel.isLoading) {
         if (displayMessages.isNotEmpty()) {
             listState.animateScrollToItem(displayMessages.size)
         }
     }
 
-    val suggestions = listOf(
-        stringResource(R.string.ai_suggestion_summary),
-        stringResource(R.string.ai_suggestion_saving),
-        stringResource(R.string.ai_suggestion_risk),
-        stringResource(R.string.ai_suggestion_top_expense)
-    )
-
-    var textState by remember { mutableStateOf("") }
-
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .background(colorResource(id = R.color.background))
     ) {
-        // Sohbet Alanı
-        LazyColumn(
-            state = listState,
+        MessageList(
+            messages = displayMessages,
+            isLoading = viewModel.isLoading,
+            listState = listState,
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            contentPadding = PaddingValues(top = 16.dp, bottom = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            items(displayMessages) { message ->
-                ChatBubble(message = message)
-            }
+        )
+        SuggestionRow(
+            suggestions = suggestions,
+            onSuggestionClick = { viewModel.sendMessage(it) }
+        )
 
-            // Yükleniyor animasyonu
-            if (isLoading) {
-                item {
-                    AiTypingIndicator()
-                }
-            }
-        }
-
-        // Öneriler (Chips)
-        LazyRow(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            contentPadding = PaddingValues(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(suggestions) { text ->
-                SuggestionChip(
-                    text = text,
-                    onClick = { viewModel.sendMessage(text) }
-                )
-            }
-        }
-
-        // Input Alanı
         ChatInputArea(
-            text = textState,
-            onTextChanged = { textState = it },
+            text = viewModel.textState,
+            onTextChanged = { viewModel.textState = it },
             onSendClicked = {
-                viewModel.sendMessage(textState)
-                textState = ""
+                viewModel.sendMessage(viewModel.textState)
+                viewModel.textState = ""
             }
         )
     }
 }
 
-// --- Alt Bileşenler ---
+
+@Composable
+private fun MessageList(
+    messages: List<AiMessageEntity>,
+    isLoading: Boolean,
+    listState: LazyListState,
+    modifier: Modifier = Modifier
+) {
+    LazyColumn(
+        state = listState,
+        modifier = modifier.padding(horizontal = 16.dp),
+        contentPadding = PaddingValues(top = 16.dp, bottom = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        items(messages) { message ->
+            ChatBubble(message = message)
+        }
+        if (isLoading) {
+            item {
+                AiTypingIndicator()
+            }
+        }
+    }
+}
+
+@Composable
+private fun SuggestionRow(
+    suggestions: List<String>,
+    onSuggestionClick: (String) -> Unit
+) {
+    LazyRow(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(suggestions) { text ->
+            SuggestionChip(
+                text = text,
+                onClick = { onSuggestionClick(text) }
+            )
+        }
+    }
+}
 
 @Composable
 fun ChatBubble(message: AiMessageEntity) {
@@ -144,23 +150,9 @@ fun ChatBubble(message: AiMessageEntity) {
         verticalAlignment = Alignment.Top
     ) {
         if (message.isAi) {
-            Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFF414853)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.AutoAwesome,
-                    contentDescription = stringResource(R.string.ai_chat_ai_icon_desc),
-                    tint = Color(0xFF26C6DA),
-                    modifier = Modifier.size(18.dp)
-                )
-            }
+            AiAvatarIcon()
             Spacer(modifier = Modifier.width(8.dp))
         }
-
         Box(
             modifier = Modifier
                 .widthIn(max = 280.dp)
@@ -188,11 +180,49 @@ fun ChatBubble(message: AiMessageEntity) {
         ) {
             Text(
                 text = message.text,
-                color = Color.White,
-                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.onPrimary,
+                style = MaterialTheme.typography.titleSmall,
                 lineHeight = 20.sp
             )
         }
+    }
+}
+
+@Composable
+fun AiTypingIndicator() {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Start,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        AiAvatarIcon()
+        Spacer(modifier = Modifier.width(8.dp))
+
+        Text(
+            text = stringResource(R.string.ai_chat_loading),
+            color = Color.Gray,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(top = 8.dp)
+        )
+    }
+}
+
+
+@Composable
+fun AiAvatarIcon() {
+    Box(
+        modifier = Modifier
+            .size(32.dp)
+            .clip(CircleShape)
+            .background(Color(0xFF414853)),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.AutoAwesome,
+            contentDescription = null,
+            tint = Color(0xFF26C6DA),
+            modifier = Modifier.size(18.dp)
+        )
     }
 }
 
@@ -208,8 +238,8 @@ fun SuggestionChip(text: String, onClick: () -> Unit) {
     ) {
         Text(
             text = text,
-            color = Color.White,
-            fontSize = 14.sp,
+            color = MaterialTheme.colorScheme.onPrimary,
+            style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.Medium
         )
     }
@@ -241,18 +271,20 @@ fun ChatInputArea(
                 Text(
                     stringResource(R.string.ai_chat_placeholder),
                     color = Color.LightGray,
-                    fontSize = 14.sp
+                    style = MaterialTheme.typography.titleSmall
                 )
             }
             BasicTextField(
                 value = text,
                 onValueChange = onTextChanged,
-                textStyle = TextStyle(color = Color.White, fontSize = 14.sp),
-                cursorBrush = SolidColor(Color.White),
+                textStyle = TextStyle(
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    fontSize = 14.sp
+                ),
+                cursorBrush = SolidColor(MaterialTheme.colorScheme.onPrimary),
                 modifier = Modifier.fillMaxWidth()
             )
         }
-
         Spacer(modifier = Modifier.width(12.dp))
 
         Box(
@@ -264,45 +296,13 @@ fun ChatInputArea(
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = Icons.Default.Send,
-                contentDescription = stringResource(R.string.ai_chat_send_desc),
-                tint = Color.White,
+                imageVector = Icons.AutoMirrored.Filled.Send,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier
                     .size(20.dp)
                     .offset(x = (-2).dp)
             )
         }
-    }
-}
-
-@Composable
-fun AiTypingIndicator() {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Start,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(32.dp)
-                .clip(CircleShape)
-                .background(Color(0xFF414853)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Default.AutoAwesome,
-                contentDescription = "AI Loading",
-                tint = Color(0xFF26C6DA),
-                modifier = Modifier.size(18.dp)
-            )
-        }
-        Spacer(modifier = Modifier.width(8.dp))
-
-        Text(
-            text = stringResource(R.string.ai_chat_loading),
-            color = Color.Gray,
-            fontSize = 12.sp,
-            modifier = Modifier.padding(top = 8.dp)
-        )
     }
 }

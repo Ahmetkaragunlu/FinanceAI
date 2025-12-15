@@ -13,6 +13,5 @@ interface BudgetRepository {
     suspend fun getBudgetByCategory(category: CategoryType): BudgetEntity?
     fun getUnsyncedBudgets(): Flow<List<BudgetEntity>>
     suspend fun getBudgetByFirestoreId(firestoreId: String): BudgetEntity?
-
     suspend fun getAllBudgetsOneShot(): List<BudgetEntity>
 }

@@ -40,7 +40,6 @@ class FCMTokenManager @Inject constructor(
                 .update(FCM_TOKENS_FIELD, FieldValue.arrayRemove(token))
                 .await()
         } catch (e: Exception) {
-
         }
     }
 }

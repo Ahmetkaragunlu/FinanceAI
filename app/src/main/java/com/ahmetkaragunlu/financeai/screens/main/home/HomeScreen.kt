@@ -19,7 +19,6 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,9 +34,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.navigation.Screens
+import com.ahmetkaragunlu.financeai.screens.main.aichat.AiViewModel
 import com.ahmetkaragunlu.financeai.utils.ExpensePieChart
-import com.ahmetkaragunlu.financeai.viewmodel.AiViewModel
-import com.ahmetkaragunlu.financeai.viewmodel.HomeViewModel
 
 @Composable
 fun HomeScreen(
@@ -47,8 +45,8 @@ fun HomeScreen(
     aiViewModel: AiViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.homeUiState.collectAsStateWithLifecycle()
-    val categoryExpenses by viewModel.lastMonthCategoryExpenses.collectAsState()
-    val aiSuggestion by viewModel.aiSuggestion.collectAsState()
+    val categoryExpenses by viewModel.lastMonthCategoryExpenses.collectAsStateWithLifecycle()
+    val aiSuggestion by viewModel.aiSuggestion.collectAsStateWithLifecycle()
 
     BackHandler {}
 
@@ -132,7 +130,6 @@ fun HomeScreen(
                 ),
             colors = CardDefaults.cardColors(containerColor = Color.Transparent),
             onClick = {
-                // AI sayfasına gitmeden önce prompt'u "bekleyen" olarak kaydet.
                 if (aiSuggestion.aiPrompt.isNotBlank()) {
                     aiViewModel.setPendingPrompt(aiSuggestion.aiPrompt)
                 }
@@ -165,8 +162,6 @@ fun HomeScreen(
                 }
             }
         }
-
-        // Expense Categories Section
         Text(
             text = stringResource(R.string.expense_categories),
             style = MaterialTheme.typography.bodyLarge,

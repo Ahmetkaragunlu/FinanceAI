@@ -7,6 +7,10 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.LocationManager
 import android.provider.Settings
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -30,6 +34,9 @@ class LocationPickerViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(LocationPickerUiState())
     val uiState: StateFlow<LocationPickerUiState> = _uiState.asStateFlow()
+
+    var searchQuery by  mutableStateOf("")
+    var isSearching by  mutableStateOf(false)
     private val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
 
     init {
@@ -73,7 +80,6 @@ class LocationPickerViewModel @Inject constructor(
             )
             return
         }
-
         if (!isLocationEnabled()) {
             _uiState.value = _uiState.value.copy(
                 errorMessage = context.getString(R.string.gps_disabled),
@@ -112,14 +118,12 @@ class LocationPickerViewModel @Inject constructor(
             }
         }
     }
-
     fun selectLocation(latLng: LatLng) {
         _uiState.value = _uiState.value.copy(
             selectedLocation = latLng,
             currentLocation = latLng,
             isLoading = true
         )
-
         viewModelScope.launch {
             try {
                 val locationData = LocationUtil.getAddressFromLocation(

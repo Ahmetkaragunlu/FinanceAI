@@ -30,6 +30,5 @@ abstract class FinanceDatabase : RoomDatabase() {
     abstract fun transactionDao(): TransactionDao
     abstract fun scheduledTransactionDao(): ScheduledTransactionDao
     abstract fun BudgetDao(): BudgetDao
-
     abstract fun aiMessageDao(): AiMessageDao
 }

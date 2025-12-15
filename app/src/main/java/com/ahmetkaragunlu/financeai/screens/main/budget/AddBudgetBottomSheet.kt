@@ -26,7 +26,6 @@ import com.ahmetkaragunlu.financeai.roomdb.type.CategoryType
 import com.ahmetkaragunlu.financeai.roomdb.type.TransactionType
 import com.ahmetkaragunlu.financeai.utils.FinanceDropdownMenu
 import com.ahmetkaragunlu.financeai.utils.toResId
-import com.ahmetkaragunlu.financeai.viewmodel.BudgetFormState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

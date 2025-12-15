@@ -15,7 +15,6 @@ interface AuthRepository {
     suspend fun signInWithGoogle(account: GoogleSignInAccount): AuthResult
     suspend fun isUserRegistered(email: String): Boolean
     suspend fun signOut()
-
     suspend fun getUserName(): String?
 
 }

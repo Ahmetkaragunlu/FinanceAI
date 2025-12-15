@@ -1,4 +1,5 @@
-package com.ahmetkaragunlu.financeai.viewmodel
+package com.ahmetkaragunlu.financeai.screens.main.addtransaction
+
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -118,6 +119,7 @@ class AddTransactionViewModel @Inject constructor(
             }.timeInMillis
         }
     }
+
     fun openDatePicker() {
         isDatePickerOpen = true
     }
@@ -173,6 +175,7 @@ class AddTransactionViewModel @Inject constructor(
         }
         tempCameraPhotoPath = null
     }
+
     @SuppressLint("StringFormatInvalid")
     fun onLocationSelected(latitude: Double, longitude: Double) {
         viewModelScope.launch {
@@ -189,9 +192,11 @@ class AddTransactionViewModel @Inject constructor(
             }
         }
     }
+
     fun clearLocation() {
         selectedLocation = null
     }
+
     fun saveTransaction(onSuccess: () -> Unit, onError: (String) -> Unit) {
         if (inputAmount.isBlank() || inputAmount.toDoubleOrNull() == null) {
             onError(context.getString(R.string.error_invalid_amount))
@@ -214,8 +219,9 @@ class AddTransactionViewModel @Inject constructor(
                     }
                 }
                 val isScheduled = isReminderEnabled
-                val firestoreId = if (isScheduled) firebaseSyncService.getNewScheduledTransactionId()
-                else firebaseSyncService.getNewTransactionId()
+                val firestoreId =
+                    if (isScheduled) firebaseSyncService.getNewScheduledTransactionId()
+                    else firebaseSyncService.getNewTransactionId()
                 if (savedPhotoPath != null) {
                     val constraints = Constraints.Builder()
                         .setRequiredNetworkType(NetworkType.CONNECTED)
@@ -255,11 +261,12 @@ class AddTransactionViewModel @Inject constructor(
                     onSuccess()
                     launch {
                         try {
-                            firebaseSyncService.syncScheduledTransactionToFirebase(scheduledTransaction)
+                            firebaseSyncService.syncScheduledTransactionToFirebase(
+                                scheduledTransaction
+                            )
                         } catch (e: Exception) {
                         }
                     }
-
                 } else {
                     val transaction = TransactionEntity(
                         amount = amount,
@@ -292,6 +299,7 @@ class AddTransactionViewModel @Inject constructor(
             }
         }
     }
+
     private fun scheduleFirstNotificationOffline(transactionId: Long) {
         val workRequest = OneTimeWorkRequestBuilder<NotificationWorker>()
             .setInitialDelay(5, TimeUnit.SECONDS)
@@ -308,6 +316,7 @@ class AddTransactionViewModel @Inject constructor(
             workRequest
         )
     }
+
     private fun clearForm() {
         inputAmount = ""
         inputNote = ""

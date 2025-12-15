@@ -35,12 +35,14 @@ object RoomModule {
             .fallbackToDestructiveMigration()
             .build()
     }
+
     // DAO instance
     @Provides
     @Singleton
     fun provideTransactionDao(database: FinanceDatabase): TransactionDao {
         return database.transactionDao()
     }
+
     @Provides
     @Singleton
     fun provideBudgetDao(database: FinanceDatabase): BudgetDao {
@@ -62,11 +64,13 @@ object RoomModule {
     ): BudgetRepository {
         return BudgetRepositoryImpl(budgetDao, ioDispatcher)
     }
+
     @Provides
     @Singleton
     fun provideScheduledTransactionDao(database: FinanceDatabase): ScheduledTransactionDao {
         return database.scheduledTransactionDao()
     }
+
     // Repository instance (Interface + Impl)
     @Provides
     @Singleton
@@ -75,6 +79,6 @@ object RoomModule {
         scheduledTransactionDao: ScheduledTransactionDao,
         @IoDispatcher ioDispatcher: CoroutineDispatcher
     ): FinanceRepository {
-        return FinanceRepositoryImpl(transactionDao, scheduledTransactionDao,ioDispatcher)
+        return FinanceRepositoryImpl(transactionDao, scheduledTransactionDao, ioDispatcher)
     }
 }

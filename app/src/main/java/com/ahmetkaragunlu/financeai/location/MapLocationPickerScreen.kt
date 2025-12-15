@@ -54,7 +54,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -73,10 +73,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun MapLocationPickerScreen(
     onLocationSelected: (latitude: Double, longitude: Double) -> Unit,
-    onDismiss: () -> Unit ,
+    onDismiss: () -> Unit,
     viewModel: LocationPickerViewModel = hiltViewModel(),
-
-
 ) {
     BackHandler {onDismiss()}
     val context = LocalContext.current
@@ -84,8 +82,6 @@ fun MapLocationPickerScreen(
     val scope = rememberCoroutineScope()
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
 
-    var searchQuery by remember { mutableStateOf("") }
-    var isSearching by remember { mutableStateOf(false) }
 
 
     val locationPermissionLauncher = rememberLauncherForActivityResult(
@@ -159,16 +155,16 @@ fun MapLocationPickerScreen(
                     )
                 )
                 OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
+                    value = viewModel.searchQuery,
+                    onValueChange = { viewModel.searchQuery = it },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                     placeholder ={ Text(stringResource(R.string.search_address_hint)) },
                     leadingIcon = { Icon(Icons.Default.Search, null) },
                     trailingIcon = {
-                        if (searchQuery.isNotEmpty()) {
-                            IconButton(onClick = { searchQuery = "" }) {
+                        if (viewModel.searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { viewModel.searchQuery = "" }) {
                                 Icon(Icons.Default.Clear, null)
                             }
                         }
@@ -177,11 +173,11 @@ fun MapLocationPickerScreen(
                     keyboardActions = KeyboardActions(
                         onSearch = {
                             scope.launch {
-                                isSearching = true
-                                LocationUtil.searchLocation(context, searchQuery)?.let { latLng ->
+                                viewModel.isSearching = true
+                                LocationUtil.searchLocation(context, viewModel.searchQuery)?.let { latLng ->
                                     viewModel.selectLocation(latLng)
                                 }
-                                isSearching = false
+                               viewModel.isSearching = false
                             }
                         }
                     ),
@@ -250,7 +246,7 @@ fun MapLocationPickerScreen(
                 }
             }
 
-            if (uiState.isLoading || isSearching) {
+            if (uiState.isLoading || viewModel.isSearching) {
                 CircularProgressIndicator(
                     modifier = Modifier.align(Alignment.Center)
                 )

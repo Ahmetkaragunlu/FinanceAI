@@ -23,21 +23,13 @@ class Converters {
     fun fromBudgetType(value: BudgetType): String = value.name
 
     @TypeConverter
-    fun toBudgetType(value: String): BudgetType {
-        return try {
-            BudgetType.valueOf(value)
-        } catch (e: Exception) {
-            BudgetType.GENERAL_MONTHLY
-        }
-    }
+    fun toBudgetType(value: String): BudgetType = BudgetType.valueOf(value)
 
     @TypeConverter
-    fun fromTimestamp(value: Long?): Date? {
-        return value?.let { Date(it) }
-    }
+    fun fromTimestamp(value: Long?): Date? = value?.let { Date(it) }
+
 
     @TypeConverter
-    fun dateToTimestamp(date: Date?): Long? {
-        return date?.time
-    }
+    fun dateToTimestamp(date: Date?): Long? = date?.time
+
 }

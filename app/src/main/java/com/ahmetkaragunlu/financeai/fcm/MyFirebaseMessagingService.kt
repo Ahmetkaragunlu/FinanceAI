@@ -20,6 +20,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
+
 @AndroidEntryPoint
 class MyFirebaseMessagingService : FirebaseMessagingService() {
     @Inject
@@ -49,24 +50,17 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
     override fun onMessageReceived(message: RemoteMessage) {
         super.onMessageReceived(message)
 
-        // ✅ 1. Kullanıcı giriş yapmamışsa hiçbir notification'ı işleme
         if (auth.currentUser == null) {
-            Log.w(TAG, "User not logged in, ignoring notification")
             return
         }
-
         val data = message.data
         val notificationType = data["type"]
-
-        // ✅ 2. Notification'daki userId'yi kontrol et
         val notificationUserId = data["userId"]
         val currentUserId = auth.currentUser?.uid
 
         if (notificationUserId != null && notificationUserId != currentUserId) {
-            Log.w(TAG, "Notification belongs to different user (notification: $notificationUserId, current: $currentUserId), ignoring")
             return
         }
-
         when (notificationType) {
             "SCHEDULED_REMINDER" -> handleScheduledReminder(data)
             "CANCEL_NOTIFICATION" -> handleCancelNotification(data)
@@ -78,38 +72,28 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
 
     private fun handleScheduledReminder(data: Map<String, String>) {
         val firestoreId = data["transactionId"] ?: run {
-            Log.w(TAG, "transactionId is null")
             return
         }
-
         scope.launch {
             try {
-                // ✅ Firestore'da aktif reminder var mı kontrol et
                 val activeReminders = firestore.collection("notification_reminders")
                     .whereEqualTo("transactionId", firestoreId)
                     .get()
                     .await()
-
                 if (!activeReminders.isEmpty) {
-                    Log.d(TAG, "Active reminder exists, skipping notification")
                     return@launch
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Error checking reminders", e)
                 return@launch
             }
-
             val localId = try {
                 repository.getScheduledTransactionByFirestoreId(firestoreId)?.id
             } catch (e: Exception) {
                 null
             }
-
             if (localId == null) {
-                Log.w(TAG, "Local transaction not found for firestoreId: $firestoreId")
                 return@launch
             }
-
             val workRequest = OneTimeWorkRequestBuilder<NotificationWorker>()
                 .setInitialDelay(0, TimeUnit.MILLISECONDS)
                 .setInputData(
@@ -127,22 +111,18 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
 
     private fun handleCancelNotification(data: Map<String, String>) {
         val firestoreId = data["transactionId"] ?: run {
-            Log.w(TAG, "transactionId is null")
             return
         }
-
         scope.launch {
             val localId = try {
                 repository.getScheduledTransactionByFirestoreId(firestoreId)?.id
             } catch (e: Exception) {
                 null
             }
-
             val notificationManager =
                 getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.cancel(firestoreId.hashCode())
             notificationManager.cancel(firestoreId.hashCode() + 20000)
-
             if (localId != null) {
                 WorkManager.getInstance(this@MyFirebaseMessagingService)
                     .cancelAllWorkByTag("scheduled_notification_$localId")
@@ -157,7 +137,6 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             Log.w(TAG, "transactionId is null")
             return
         }
-
         val notificationManager =
             getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.cancel(firestoreId.hashCode())
@@ -166,22 +145,17 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
 
     private fun handleRescheduleNotification(data: Map<String, String>) {
         val firestoreId = data["transactionId"] ?: run {
-            Log.w(TAG, "transactionId is null")
             return
         }
-
         if (auth.currentUser == null) {
-            Log.w(TAG, "User not logged in")
             return
         }
-
         scope.launch {
             val localId = try {
                 repository.getScheduledTransactionByFirestoreId(firestoreId)?.id
             } catch (e: Exception) {
                 null
             }
-
             if (localId != null) {
                 val workRequest = OneTimeWorkRequestBuilder<NotificationWorker>()
                     .setInitialDelay(0, TimeUnit.MILLISECONDS)

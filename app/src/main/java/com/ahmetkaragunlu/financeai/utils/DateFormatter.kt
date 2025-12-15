@@ -56,9 +56,9 @@ object DateFormatter {
         }
         val tomorrowStart = calendar.timeInMillis
         val targetStart = getDayStart(timestamp)
-        return when {
-            targetStart == todayStart -> context.getString(R.string.today)
-            targetStart == tomorrowStart -> {
+        return when (targetStart) {
+            todayStart -> context.getString(R.string.today)
+            tomorrowStart -> {
                 try {
                     context.getString(R.string.tomorrow)
                 } catch (e: Exception) {
@@ -172,9 +172,6 @@ object DateFormatter {
     }
 
 }
-
-
-
 fun Long.formatRelativeDate(context: Context): String {
     return DateFormatter.formatRelativeDate(context, this)
 }

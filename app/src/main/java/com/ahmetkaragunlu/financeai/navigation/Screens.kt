@@ -14,5 +14,4 @@ enum class Screens(val route : String){
     AddTransaction("AddTransaction"),
     ScheduledTransactionScreen("ScheduledTransactionScreen"),
     AiChatScreen("AiChatScreen"),
-    SettingsScreen("Settings_Screen"),
 }

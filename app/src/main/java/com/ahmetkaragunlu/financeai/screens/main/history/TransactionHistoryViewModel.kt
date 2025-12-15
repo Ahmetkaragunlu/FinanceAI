@@ -1,4 +1,5 @@
-package com.ahmetkaragunlu.financeai.viewmodel
+package com.ahmetkaragunlu.financeai.screens.main.history
+
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
