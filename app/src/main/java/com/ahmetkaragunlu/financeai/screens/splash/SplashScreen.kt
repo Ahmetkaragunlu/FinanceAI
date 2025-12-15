@@ -7,15 +7,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import com.ahmetkaragunlu.financeai.R
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.navigation.NavController
+import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.navigation.Screens
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.delay
@@ -36,8 +34,6 @@ fun SplashScreen(
            navController.navigate(Screens.SignInScreen.route)
         }
     }
-
-
     Column(
         modifier = modifier
             .fillMaxSize()

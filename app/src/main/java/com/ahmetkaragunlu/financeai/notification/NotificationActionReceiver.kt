@@ -49,7 +49,8 @@ class NotificationActionReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val firestoreId = intent.getStringExtra(NotificationWorker.FIRESTORE_ID_KEY)
         if (firestoreId.isNullOrBlank()) return
-        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notificationManager =
+            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.cancel(firestoreId.hashCode())
         notificationManager.cancel(firestoreId.hashCode() + 20000)
         when (intent.action) {
@@ -61,12 +62,17 @@ class NotificationActionReceiver : BroadcastReceiver() {
     private fun handleConfirm(context: Context, firestoreId: String) {
         scope.launch {
             try {
-                val scheduledTransaction = repository.getScheduledTransactionByFirestoreId(firestoreId)
+                val scheduledTransaction =
+                    repository.getScheduledTransactionByFirestoreId(firestoreId)
                 if (scheduledTransaction != null) {
-                    WorkManager.getInstance(context).cancelUniqueWork("scheduled_notification_${scheduledTransaction.id}")
-                    WorkManager.getInstance(context).cancelAllWorkByTag("scheduled_notification_${scheduledTransaction.id}")
-                    WorkManager.getInstance(context).cancelAllWorkByTag("delete_expired_${scheduledTransaction.id}")
-                    val newTransactionFirestoreId = scheduledTransaction.firestoreId.ifEmpty { firebaseSyncService.getNewTransactionId() }
+                    WorkManager.getInstance(context)
+                        .cancelUniqueWork("scheduled_notification_${scheduledTransaction.id}")
+                    WorkManager.getInstance(context)
+                        .cancelAllWorkByTag("scheduled_notification_${scheduledTransaction.id}")
+                    WorkManager.getInstance(context)
+                        .cancelAllWorkByTag("delete_expired_${scheduledTransaction.id}")
+                    val newTransactionFirestoreId =
+                        scheduledTransaction.firestoreId.ifEmpty { firebaseSyncService.getNewTransactionId() }
                     val transaction = TransactionEntity(
                         amount = scheduledTransaction.amount,
                         transaction = scheduledTransaction.type,
@@ -123,7 +129,8 @@ class NotificationActionReceiver : BroadcastReceiver() {
     private fun handleCancel(firestoreId: String) {
         scope.launch {
             try {
-                val scheduledTransaction = repository.getScheduledTransactionByFirestoreId(firestoreId)
+                val scheduledTransaction =
+                    repository.getScheduledTransactionByFirestoreId(firestoreId)
                 if (scheduledTransaction != null) {
                     fcmNotificationSender.sendRescheduleToAllDevices(firestoreId)
                 }

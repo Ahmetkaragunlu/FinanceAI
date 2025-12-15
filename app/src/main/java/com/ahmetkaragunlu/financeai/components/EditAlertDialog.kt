@@ -14,7 +14,6 @@ fun EditAlertDialog(
     confirmButton: @Composable () -> Unit,
     onDismissRequest : () -> Unit = {},
     dismissButton: @Composable (() -> Unit)? = null,
-
 ) {
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onDismissRequest,

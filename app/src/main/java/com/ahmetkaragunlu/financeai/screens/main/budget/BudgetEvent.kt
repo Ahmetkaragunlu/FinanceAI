@@ -2,8 +2,7 @@ package com.ahmetkaragunlu.financeai.screens.main.budget
 
 import com.ahmetkaragunlu.financeai.roomdb.type.BudgetType
 import com.ahmetkaragunlu.financeai.roomdb.type.CategoryType
-import com.ahmetkaragunlu.financeai.viewmodel.CategoryBudgetState
-import com.ahmetkaragunlu.financeai.viewmodel.GeneralBudgetState
+
 
 sealed interface BudgetEvent {
     data class OnAmountChange(val amount: String) : BudgetEvent

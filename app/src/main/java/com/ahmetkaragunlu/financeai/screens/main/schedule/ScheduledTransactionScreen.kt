@@ -41,7 +41,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.roomdb.entitiy.ScheduledTransactionEntity
@@ -50,7 +50,6 @@ import com.ahmetkaragunlu.financeai.utils.formatAsCurrency
 import com.ahmetkaragunlu.financeai.utils.formatScheduleDate
 import com.ahmetkaragunlu.financeai.utils.toIconResId
 import com.ahmetkaragunlu.financeai.utils.toResId
-import com.ahmetkaragunlu.financeai.viewmodel.ScheduleViewModel
 
 @Composable
 fun ScheduledTransactionScreen(
@@ -103,7 +102,9 @@ fun ScheduledTransactionItem(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF404349)),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        modifier = modifier.widthIn(max = 450.dp).fillMaxWidth()
+        modifier = modifier
+            .widthIn(max = 450.dp)
+            .fillMaxWidth()
     ) {
         Column(
             modifier = Modifier
@@ -156,7 +157,9 @@ fun ScheduledTransactionItem(
                 Text(
                     text = transaction.amount.formatAsCurrency(),
                     style = MaterialTheme.typography.titleMedium,
-                    color = if (transaction.type == TransactionType.INCOME) Color(0xFF4CAF50) else Color(0xFFEF5350),
+                    color = if (transaction.type == TransactionType.INCOME) Color(0xFF4CAF50) else Color(
+                        0xFFEF5350
+                    ),
                     fontWeight = FontWeight.Bold
                 )
             }

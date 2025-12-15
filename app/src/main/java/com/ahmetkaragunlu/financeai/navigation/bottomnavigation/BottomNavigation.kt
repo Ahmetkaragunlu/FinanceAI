@@ -98,6 +98,7 @@ fun BottomBar(
                                     imageVector = ic.icon,
                                     contentDescription = null
                                 )
+
                             is BottomIcon.Drawable ->
                                 Icon(
                                     painter = painterResource(ic.resId),

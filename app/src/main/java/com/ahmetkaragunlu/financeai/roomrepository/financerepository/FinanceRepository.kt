@@ -13,7 +13,6 @@ interface FinanceRepository {
     suspend fun insertTransaction(transaction: TransactionEntity): Long
     suspend fun deleteTransaction(transaction: TransactionEntity)
     suspend fun updateTransaction(transaction: TransactionEntity)
-
     fun getTransactionById(id: Int): Flow<TransactionEntity?>
     fun getAllTransactions(): Flow<List<TransactionEntity>>
     suspend fun deleteTransactionByFirestoreId(firestoreId: String)
@@ -37,6 +36,7 @@ interface FinanceRepository {
     ): Flow<List<CategoryExpense>>
     suspend fun getTransactionByFirestoreId(firestoreId: String): TransactionEntity?
     fun getUnsyncedTransactions(): Flow<List<TransactionEntity>>
+
 
     // Scheduled Transaction
     suspend fun insertScheduledTransaction(transaction: ScheduledTransactionEntity): Long

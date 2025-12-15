@@ -24,9 +24,6 @@ import com.ahmetkaragunlu.financeai.roomdb.type.CategoryType
 import com.ahmetkaragunlu.financeai.utils.formatAsCurrency
 import com.ahmetkaragunlu.financeai.utils.toIconResId
 import com.ahmetkaragunlu.financeai.utils.toResId
-import com.ahmetkaragunlu.financeai.viewmodel.BudgetUiState
-import com.ahmetkaragunlu.financeai.viewmodel.CategoryBudgetState
-import com.ahmetkaragunlu.financeai.viewmodel.GeneralBudgetState
 
 @Composable
 fun FilledBudgetContent(

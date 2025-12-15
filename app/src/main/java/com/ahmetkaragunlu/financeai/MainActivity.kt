@@ -16,7 +16,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             FinanceAITheme {
-            FinanceNavigation()            }
+            FinanceNavigation()
+            }
         }
     }
     override fun onNewIntent(intent: Intent) {

@@ -1,14 +1,16 @@
-package com.ahmetkaragunlu.financeai.viewmodel
+package com.ahmetkaragunlu.financeai.screens.main.aichat
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.ai_repository.AiRepository
 import com.ahmetkaragunlu.financeai.roomdb.entitiy.AiMessageEntity
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -18,12 +20,17 @@ class AiViewModel @Inject constructor(
     private val aiRepository: AiRepository
 ) : ViewModel() {
 
-    // Veri taşıyıcı (Static/Global gibi davranır, sayfalar arası iletişim için)
     companion object {
         var pendingAutoPrompt: String? = null
     }
-
-    // Mesaj Listesi
+    var textState by mutableStateOf("")
+    var isLoading by mutableStateOf(false)
+    val suggestionResIds = listOf(
+        R.string.ai_suggestion_summary,
+        R.string.ai_suggestion_saving,
+        R.string.ai_suggestion_risk,
+        R.string.ai_suggestion_top_expense
+    )
     val chatMessages: StateFlow<List<AiMessageEntity>> = aiRepository.getChatHistory()
         .stateIn(
             scope = viewModelScope,
@@ -31,39 +38,29 @@ class AiViewModel @Inject constructor(
             initialValue = emptyList()
         )
 
-    // Yükleniyor Durumu (Loading)
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
-
-    // Mesaj Gönderme Fonksiyonu
     fun sendMessage(text: String) {
         if (text.isBlank()) return
-
         viewModelScope.launch {
-            _isLoading.value = true
+            isLoading = true
             try {
                 aiRepository.sendMessage(text)
             } catch (e: Exception) {
-                // Hata durumunda yapılacaklar (opsiyonel log vs.)
             } finally {
-                _isLoading.value = false
+                isLoading = false
             }
         }
     }
 
-    // Anasayfadan çağrılacak: Sadece prompt'u kaydet, hemen gönderme!
     fun setPendingPrompt(prompt: String) {
         if (prompt.isNotBlank()) {
             pendingAutoPrompt = prompt
         }
     }
 
-    // Chat sayfasından çağrılacak: Bekleyen varsa gönder ve sil
-    // Bu sayede Chat sayfası açıldığında fonksiyon çalışır ve loading bu sayfada görünür.
     fun sendPendingPrompt() {
         pendingAutoPrompt?.let { prompt ->
             sendMessage(prompt)
-            pendingAutoPrompt = null // Tekrar tekrar göndermemesi için temizle
+            pendingAutoPrompt = null
         }
     }
 }

@@ -48,44 +48,53 @@ import com.ahmetkaragunlu.financeai.components.EditTextField
 import com.ahmetkaragunlu.financeai.navigation.Screens
 import com.ahmetkaragunlu.financeai.navigation.navigateSingleTopClear
 import com.ahmetkaragunlu.financeai.ui.theme.SignUpTextFieldStyles
-import com.ahmetkaragunlu.financeai.viewmodel.AuthViewModel
 
 @Composable
 fun PasswordResetScreen(
-    modifier : Modifier = Modifier,
+    modifier: Modifier = Modifier,
     navController: NavController,
-    oobCode : String?,
+    oobCode: String?,
     authViewModel: AuthViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val uiState by authViewModel.authState.collectAsStateWithLifecycle()
     BackHandler {
-      navController.navigateSingleTopClear(Screens.SignInScreen.route)
+        navController.navigateSingleTopClear(Screens.SignInScreen.route)
     }
     LaunchedEffect(uiState) {
         when (uiState) {
             AuthState.SUCCESS -> {
                 authViewModel.showDialog = true
             }
+
             AuthState.FAILURE -> {
-                Toast.makeText(context, context.getString(R.string.something_went_wrong), Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.something_went_wrong),
+                    Toast.LENGTH_SHORT
+                ).show()
                 authViewModel.resetAuthState()
             }
-            else->{}
+
+            else -> {}
         }
         authViewModel.resetAuthState()
     }
-    Box (
+    Box(
         modifier =
-            modifier.fillMaxSize().verticalScroll(rememberScrollState())
+            modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .background(
-                  color = colorResource(R.color.background)
+                    color = colorResource(R.color.background)
                 )
-    ){
+    ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = modifier.fillMaxSize().padding(top = 240.dp)
+            modifier = modifier
+                .fillMaxSize()
+                .padding(top = 240.dp)
         ) {
             Text(
                 text = stringResource(R.string.reset_password),
@@ -95,7 +104,7 @@ fun PasswordResetScreen(
             )
             EditTextField(
                 value = authViewModel.inputNewPassword,
-                onValueChange = {authViewModel.updateNewPassword(it)},
+                onValueChange = { authViewModel.updateNewPassword(it) },
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.Lock,
@@ -124,7 +133,7 @@ fun PasswordResetScreen(
             )
             EditTextField(
                 value = authViewModel.inputConfirmPassword,
-                onValueChange = {authViewModel.updateConfirmPassword(it)},
+                onValueChange = { authViewModel.updateConfirmPassword(it) },
                 label = R.string.confirm_password,
                 keyboardOptions = KeyboardOptions.Default.copy(
                     imeAction = ImeAction.Done,
@@ -138,7 +147,8 @@ fun PasswordResetScreen(
                         contentDescription = null,
                         tint = Color(0xFFcfccf0),
                         modifier = modifier.clickable {
-                            authViewModel.confirmPasswordVisibility = !authViewModel.confirmPasswordVisibility
+                            authViewModel.confirmPasswordVisibility =
+                                !authViewModel.confirmPasswordVisibility
                         }
                     )
                 },
@@ -153,7 +163,7 @@ fun PasswordResetScreen(
             )
             Button(
                 onClick = {
-                    if (authViewModel.checkPassword() && oobCode!=null && authViewModel.isValidResetPassword()) {
+                    if (authViewModel.checkPassword() && oobCode != null && authViewModel.isValidResetPassword()) {
                         authViewModel.resetPassword(oobCode)
                     } else {
                         Toast.makeText(
@@ -183,26 +193,19 @@ fun PasswordResetScreen(
 }
 
 
-
-
-
-
-
-
 @Composable
 private fun ShowDialog(
     navController: NavController,
     authViewModel: AuthViewModel = hiltViewModel()
-)
-{
+) {
     if (authViewModel.showDialog) {
         EditAlertDialog(
             title = R.string.success,
             text = R.string.your_password_has_been_changed_successfully,
-            confirmButton =  {
+            confirmButton = {
                 TextButton(onClick = {
                     authViewModel.showDialog = false
-                   navController.navigateSingleTopClear(Screens.SignInScreen.route)
+                    navController.navigateSingleTopClear(Screens.SignInScreen.route)
                 }) {
                     Text(text = stringResource(R.string.ok))
                 }

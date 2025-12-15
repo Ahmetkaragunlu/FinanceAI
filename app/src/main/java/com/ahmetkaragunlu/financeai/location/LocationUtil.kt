@@ -41,7 +41,6 @@ object LocationUtil {
             )
         }
     }
-
     suspend fun searchLocation(context: Context, query: String): LatLng? {
         return try {
             val geocoder = Geocoder(context, Locale.getDefault())
@@ -91,7 +90,6 @@ object LocationUtil {
                 address.adminArea?.let { append(it) } ?: append(context.getString(R.string.location_label))
             }
         }
-
         return LocationData(
             latitude = address.latitude,
             longitude = address.longitude,

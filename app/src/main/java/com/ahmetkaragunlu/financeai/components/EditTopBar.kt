@@ -46,12 +46,16 @@ fun EditTopBar(
                 onLogoutClicked = onLogoutClicked
             )
         },
-
         navigationIcon = {
             if (currentRoute != Screens.HomeScreen.route) {
                 IconButton(
                     onClick = {
-                        navController.navigateSingleTopClear(Screens.HomeScreen.route)
+                        if(currentRoute == Screens.DetailScreen.route) {
+                            navController.navigateSingleTopClear(Screens.TRANSACTION_HISTORY_SCREEN.route)
+                        } else {
+                            navController.navigateSingleTopClear(Screens.HomeScreen.route)
+
+                        }
                     }
                 ) {
                     Icon(
@@ -75,6 +79,7 @@ private fun topBarTitleForRoute(currentRoute: String): Int {
         Screens.AnalysisScreen.route -> R.string.budget
         Screens.AddTransaction.route -> R.string.add
         Screens.DetailScreen.route -> R.string.detail_screen
+        Screens.ScheduledTransactionScreen.route -> R.string.scheduled_screen
         else -> R.string.welcome
     }
 }

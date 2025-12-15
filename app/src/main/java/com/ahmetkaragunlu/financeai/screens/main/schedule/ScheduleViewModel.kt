@@ -1,4 +1,5 @@
-package com.ahmetkaragunlu.financeai.viewmodel
+package com.ahmetkaragunlu.financeai.screens.main.schedule
+
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

@@ -1,4 +1,5 @@
-package com.ahmetkaragunlu.financeai.viewmodel
+package com.ahmetkaragunlu.financeai.screens.main.budget
+
 import com.ahmetkaragunlu.financeai.roomdb.type.BudgetType
 import com.ahmetkaragunlu.financeai.roomdb.type.CategoryType
 import androidx.annotation.StringRes

@@ -31,7 +31,6 @@ class FinanceRepositoryImpl @Inject constructor(
     override suspend fun updateTransaction(transaction: TransactionEntity) =
         transactionDao.updateTransaction(transaction)
 
-
     override  suspend fun deleteTransactionByFirestoreId(firestoreId: String) {
         transactionDao.deleteTransactionByFirestoreId(firestoreId)
     }
@@ -39,7 +38,6 @@ class FinanceRepositoryImpl @Inject constructor(
         transactionDao.getAllTransactions()
             .distinctUntilChanged()
             .flowOn(ioDispatcher)
-
 
     override fun getTransactionsByTypeAndDate(
         transactionType: TransactionType,
@@ -95,6 +93,8 @@ class FinanceRepositoryImpl @Inject constructor(
         transactionDao.getUnsyncedTransactions()
             .distinctUntilChanged()
             .flowOn(ioDispatcher)
+
+
 
     // Scheduled Transaction
     override suspend fun insertScheduledTransaction(transaction: ScheduledTransactionEntity): Long =

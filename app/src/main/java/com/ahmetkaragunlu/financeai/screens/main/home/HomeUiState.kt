@@ -1,4 +1,5 @@
-package com.ahmetkaragunlu.financeai.viewmodel
+package com.ahmetkaragunlu.financeai.screens.main.home
+
 
 data class HomeUiState(
     val totalIncome: String = "",

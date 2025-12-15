@@ -14,6 +14,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineDispatcher
 import javax.inject.Singleton
 
 @Module
@@ -24,7 +25,7 @@ object AiModule {
     @Singleton
     fun provideGenerativeModel(): GenerativeModel {
         return GenerativeModel(
-            modelName ="gemini-2.5-flash",
+            modelName = "gemini-2.5-flash",
             apiKey = BuildConfig.GEMINI_API_KEY
         )
     }
@@ -37,9 +38,18 @@ object AiModule {
         transactionDao: TransactionDao,
         budgetRepository: BudgetRepository,
         firebaseSyncService: FirebaseSyncService,
-        @ApplicationContext context: Context
+        @ApplicationContext context: Context,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher
     ): AiRepository {
-        return AiRepositoryImpl(generativeModel, aiMessageDao, transactionDao, budgetRepository, firebaseSyncService,context)
+        return AiRepositoryImpl(
+            generativeModel,
+            aiMessageDao,
+            transactionDao,
+            budgetRepository,
+            firebaseSyncService,
+            context,
+            ioDispatcher
+        )
     }
 }
 

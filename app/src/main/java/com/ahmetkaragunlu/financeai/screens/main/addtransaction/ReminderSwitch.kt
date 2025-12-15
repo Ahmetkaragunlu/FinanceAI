@@ -32,11 +32,15 @@ fun ReminderSwitch(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(stringResource(R.string.reminder_switch_title), color = MaterialTheme.colorScheme.onPrimary)
+            Text(
+                stringResource(R.string.reminder_switch_title),
+                color = MaterialTheme.colorScheme.onPrimary
+            )
             Text(
                 text = stringResource(
                     id = if (isEnabled) R.string.reminder_enabled_desc
-                    else R.string.reminder_disabled_desc),
+                    else R.string.reminder_disabled_desc
+                ),
                 color = Color.Gray,
                 style = MaterialTheme.typography.bodySmall
             )

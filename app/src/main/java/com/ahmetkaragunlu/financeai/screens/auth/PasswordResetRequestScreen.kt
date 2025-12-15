@@ -27,7 +27,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
@@ -44,13 +43,12 @@ import com.ahmetkaragunlu.financeai.components.EditTextField
 import com.ahmetkaragunlu.financeai.navigation.Screens
 import com.ahmetkaragunlu.financeai.navigation.navigateSingleTopClear
 import com.ahmetkaragunlu.financeai.ui.theme.SignUpTextFieldStyles
-import com.ahmetkaragunlu.financeai.viewmodel.AuthViewModel
 
 @Composable
 fun PasswordResetRequestScreen(
     modifier: Modifier = Modifier,
     authViewModel: AuthViewModel = hiltViewModel(),
-    navController : NavController
+    navController: NavController
 ) {
 
     val context = LocalContext.current
@@ -61,29 +59,44 @@ fun PasswordResetRequestScreen(
             AuthState.SUCCESS -> {
                 authViewModel.showDialog = true
             }
+
             AuthState.USER_NOT_FOUND -> {
-                Toast.makeText(context, context.getString(R.string.user_not_found) ,Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.user_not_found),
+                    Toast.LENGTH_SHORT
+                ).show()
             }
+
             AuthState.FAILURE -> {
-                Toast.makeText(context, context.getString(R.string.something_went_wrong), Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.something_went_wrong),
+                    Toast.LENGTH_SHORT
+                ).show()
             }
+
             else -> {}
         }
         authViewModel.resetAuthState()
     }
 
-    Box (
+    Box(
         modifier =
-            modifier.fillMaxSize().verticalScroll(rememberScrollState())
+            modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .background(
-                   color = colorResource(R.color.background)
-                    )
+                    color = colorResource(R.color.background)
+                )
 
-    ){
+    ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp),
-             modifier = modifier.fillMaxSize().padding(top = 240.dp)
+            modifier = modifier
+                .fillMaxSize()
+                .padding(top = 240.dp)
         ) {
             Text(
                 text = stringResource(R.string.forgot_password),
@@ -93,7 +106,7 @@ fun PasswordResetRequestScreen(
             )
             EditTextField(
                 value = authViewModel.inputEmail,
-                onValueChange = {authViewModel.updateEmail(it)},
+                onValueChange = { authViewModel.updateEmail(it) },
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.AlternateEmail,
@@ -111,7 +124,7 @@ fun PasswordResetRequestScreen(
             )
             EditTextField(
                 value = authViewModel.inputFirstName,
-                onValueChange = {authViewModel.updateFirstName(it)},
+                onValueChange = { authViewModel.updateFirstName(it) },
                 label = R.string.first_name,
                 keyboardOptions = KeyboardOptions.Default.copy(
                     imeAction = ImeAction.Next,
@@ -122,7 +135,7 @@ fun PasswordResetRequestScreen(
             )
             EditTextField(
                 value = authViewModel.inputLastName,
-                onValueChange = {authViewModel.updateLastName(it)},
+                onValueChange = { authViewModel.updateLastName(it) },
                 label = R.string.last_name,
                 keyboardOptions = KeyboardOptions.Default.copy(
                     imeAction = ImeAction.Done,
@@ -134,7 +147,7 @@ fun PasswordResetRequestScreen(
             Button(
                 onClick = {
                     if (authViewModel.isValidResetRequestPassword()) {
-                      authViewModel.sendResetPasswordRequest()
+                        authViewModel.sendResetPasswordRequest()
                     } else {
                         Toast.makeText(
                             context, context.getString(R.string.fill_all_fields_correctly),
@@ -165,25 +178,19 @@ fun PasswordResetRequestScreen(
 }
 
 
-
-
-
-
-
-
 @Composable
 private fun ShowDialog(
     navController: NavController,
     authViewModel: AuthViewModel = hiltViewModel()
 ) {
-    if(authViewModel.showDialog) {
+    if (authViewModel.showDialog) {
         EditAlertDialog(
             title = R.string.success,
             text = R.string.reset_request_sent,
             confirmButton = {
                 TextButton(onClick = {
                     authViewModel.showDialog = false
-                 navController.navigateSingleTopClear(Screens.SignInScreen.route)
+                    navController.navigateSingleTopClear(Screens.SignInScreen.route)
                 }) {
                     Text(text = stringResource(R.string.ok))
                 }

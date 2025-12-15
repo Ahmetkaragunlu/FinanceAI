@@ -1,7 +1,6 @@
 package com.ahmetkaragunlu.financeai.firebaserepo
 
 import androidx.work.WorkManager
-import com.ahmetkaragunlu.financeai.di.module.IoDispatcher
 import com.ahmetkaragunlu.financeai.fcm.FCMTokenManager
 import com.ahmetkaragunlu.financeai.firebasemodel.User
 import com.ahmetkaragunlu.financeai.firebasesync.FirebaseSyncService
@@ -16,7 +15,6 @@ import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Source
-import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -34,7 +32,6 @@ class AuthRepositoryImpl @Inject constructor(
 ) : AuthRepository {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-
     override suspend fun signUp(email: String, password: String): AuthResult =
         auth.createUserWithEmailAndPassword(email, password).await()
 
@@ -50,6 +47,7 @@ class AuthRepositoryImpl @Inject constructor(
                 is FirebaseAuthInvalidCredentialsException -> {
                     throw AuthException.InvalidCredentials
                 }
+
                 else -> throw e
             }
         }
@@ -83,6 +81,7 @@ class AuthRepositoryImpl @Inject constructor(
                 is FirebaseAuthUserCollisionException -> {
                     throw AuthException.EmailExists
                 }
+
                 else -> throw e
             }
         }
@@ -142,7 +141,6 @@ class AuthRepositoryImpl @Inject constructor(
             null
         }
     }
-
 
     override suspend fun signOut() {
         fcmTokenManager.removeFCMToken()

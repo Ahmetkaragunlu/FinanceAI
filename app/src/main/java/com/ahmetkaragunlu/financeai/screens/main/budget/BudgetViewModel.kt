@@ -1,4 +1,6 @@
-package com.ahmetkaragunlu.financeai.viewmodel
+package com.ahmetkaragunlu.financeai.screens.main.budget
+
+
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -10,7 +12,6 @@ import com.ahmetkaragunlu.financeai.roomdb.type.CategoryType
 import com.ahmetkaragunlu.financeai.roomdb.type.TransactionType
 import com.ahmetkaragunlu.financeai.roomrepository.budgetrepositroy.BudgetRepository
 import com.ahmetkaragunlu.financeai.roomrepository.financerepository.FinanceRepository
-import com.ahmetkaragunlu.financeai.screens.main.budget.BudgetEvent
 import com.ahmetkaragunlu.financeai.utils.DateFormatter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
@@ -341,7 +342,6 @@ class BudgetViewModel @Inject constructor(
                     Pair(R.string.warning_multiple_categories_exceeded, listOf(overCount))
                 }
             }
-
             general != null && general.progress > 0.85f -> Pair(
                 R.string.warning_budget_near_end,
                 emptyList()

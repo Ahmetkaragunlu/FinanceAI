@@ -26,7 +26,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import com.ahmetkaragunlu.financeai.R
@@ -39,7 +39,6 @@ import com.ahmetkaragunlu.financeai.photo.PhotoSourceBottomSheet
 import com.ahmetkaragunlu.financeai.roomdb.type.TransactionType
 import com.ahmetkaragunlu.financeai.ui.theme.AddTransactionScreenTextFieldStyles
 import com.ahmetkaragunlu.financeai.utils.*
-import com.ahmetkaragunlu.financeai.viewmodel.AddTransactionViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -122,7 +121,6 @@ fun AddTransactionScreen(
                 )
             }
         }
-
         Spacer(modifier = modifier.height(16.dp))
 
         // Form Fields
@@ -167,7 +165,8 @@ fun AddTransactionScreen(
                 itemLabel = { category -> stringResource(category.toResId()) },
                 trigger = {
                     OutlinedTextField(
-                        value = viewModel.selectedCategory?.let { stringResource(it.toResId()) } ?: "",
+                        value = viewModel.selectedCategory?.let { stringResource(it.toResId()) }
+                            ?: "",
                         onValueChange = {},
                         readOnly = true,
                         placeholder = {

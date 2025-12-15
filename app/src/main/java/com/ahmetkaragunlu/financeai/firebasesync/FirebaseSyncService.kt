@@ -53,30 +53,22 @@ class FirebaseSyncService @Inject constructor(
     private val messaging: FirebaseMessaging,
     @ApplicationContext private val context: Context
 ) {
-    private var transactionListener: ListenerRegistration? = null
-    private var scheduledListener: ListenerRegistration? = null
-    private var budgetListener: ListenerRegistration? = null
-    private var aiMessageListener: ListenerRegistration? = null
-
+    private val activeListeners = mutableMapOf<SyncType, ListenerRegistration>()
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var isInitialized = false
     private val recentlyAddedIds = mutableSetOf<String>()
 
     companion object {
         private const val TAG = "FirebaseSyncService"
-        private const val TRANSACTIONS_COLLECTION = "transactions"
-        private const val SCHEDULED_COLLECTION = "scheduled_transactions"
-        private const val BUDGET_COLLECTION = "budgets"
-        private const val AI_MESSAGES_COLLECTION = "ai_messages"
         private const val RECENTLY_ADDED_TIMEOUT = 3000L
     }
 
-    private enum class SyncType { TRANSACTION, SCHEDULED, BUDGET, AI_MESSAGE }
-
     // --- ID GENERATION ---
-    fun getNewTransactionId(): String = firestore.collection(TRANSACTIONS_COLLECTION).document().id
-    fun getNewScheduledTransactionId(): String = firestore.collection(SCHEDULED_COLLECTION).document().id
-    fun getNewBudgetId(): String = firestore.collection(BUDGET_COLLECTION).document().id
+    fun getNewTransactionId(): String = generateId(SyncType.TRANSACTION)
+    fun getNewScheduledTransactionId(): String = generateId(SyncType.SCHEDULED)
+    fun getNewBudgetId(): String = generateId(SyncType.BUDGET)
+    private fun generateId(type: SyncType): String =
+        firestore.collection(type.collectionName).document().id
 
     private fun getUserId(): String? = auth.currentUser?.uid
 
@@ -88,10 +80,7 @@ class FirebaseSyncService @Inject constructor(
                 performInitialSync()
                 pushUnsyncedData()
                 delay(300)
-                startListeningToTransactions()
-                startListeningToScheduledTransactions()
-                startListeningToBudgets()
-                startListeningToAiMessages()
+                startAllListeners()
                 delay(500)
                 sendPendingNotifications()
                 isInitialized = true
@@ -100,15 +89,11 @@ class FirebaseSyncService @Inject constructor(
             }
         }
     }
-
     fun resetSync() {
         stopListening()
         recentlyAddedIds.clear()
         isInitialized = false
     }
-
-
-
     private fun markAsRecentlyAdded(firestoreId: String) {
         recentlyAddedIds.add(firestoreId)
         scope.launch {
@@ -117,370 +102,397 @@ class FirebaseSyncService @Inject constructor(
         }
     }
 
-    // --- PUSH DATA (LOCAL -> FIREBASE) ---
+    // --- GENERIC SYNC HELPER ---
+    private suspend fun syncToFirebase(
+        type: SyncType,
+        firestoreId: String,
+        data: Map<String, Any?>
+    ): Result<String> {
+        return try {
+            val userId = getUserId() ?: return Result.failure(Exception("User not logged in"))
+            val docRef = if (firestoreId.isNotEmpty()) {
+                firestore.collection(type.collectionName).document(firestoreId)
+            } else {
+                firestore.collection(type.collectionName).document()
+            }
+            val finalFirestoreId = docRef.id
+            markAsRecentlyAdded(finalFirestoreId)
+            val finalData = data.toMutableMap().apply {
+                put("userId", userId)
+                put("timestamp", System.currentTimeMillis())
+            }
+            docRef.set(finalData, SetOptions.merge()).await()
+            Result.success(finalFirestoreId)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    // --- ENTITY TO FIREBASE MAP EXTENSIONS ---
+    private fun TransactionEntity.toFirebaseMap(): Map<String, Any?> = mapOf(
+        "amount" to amount,
+        "transaction" to transaction.name,
+        "note" to note,
+        "date" to date,
+        "category" to category.name,
+        "locationFull" to locationFull,
+        "locationShort" to locationShort,
+        "latitude" to latitude,
+        "longitude" to longitude
+    )
+    private fun ScheduledTransactionEntity.toFirebaseMap(): Map<String, Any?> = mapOf(
+        "amount" to amount,
+        "type" to type.name,
+        "category" to category.name,
+        "note" to note,
+        "scheduledDate" to scheduledDate,
+        "expirationNotificationSent" to expirationNotificationSent,
+        "notificationSent" to notificationSent,
+        "locationFull" to locationFull,
+        "locationShort" to locationShort,
+        "latitude" to latitude,
+        "longitude" to longitude
+    )
+    private fun BudgetEntity.toFirebaseMap(): Map<String, Any?> = mapOf(
+        "budgetType" to budgetType.name,
+        "category" to category?.name,
+        "amount" to amount,
+        "limitPercentage" to limitPercentage
+    )
+    private fun AiMessageEntity.toFirebaseMap(): Map<String, Any?> = mapOf(
+        "text" to text,
+        "isAi" to isAi,
+        "timestamp" to timestamp.time
+    )
+
+    // --- PUBLIC SYNC METHODS ---
+    suspend fun syncTransactionToFirebase(transaction: TransactionEntity): Result<String> =
+        syncToFirebase(SyncType.TRANSACTION, transaction.firestoreId, transaction.toFirebaseMap())
+    suspend fun syncScheduledTransactionToFirebase(transaction: ScheduledTransactionEntity): Result<String> =
+        syncToFirebase(SyncType.SCHEDULED, transaction.firestoreId, transaction.toFirebaseMap())
+
+    suspend fun syncBudgetToFirebase(budget: BudgetEntity): Result<String> =
+        syncToFirebase(SyncType.BUDGET, budget.firestoreId, budget.toFirebaseMap())
+
+    suspend fun syncAiMessageToFirebase(message: AiMessageEntity): Result<String> =
+        syncToFirebase(SyncType.AI_MESSAGE, message.firebaseId ?: "", message.toFirebaseMap())
+
+    // --- PUSH UNSYNCED DATA ---
     private suspend fun pushUnsyncedData() {
         try {
-            // Transactions
-            localRepository.getUnsyncedTransactions().firstOrNull()?.forEach { transaction ->
-                syncTransactionToFirebase(transaction).onSuccess {
-                    localRepository.updateTransaction(transaction.copy(syncedToFirebase = true))
-                }
-            }
-            // Scheduled Transactions
-            localRepository.getUnsyncedScheduledTransactions().firstOrNull()
-                ?.forEach { transaction ->
-                    syncScheduledTransactionToFirebase(transaction).onSuccess {
-                        localRepository.updateScheduledTransaction(transaction.copy(syncedToFirebase = true))
-                    }
-                }
-            // Budgets
-            budgetRepository.getUnsyncedBudgets().firstOrNull()?.forEach { budget ->
-                syncBudgetToFirebase(budget).onSuccess {
-                    budgetRepository.updateBudget(budget.copy(syncedToFirebase = true))
-                }
-            }
-            // Unsynced AI Messages
-            aiMessageDao.getUnsyncedMessages().forEach { message ->
-                syncAiMessageToFirebase(message).onSuccess { firestoreId ->
-                    aiMessageDao.updateSyncStatus(message.id, firestoreId)
-                }
-            }
+            pushUnsyncedTransactions()
+            pushUnsyncedScheduledTransactions()
+            pushUnsyncedBudgets()
+            pushUnsyncedAiMessages()
         } catch (e: Exception) {
             Log.e(TAG, "Error pushing unsynced data", e)
         }
     }
-
-    suspend fun syncAiMessageToFirebase(message: AiMessageEntity): Result<String> {
-        return try {
-            val userId = getUserId() ?: return Result.failure(Exception("User not logged in"))
-            val docRef = if (!message.firebaseId.isNullOrEmpty()) {
-                firestore.collection(AI_MESSAGES_COLLECTION).document(message.firebaseId)
-            } else {
-                firestore.collection(AI_MESSAGES_COLLECTION).document()
+    private suspend fun pushUnsyncedTransactions() {
+        localRepository.getUnsyncedTransactions().firstOrNull()?.forEach { transaction ->
+            syncTransactionToFirebase(transaction).onSuccess {
+                localRepository.updateTransaction(transaction.copy(syncedToFirebase = true))
             }
-            val firestoreId = docRef.id
-            markAsRecentlyAdded(firestoreId)
-
-            val data = hashMapOf(
-                "userId" to userId,
-                "text" to message.text,
-                "isAi" to message.isAi,
-                "timestamp" to message.timestamp.time
-            )
-            docRef.set(data, SetOptions.merge()).await()
-            Result.success(firestoreId)
-        } catch (e: Exception) {
-            Result.failure(e)
         }
     }
-
-    suspend fun syncTransactionToFirebase(transaction: TransactionEntity): Result<String> {
-        return try {
-            val userId = getUserId() ?: return Result.failure(Exception("User not logged in"))
-            val docRef = if (transaction.firestoreId.isNotEmpty()) {
-                firestore.collection(TRANSACTIONS_COLLECTION).document(transaction.firestoreId)
-            } else {
-                firestore.collection(TRANSACTIONS_COLLECTION).document()
+    private suspend fun pushUnsyncedScheduledTransactions() {
+        localRepository.getUnsyncedScheduledTransactions().firstOrNull()?.forEach { transaction ->
+            syncScheduledTransactionToFirebase(transaction).onSuccess {
+                localRepository.updateScheduledTransaction(transaction.copy(syncedToFirebase = true))
             }
-            val firestoreId = docRef.id
-            markAsRecentlyAdded(firestoreId)
-            val data = hashMapOf(
-                "userId" to userId,
-                "amount" to transaction.amount,
-                "transaction" to transaction.transaction.name,
-                "note" to transaction.note,
-                "date" to transaction.date,
-                "category" to transaction.category.name,
-                "locationFull" to transaction.locationFull,
-                "locationShort" to transaction.locationShort,
-                "latitude" to transaction.latitude,
-                "longitude" to transaction.longitude,
-                "timestamp" to System.currentTimeMillis()
-            )
-            docRef.set(data, SetOptions.merge()).await()
-            Result.success(firestoreId)
-        } catch (e: Exception) {
-            Result.failure(e)
         }
     }
-
-    suspend fun syncScheduledTransactionToFirebase(transaction: ScheduledTransactionEntity): Result<String> {
-        return try {
-            val userId = getUserId() ?: return Result.failure(Exception("User not logged in"))
-            val docRef = if (transaction.firestoreId.isNotEmpty()) {
-                firestore.collection(SCHEDULED_COLLECTION).document(transaction.firestoreId)
-            } else {
-                firestore.collection(SCHEDULED_COLLECTION).document()
+    private suspend fun pushUnsyncedBudgets() {
+        budgetRepository.getUnsyncedBudgets().firstOrNull()?.forEach { budget ->
+            syncBudgetToFirebase(budget).onSuccess {
+                budgetRepository.updateBudget(budget.copy(syncedToFirebase = true))
             }
-            val firestoreId = docRef.id
-            markAsRecentlyAdded(firestoreId)
-            val data = hashMapOf(
-                "userId" to userId,
-                "amount" to transaction.amount,
-                "type" to transaction.type.name,
-                "category" to transaction.category.name,
-                "note" to transaction.note,
-                "scheduledDate" to transaction.scheduledDate,
-                "expirationNotificationSent" to transaction.expirationNotificationSent,
-                "notificationSent" to transaction.notificationSent,
-                "locationFull" to transaction.locationFull,
-                "locationShort" to transaction.locationShort,
-                "latitude" to transaction.latitude,
-                "longitude" to transaction.longitude,
-                "timestamp" to System.currentTimeMillis()
-            )
-            docRef.set(data, SetOptions.merge()).await()
-            Result.success(firestoreId)
-        } catch (e: Exception) {
-            Result.failure(e)
         }
     }
-
-    suspend fun syncBudgetToFirebase(budget: BudgetEntity): Result<String> {
-        return try {
-            val userId = getUserId() ?: return Result.failure(Exception("User not logged in"))
-            val docRef = if (budget.firestoreId.isNotEmpty()) {
-                firestore.collection(BUDGET_COLLECTION).document(budget.firestoreId)
-            } else {
-                firestore.collection(BUDGET_COLLECTION).document()
+    private suspend fun pushUnsyncedAiMessages() {
+        aiMessageDao.getUnsyncedMessages().forEach { message ->
+            syncAiMessageToFirebase(message).onSuccess { firestoreId ->
+                aiMessageDao.updateSyncStatus(message.id, firestoreId)
             }
-            val firestoreId = docRef.id
-            markAsRecentlyAdded(firestoreId)
-            val data = hashMapOf(
-                "userId" to userId,
-                "budgetType" to budget.budgetType.name,
-                "category" to budget.category?.name,
-                "amount" to budget.amount,
-                "limitPercentage" to budget.limitPercentage,
-                "timestamp" to System.currentTimeMillis()
-            )
-            docRef.set(data, SetOptions.merge()).await()
-            Result.success(firestoreId)
-        } catch (e: Exception) {
-            Result.failure(e)
         }
     }
-
+    // --- DOCUMENT TO ENTITY MAPPERS (WITH EXISTING FALLBACK) ---
+    private fun DocumentSnapshot.toTransactionEntity(
+        firestoreId: String,
+        photoUri: String? = null,
+        existing: TransactionEntity? = null
+    ): TransactionEntity {
+        return TransactionEntity(
+            firestoreId = firestoreId,
+            amount = getDouble("amount") ?: existing?.amount ?: 0.0,
+            transaction = TransactionType.valueOf(
+                getString("transaction") ?: existing?.transaction?.name
+                ?: TransactionType.EXPENSE.name
+            ),
+            note = getString("note") ?: existing?.note ?: "",
+            date = getLong("date") ?: existing?.date ?: System.currentTimeMillis(),
+            category = CategoryType.valueOf(
+                getString("category") ?: existing?.category?.name ?: CategoryType.OTHER.name
+            ),
+            photoUri = photoUri,
+            locationFull = getString("locationFull") ?: existing?.locationFull,
+            locationShort = getString("locationShort") ?: existing?.locationShort,
+            latitude = getDouble("latitude") ?: existing?.latitude,
+            longitude = getDouble("longitude") ?: existing?.longitude,
+            syncedToFirebase = true
+        )
+    }
+    private fun DocumentSnapshot.toScheduledTransactionEntity(
+        firestoreId: String,
+        photoUri: String? = null,
+        existing: ScheduledTransactionEntity? = null
+    ): ScheduledTransactionEntity {
+        return ScheduledTransactionEntity(
+            firestoreId = firestoreId,
+            amount = getDouble("amount") ?: existing?.amount ?: 0.0,
+            type = TransactionType.valueOf(
+                getString("type") ?: existing?.type?.name ?: TransactionType.EXPENSE.name
+            ),
+            category = CategoryType.valueOf(
+                getString("category") ?: existing?.category?.name ?: CategoryType.OTHER.name
+            ),
+            note = getString("note") ?: existing?.note,
+            scheduledDate = getLong("scheduledDate") ?: existing?.scheduledDate
+            ?: System.currentTimeMillis(),
+            expirationNotificationSent = getBoolean("expirationNotificationSent")
+                ?: existing?.expirationNotificationSent ?: false,
+            notificationSent = getBoolean("notificationSent") ?: existing?.notificationSent
+            ?: false,
+            photoUri = photoUri,
+            locationFull = getString("locationFull") ?: existing?.locationFull,
+            locationShort = getString("locationShort") ?: existing?.locationShort,
+            latitude = getDouble("latitude") ?: existing?.latitude,
+            longitude = getDouble("longitude") ?: existing?.longitude,
+            syncedToFirebase = true
+        )
+    }
+    private fun DocumentSnapshot.toBudgetEntity(
+        firestoreId: String,
+        existing: BudgetEntity? = null
+    ): BudgetEntity {
+        return BudgetEntity(
+            firestoreId = firestoreId,
+            budgetType = BudgetType.valueOf(
+                getString("budgetType") ?: existing?.budgetType?.name
+                ?: BudgetType.CATEGORY_AMOUNT.name
+            ),
+            category = getString("category")?.let { CategoryType.valueOf(it) }
+                ?: existing?.category,
+            amount = getDouble("amount") ?: existing?.amount ?: 0.0,
+            limitPercentage = getDouble("limitPercentage") ?: existing?.limitPercentage,
+            syncedToFirebase = true
+        )
+    }
+    private fun DocumentSnapshot.toAiMessageEntity(firestoreId: String): AiMessageEntity {
+        val timestampLong = getLong("timestamp") ?: System.currentTimeMillis()
+        return AiMessageEntity(
+            firebaseId = firestoreId,
+            text = getString("text") ?: "",
+            isAi = getBoolean("isAi") ?: false,
+            timestamp = Date(timestampLong),
+            isSynced = true
+        )
+    }
     // --- DELETE OPERATIONS ---
     suspend fun deleteTransactionPhoto(firestoreId: String): Result<Unit> {
         return try {
-            val docRef = firestore.collection(TRANSACTIONS_COLLECTION).document(firestoreId)
+            val docRef =
+                firestore.collection(SyncType.TRANSACTION.collectionName).document(firestoreId)
             val doc = docRef.get().await()
-            val photoUrl = doc.getString("photoStorageUrl")
-
-            if (!photoUrl.isNullOrBlank()) {
-                scope.launch {
-                    try {
-                        photoStorageManager.deletePhoto(photoUrl)
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Error deleting photo blob", e)
-                    }
-                }
-            }
+            deletePhotoIfExists(doc.getString("photoStorageUrl"))
             docRef.update("photoStorageUrl", null).await()
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
-
-    suspend fun deleteTransactionFromFirebase(firestoreId: String): Result<Unit> {
-        return deleteDocAndPhoto(TRANSACTIONS_COLLECTION, firestoreId)
-    }
-
+    suspend fun deleteTransactionFromFirebase(firestoreId: String): Result<Unit> =
+        deleteDocumentWithPhoto(SyncType.TRANSACTION, firestoreId)
     suspend fun deleteBudgetFromFirebase(firestoreId: String): Result<Unit> {
         return try {
-            firestore.collection(BUDGET_COLLECTION).document(firestoreId).delete().await()
+            firestore.collection(SyncType.BUDGET.collectionName).document(firestoreId).delete()
+                .await()
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
-
     suspend fun deleteScheduledTransactionFromFirebase(firestoreId: String): Result<Unit> {
         return try {
-            try {
-                val doc =
-                    firestore.collection(SCHEDULED_COLLECTION).document(firestoreId).get().await()
-                val photoUrl = doc.getString("photoStorageUrl")
-                if (!photoUrl.isNullOrBlank()) {
-                    scope.launch {
-                        try {
-                            photoStorageManager.deletePhoto(photoUrl)
-                        } catch (e: Exception) {
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-            }
-            try {
-                val remindersQuery = firestore.collection("notification_reminders")
-                    .whereEqualTo("transactionId", firestoreId)
-                    .get()
-                    .await()
-
-                if (!remindersQuery.isEmpty) {
-                    val batch = firestore.batch()
-                    remindersQuery.documents.forEach { doc ->
-                        batch.delete(doc.reference)
-                    }
-                    batch.commit().await()
-                }
-            } catch (e: Exception) {
-            }
-            firestore.collection(SCHEDULED_COLLECTION).document(firestoreId).delete().await()
+            deletePhotoFromDocument(SyncType.SCHEDULED, firestoreId)
+            deleteNotificationReminders(firestoreId)
+            firestore.collection(SyncType.SCHEDULED.collectionName).document(firestoreId).delete()
+                .await()
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    private suspend fun deleteDocAndPhoto(collection: String, firestoreId: String): Result<Unit> {
+    private suspend fun deleteDocumentWithPhoto(type: SyncType, firestoreId: String): Result<Unit> {
         return try {
-            val doc = firestore.collection(collection).document(firestoreId).get().await()
-            val photoUrl = doc.getString("photoStorageUrl")
-            if (!photoUrl.isNullOrBlank()) {
-                scope.launch {
-                    try {
-                        photoStorageManager.deletePhoto(photoUrl)
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Error deleting photo", e)
-                    }
-                }
-            }
-            firestore.collection(collection).document(firestoreId).delete().await()
+            deletePhotoFromDocument(type, firestoreId)
+            firestore.collection(type.collectionName).document(firestoreId).delete().await()
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
+    private suspend fun deletePhotoFromDocument(type: SyncType, firestoreId: String) {
+        try {
+            val doc = firestore.collection(type.collectionName).document(firestoreId).get().await()
+            deletePhotoIfExists(doc.getString("photoStorageUrl"))
+        } catch (e: Exception) {
+            Log.e(TAG, "Error deleting photo from document", e)
+        }
+    }
 
-    // --- INITIAL FETCH (PULL) ---
+    private fun deletePhotoIfExists(photoUrl: String?) {
+        if (!photoUrl.isNullOrBlank()) {
+            scope.launch {
+                try {
+                    photoStorageManager.deletePhoto(photoUrl)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error deleting photo", e)
+                }
+            }
+        }
+    }
+    private suspend fun deleteNotificationReminders(firestoreId: String) {
+        try {
+            val remindersQuery = firestore.collection("notification_reminders")
+                .whereEqualTo("transactionId", firestoreId)
+                .get()
+                .await()
+            if (!remindersQuery.isEmpty) {
+                val batch = firestore.batch()
+                remindersQuery.documents.forEach { doc ->
+                    batch.delete(doc.reference)
+                }
+                batch.commit().await()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error deleting notification reminders", e)
+        }
+    }
+
+    // --- INITIAL SYNC ---
     private suspend fun performInitialSync() {
         val userId = getUserId() ?: return
         try {
-            val tJob = scope.async {
-                fetchAllFromFirebase(TRANSACTIONS_COLLECTION, userId, SyncType.TRANSACTION)
+            val jobs = SyncType.entries.map { type ->
+                scope.async { fetchAllFromFirebase(type, userId) }
             }
-            val sJob = scope.async {
-                fetchAllFromFirebase(SCHEDULED_COLLECTION, userId, SyncType.SCHEDULED)
-            }
-            val bJob = scope.async {
-                fetchAllFromFirebase(BUDGET_COLLECTION, userId, SyncType.BUDGET)
-            }
-            val aiJob = scope.async {
-                fetchAllFromFirebase(AI_MESSAGES_COLLECTION, userId, SyncType.AI_MESSAGE)
-            }
-            tJob.await()
-            sJob.await()
-            bJob.await()
-            aiJob.await()
-
-            // ✅ YENİ: Scheduled transaction'lar için bildirimleri planla
+            jobs.forEach { it.await() }
             scheduleNotificationsForPendingTransactions()
-
         } catch (e: Exception) {
             Log.e(TAG, "Error during initial sync", e)
         }
     }
 
-    private suspend fun scheduleNotificationsForPendingTransactions() {
+    private suspend fun fetchAllFromFirebase(type: SyncType, userId: String) {
         try {
-            val allScheduled = localRepository.getAllScheduledTransactions().firstOrNull() ?: return
-            val now = System.currentTimeMillis()
-
-            Log.d(TAG, "Found ${allScheduled.size} scheduled transactions")
-
-            allScheduled.forEach { transaction ->
-                // ✅ BASİT: Sadece scheduled date kontrolü
-                if (transaction.scheduledDate > now) {
-                    Log.d(TAG, "Scheduling notification for transaction ${transaction.id}")
-
-                    val workRequest = OneTimeWorkRequestBuilder<NotificationWorker>()
-                        .setInitialDelay(5, TimeUnit.SECONDS)
-                        .setInputData(
-                            workDataOf(NotificationWorker.TRANSACTION_ID_KEY to transaction.id)
-                        )
-                        .addTag("scheduled_notification_${transaction.id}")
-                        .build()
-
-                    WorkManager.getInstance(context).enqueueUniqueWork(
-                        "scheduled_notification_${transaction.id}",
-                        ExistingWorkPolicy.REPLACE,
-                        workRequest
-                    )
-                } else {
-                    Log.d(TAG, "Transaction ${transaction.id} is in the past, skipping")
-                }
-            }
-
-            Log.d(TAG, "Notification scheduling completed")
-        } catch (e: Exception) {
-            Log.e(TAG, "Error scheduling notifications", e)
-        }
-    }
-
-    private suspend fun fetchAllFromFirebase(collection: String, userId: String, type: SyncType) {
-        try {
-            val snapshot = firestore.collection(collection)
+            val snapshot = firestore.collection(type.collectionName)
                 .whereEqualTo("userId", userId)
                 .get()
                 .await()
             snapshot.documents.forEach { doc ->
                 val firestoreId = doc.id
-                val exists = when (type) {
-                    SyncType.TRANSACTION -> localRepository.getTransactionByFirestoreId(firestoreId) != null
-                    SyncType.SCHEDULED -> localRepository.getScheduledTransactionByFirestoreId(firestoreId) != null
-                    SyncType.BUDGET -> budgetRepository.getBudgetByFirestoreId(firestoreId) != null
-                    SyncType.AI_MESSAGE -> aiMessageDao.getMessageByFirebaseId(firestoreId) != null
-                }
-
-                if (!exists) {
-                    if (type == SyncType.BUDGET) {
-                        handleBudgetInsert(doc, firestoreId)
-                    } else if (type == SyncType.AI_MESSAGE) {
-                        handleAiMessageInsert(doc, firestoreId)
-                    } else {
-                        handlePhotoDownloadAndInsert(doc, firestoreId, type)
-                    }
+                if (!checkEntityExists(firestoreId, type)) {
+                    insertEntityFromDocument(doc, firestoreId, type)
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error fetching from Firebase", e)
+            Log.e(TAG, "Error fetching from Firebase: ${type.collectionName}", e)
         }
     }
 
-    // --- LISTENERS (REAL-TIME) ---
-    private fun startListeningToTransactions() {
-        val userId = getUserId() ?: return
-        transactionListener?.remove()
-        transactionListener = createListener(TRANSACTIONS_COLLECTION, userId, SyncType.TRANSACTION)
+    private suspend fun checkEntityExists(firestoreId: String, type: SyncType): Boolean {
+        return when (type) {
+            SyncType.TRANSACTION -> localRepository.getTransactionByFirestoreId(firestoreId) != null
+            SyncType.SCHEDULED -> localRepository.getScheduledTransactionByFirestoreId(firestoreId) != null
+            SyncType.BUDGET -> budgetRepository.getBudgetByFirestoreId(firestoreId) != null
+            SyncType.AI_MESSAGE -> aiMessageDao.getMessageByFirebaseId(firestoreId) != null
+        }
     }
 
-    private fun startListeningToScheduledTransactions() {
-        val userId = getUserId() ?: return
-        scheduledListener?.remove()
-        scheduledListener = createListener(SCHEDULED_COLLECTION, userId, SyncType.SCHEDULED)
-    }
-
-    private fun startListeningToBudgets() {
-        val userId = getUserId() ?: return
-        budgetListener?.remove()
-        budgetListener = createListener(BUDGET_COLLECTION, userId, SyncType.BUDGET)
-    }
-
-    private fun startListeningToAiMessages() {
-        val userId = getUserId() ?: return
-        aiMessageListener?.remove()
-        aiMessageListener = createListener(AI_MESSAGES_COLLECTION, userId, SyncType.AI_MESSAGE)
-    }
-
-    private fun createListener(
-        collection: String,
-        userId: String,
+    private suspend fun insertEntityFromDocument(
+        doc: DocumentSnapshot,
+        firestoreId: String,
         type: SyncType
-    ): ListenerRegistration {
-        return firestore.collection(collection)
+    ) {
+        when (type) {
+            SyncType.BUDGET -> budgetRepository.insertBudget(doc.toBudgetEntity(firestoreId))
+            SyncType.AI_MESSAGE -> aiMessageDao.insertMessage(doc.toAiMessageEntity(firestoreId))
+            SyncType.TRANSACTION, SyncType.SCHEDULED -> handlePhotoDownloadAndInsert(
+                doc,
+                firestoreId,
+                type
+            )
+        }
+    }
+    private suspend fun handlePhotoDownloadAndInsert(
+        doc: DocumentSnapshot,
+        firestoreId: String,
+        type: SyncType
+    ) {
+        val storagePhotoUrl = doc.getString("photoStorageUrl")
+        downloadPhotoAsync(storagePhotoUrl, firestoreId, type)
+        when (type) {
+            SyncType.SCHEDULED -> localRepository.insertScheduledTransaction(
+                doc.toScheduledTransactionEntity(firestoreId)
+            )
+
+            SyncType.TRANSACTION -> localRepository.insertTransaction(
+                doc.toTransactionEntity(firestoreId)
+            )
+            else -> {}
+        }
+    }
+
+    // --- NOTIFICATION SCHEDULING ---
+    private suspend fun scheduleNotificationsForPendingTransactions() {
+        try {
+            val allScheduled = localRepository.getAllScheduledTransactions().firstOrNull() ?: return
+            val now = System.currentTimeMillis()
+            allScheduled.forEach { transaction ->
+                if (transaction.scheduledDate > now) {
+                    scheduleNotificationWork(transaction.id)
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error scheduling notifications", e)
+        }
+    }
+
+    private fun scheduleNotificationWork(transactionId: Long) {
+        val workRequest = OneTimeWorkRequestBuilder<NotificationWorker>()
+            .setInitialDelay(5, TimeUnit.SECONDS)
+            .setInputData(workDataOf(NotificationWorker.TRANSACTION_ID_KEY to transactionId))
+            .addTag("scheduled_notification_$transactionId")
+            .build()
+        WorkManager.getInstance(context).enqueueUniqueWork(
+            "scheduled_notification_$transactionId",
+            ExistingWorkPolicy.REPLACE,
+            workRequest
+        )
+    }
+
+    // --- LISTENERS ---
+    private fun startAllListeners() {
+        val userId = getUserId() ?: return
+        SyncType.entries.forEach { type ->
+            activeListeners[type]?.remove()
+            activeListeners[type] = createListener(type, userId)
+        }
+    }
+    private fun createListener(type: SyncType, userId: String): ListenerRegistration {
+        return firestore.collection(type.collectionName)
             .whereEqualTo("userId", userId)
             .addSnapshotListener(MetadataChanges.INCLUDE) { snapshot, error ->
                 if (error != null || snapshot == null) return@addSnapshotListener
@@ -490,242 +502,140 @@ class FirebaseSyncService @Inject constructor(
                             try {
                                 processDocumentChange(change, type)
                             } catch (e: Exception) {
-                                Log.e(TAG, "Error processing change", e)
+                                Log.e(TAG, "Error processing change for ${type.name}", e)
                             }
                         }
                     }
                 }
             }
     }
-
     private suspend fun processDocumentChange(change: DocumentChange, type: SyncType) {
         val doc = change.document
         val firestoreId = doc.id
         when (change.type) {
-            DocumentChange.Type.ADDED -> {
-                if (recentlyAddedIds.contains(firestoreId)) return
-
-                val exists = when (type) {
-                    SyncType.TRANSACTION -> localRepository.getTransactionByFirestoreId(firestoreId) != null
-                    SyncType.SCHEDULED -> localRepository.getScheduledTransactionByFirestoreId(firestoreId) != null
-                    SyncType.BUDGET -> budgetRepository.getBudgetByFirestoreId(firestoreId) != null
-                    SyncType.AI_MESSAGE -> aiMessageDao.getMessageByFirebaseId(firestoreId) != null
-                }
-
-                if (exists) return
-
-                if (type == SyncType.BUDGET) {
-                    handleBudgetInsert(doc, firestoreId)
-                } else if (type == SyncType.AI_MESSAGE) {
-                    handleAiMessageInsert(doc, firestoreId)
-                } else {
-                    handlePhotoDownloadAndInsert(doc, firestoreId, type)
-                }
-            }
-
-            DocumentChange.Type.MODIFIED -> {
-                when (type) {
-                    SyncType.TRANSACTION -> {
-                        val existing = localRepository.getTransactionByFirestoreId(firestoreId) ?: return
-                        val localPhotoPath = handlePhotoUpdate(doc, existing.photoUri, firestoreId, type)
-                        val updated = existing.copy(
-                            amount = doc.getDouble("amount") ?: existing.amount,
-                            transaction = TransactionType.valueOf(
-                                doc.getString("transaction") ?: existing.transaction.name
-                            ),
-                            note = doc.getString("note") ?: existing.note,
-                            date = doc.getLong("date") ?: existing.date,
-                            category = CategoryType.valueOf(
-                                doc.getString("category") ?: existing.category.name
-                            ),
-                            photoUri = localPhotoPath,
-                            locationFull = doc.getString("locationFull") ?: existing.locationFull,
-                            locationShort = doc.getString("locationShort") ?: existing.locationShort,
-                            latitude = doc.getDouble("latitude") ?: existing.latitude,
-                            longitude = doc.getDouble("longitude") ?: existing.longitude,
-                            syncedToFirebase = true
-                        )
-                        localRepository.updateTransaction(updated)
-                    }
-
-                    SyncType.SCHEDULED -> {
-                        val existing = localRepository.getScheduledTransactionByFirestoreId(firestoreId) ?: return
-                        val localPhotoPath = handlePhotoUpdate(doc, existing.photoUri, firestoreId, type)
-                        val updated = existing.copy(
-                            amount = doc.getDouble("amount") ?: existing.amount,
-                            type = TransactionType.valueOf(
-                                doc.getString("type") ?: existing.type.name
-                            ),
-                            category = CategoryType.valueOf(
-                                doc.getString("category") ?: existing.category.name
-                            ),
-                            note = doc.getString("note") ?: existing.note,
-                            scheduledDate = doc.getLong("scheduledDate") ?: existing.scheduledDate,
-                            expirationNotificationSent = doc.getBoolean("expirationNotificationSent")
-                                ?: existing.expirationNotificationSent,
-                            notificationSent = doc.getBoolean("notificationSent")
-                                ?: existing.notificationSent,
-                            photoUri = localPhotoPath,
-                            locationFull = doc.getString("locationFull") ?: existing.locationFull,
-                            locationShort = doc.getString("locationShort")
-                                ?: existing.locationShort,
-                            latitude = doc.getDouble("latitude") ?: existing.latitude,
-                            longitude = doc.getDouble("longitude") ?: existing.longitude,
-                            syncedToFirebase = true
-                        )
-                        localRepository.updateScheduledTransaction(updated)
-                    }
-
-                    SyncType.BUDGET -> {
-                        val existing = budgetRepository.getBudgetByFirestoreId(firestoreId) ?: return
-                        val updated = existing.copy(
-                            budgetType = BudgetType.valueOf(
-                                doc.getString("budgetType") ?: existing.budgetType.name
-                            ),
-                            category = doc.getString("category")?.let { CategoryType.valueOf(it) },
-                            amount = doc.getDouble("amount") ?: existing.amount,
-                            limitPercentage = doc.getDouble("limitPercentage"),
-                            syncedToFirebase = true
-                        )
-                        budgetRepository.updateBudget(updated)
-                    }
-                    SyncType.AI_MESSAGE -> {
-                        // Mesaj güncellemesi genellikle olmaz ama gerekirse burası doldurulur
-                    }
-                }
-            }
-
-            DocumentChange.Type.REMOVED -> {
-                when (type) {
-                    SyncType.TRANSACTION -> {
-                        localRepository.getTransactionByFirestoreId(firestoreId)?.let {
-                            localRepository.deleteTransaction(it)
-                        }
-                    }
-                    SyncType.SCHEDULED -> {
-                        localRepository.getScheduledTransactionByFirestoreId(firestoreId)?.let {
-                            localRepository.deleteScheduledTransaction(it)
-                            WorkManager.getInstance(context)
-                                .cancelAllWorkByTag("scheduled_notification_${it.id}")
-                            WorkManager.getInstance(context)
-                                .cancelAllWorkByTag("delete_expired_${it.id}")
-                        }
-                    }
-                    SyncType.BUDGET -> {
-                        budgetRepository.getBudgetByFirestoreId(firestoreId)?.let {
-                            budgetRepository.deleteBudget(it)
-                        }
-                    }
-                    SyncType.AI_MESSAGE -> {
-                        aiMessageDao.deleteMessageByFirebaseId(firestoreId)
-                    }
-                }
-            }
+            DocumentChange.Type.ADDED -> handleDocumentAdded(doc, firestoreId, type)
+            DocumentChange.Type.MODIFIED -> handleDocumentModified(doc, firestoreId, type)
+            DocumentChange.Type.REMOVED -> handleDocumentRemoved(firestoreId, type)
         }
     }
 
-    private suspend fun handleBudgetInsert(doc: DocumentSnapshot, firestoreId: String) {
-        val entity = BudgetEntity(
-            firestoreId = firestoreId,
-            budgetType = BudgetType.valueOf(
-                doc.getString("budgetType") ?: BudgetType.CATEGORY_AMOUNT.name
-            ),
-            category = doc.getString("category")?.let { CategoryType.valueOf(it) },
-            amount = doc.getDouble("amount") ?: 0.0,
-            limitPercentage = doc.getDouble("limitPercentage"),
-            syncedToFirebase = true
-        )
-        budgetRepository.insertBudget(entity)
-    }
-
-    private suspend fun handleAiMessageInsert(doc: DocumentSnapshot, firestoreId: String) {
-        val timestampLong = doc.getLong("timestamp") ?: System.currentTimeMillis()
-
-        val entity = AiMessageEntity(
-            firebaseId = firestoreId,
-            text = doc.getString("text") ?: "",
-            isAi = doc.getBoolean("isAi") ?: false,
-            timestamp = Date(timestampLong),
-            isSynced = true
-        )
-        aiMessageDao.insertMessage(entity)
-    }
-
-    private suspend fun handlePhotoDownloadAndInsert(
+    private suspend fun handleDocumentAdded(
         doc: DocumentSnapshot,
         firestoreId: String,
         type: SyncType
     ) {
-        val storagePhotoUrl = doc.getString("photoStorageUrl")
-        val localPhotoPath: String? = null
+        if (recentlyAddedIds.contains(firestoreId)) return
+        if (checkEntityExists(firestoreId, type)) return
+        insertEntityFromDocument(doc, firestoreId, type)
+    }
+    private suspend fun handleDocumentModified(
+        doc: DocumentSnapshot,
+        firestoreId: String,
+        type: SyncType
+    ) {
+        when (type) {
+            SyncType.TRANSACTION -> updateTransaction(doc, firestoreId)
+            SyncType.SCHEDULED -> updateScheduledTransaction(doc, firestoreId)
+            SyncType.BUDGET -> updateBudget(doc, firestoreId)
+            SyncType.AI_MESSAGE -> {}
+        }
+    }
 
-        if (!storagePhotoUrl.isNullOrBlank()) {
-            scope.launch {
-                try {
-                    val downloadResult = photoStorageManager.downloadAndSavePhoto(
-                        context = context,
-                        storageUrl = storagePhotoUrl,
-                        firestoreId = firestoreId
-                    )
-                    if (downloadResult.isSuccess) {
-                        val downloadedPath = downloadResult.getOrNull()
-                        if (type == SyncType.SCHEDULED) {
-                            localRepository.getScheduledTransactionByFirestoreId(firestoreId)?.let {
-                                localRepository.updateScheduledTransaction(it.copy(photoUri = downloadedPath))
-                            }
-                        } else if (type == SyncType.TRANSACTION) {
-                            localRepository.getTransactionByFirestoreId(firestoreId)?.let {
-                                localRepository.updateTransaction(it.copy(photoUri = downloadedPath))
-                            }
-                        }
-                    }
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error downloading photo", e)
-                }
+    private suspend fun handleDocumentRemoved(firestoreId: String, type: SyncType) {
+        when (type) {
+            SyncType.TRANSACTION -> deleteLocalTransaction(firestoreId)
+            SyncType.SCHEDULED -> deleteLocalScheduledTransaction(firestoreId)
+            SyncType.BUDGET -> deleteLocalBudget(firestoreId)
+            SyncType.AI_MESSAGE -> aiMessageDao.deleteMessageByFirebaseId(firestoreId)
+        }
+    }
+
+    // --- UPDATE OPERATIONS (WITH EXISTING FALLBACK) ---
+    private suspend fun updateTransaction(doc: DocumentSnapshot, firestoreId: String) {
+        val existing = localRepository.getTransactionByFirestoreId(firestoreId) ?: return
+        val localPhotoPath =
+            handlePhotoUpdate(doc, existing.photoUri, firestoreId, SyncType.TRANSACTION)
+
+        val updated = doc.toTransactionEntity(firestoreId, localPhotoPath, existing)
+        localRepository.updateTransaction(updated)
+    }
+
+    private suspend fun updateScheduledTransaction(doc: DocumentSnapshot, firestoreId: String) {
+        val existing = localRepository.getScheduledTransactionByFirestoreId(firestoreId) ?: return
+        val localPhotoPath =
+            handlePhotoUpdate(doc, existing.photoUri, firestoreId, SyncType.SCHEDULED)
+
+        val updated = doc.toScheduledTransactionEntity(firestoreId, localPhotoPath, existing)
+        localRepository.updateScheduledTransaction(updated)
+    }
+
+    private suspend fun updateBudget(doc: DocumentSnapshot, firestoreId: String) {
+        val existing = budgetRepository.getBudgetByFirestoreId(firestoreId) ?: return
+
+        val updated = doc.toBudgetEntity(firestoreId, existing)
+        budgetRepository.updateBudget(updated)
+    }
+
+    // --- DELETE LOCAL OPERATIONS ---
+    private suspend fun deleteLocalTransaction(firestoreId: String) {
+        localRepository.getTransactionByFirestoreId(firestoreId)?.let {
+            localRepository.deleteTransaction(it)
+        }
+    }
+
+    private suspend fun deleteLocalScheduledTransaction(firestoreId: String) {
+        localRepository.getScheduledTransactionByFirestoreId(firestoreId)?.let {
+            localRepository.deleteScheduledTransaction(it)
+            WorkManager.getInstance(context).apply {
+                cancelAllWorkByTag("scheduled_notification_${it.id}")
+                cancelAllWorkByTag("delete_expired_${it.id}")
             }
         }
-        if (type == SyncType.SCHEDULED) {
-            val entity = ScheduledTransactionEntity(
-                firestoreId = firestoreId,
-                amount = doc.getDouble("amount") ?: 0.0,
-                type = TransactionType.valueOf(
-                    doc.getString("type") ?: TransactionType.EXPENSE.name
-                ),
-                category = CategoryType.valueOf(
-                    doc.getString("category") ?: CategoryType.OTHER.name
-                ),
-                note = doc.getString("note"),
-                scheduledDate = doc.getLong("scheduledDate") ?: System.currentTimeMillis(),
-                expirationNotificationSent = doc.getBoolean("expirationNotificationSent") ?: false,
-                notificationSent = doc.getBoolean("notificationSent") ?: false,
-                photoUri = localPhotoPath,
-                locationFull = doc.getString("locationFull"),
-                locationShort = doc.getString("locationShort"),
-                latitude = doc.getDouble("latitude"),
-                longitude = doc.getDouble("longitude"),
-                syncedToFirebase = true
-            )
-            localRepository.insertScheduledTransaction(entity)
-        } else if (type == SyncType.TRANSACTION) {
-            val entity = TransactionEntity(
-                firestoreId = firestoreId,
-                amount = doc.getDouble("amount") ?: 0.0,
-                transaction = TransactionType.valueOf(
-                    doc.getString("transaction") ?: TransactionType.EXPENSE.name
-                ),
-                note = doc.getString("note") ?: "",
-                date = doc.getLong("date") ?: System.currentTimeMillis(),
-                category = CategoryType.valueOf(
-                    doc.getString("category") ?: CategoryType.OTHER.name
-                ),
-                photoUri = localPhotoPath,
-                locationFull = doc.getString("locationFull"),
-                locationShort = doc.getString("locationShort"),
-                latitude = doc.getDouble("latitude"),
-                longitude = doc.getDouble("longitude"),
-                syncedToFirebase = true
-            )
-            localRepository.insertTransaction(entity)
+    }
+
+    private suspend fun deleteLocalBudget(firestoreId: String) {
+        budgetRepository.getBudgetByFirestoreId(firestoreId)?.let {
+            budgetRepository.deleteBudget(it)
+        }
+    }
+
+    // --- PHOTO HANDLING ---
+    private fun downloadPhotoAsync(storagePhotoUrl: String?, firestoreId: String, type: SyncType) {
+        if (storagePhotoUrl.isNullOrBlank()) return
+
+        scope.launch {
+            try {
+                val downloadResult = photoStorageManager.downloadAndSavePhoto(
+                    context = context,
+                    storageUrl = storagePhotoUrl,
+                    firestoreId = firestoreId
+                )
+                if (downloadResult.isSuccess) {
+                    val downloadedPath = downloadResult.getOrNull()
+                    updateEntityWithPhoto(firestoreId, downloadedPath, type)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error downloading photo", e)
+            }
+        }
+    }
+    private suspend fun updateEntityWithPhoto(
+        firestoreId: String,
+        photoPath: String?,
+        type: SyncType
+    ) {
+        when (type) {
+            SyncType.SCHEDULED -> {
+                localRepository.getScheduledTransactionByFirestoreId(firestoreId)?.let {
+                    localRepository.updateScheduledTransaction(it.copy(photoUri = photoPath))
+                }
+            }
+            SyncType.TRANSACTION -> {
+                localRepository.getTransactionByFirestoreId(firestoreId)?.let {
+                    localRepository.updateTransaction(it.copy(photoUri = photoPath))
+                }
+            }
+            else -> {}
         }
     }
 
@@ -736,63 +646,27 @@ class FirebaseSyncService @Inject constructor(
         type: SyncType
     ): String? {
         val storagePhotoUrl = doc.getString("photoStorageUrl")
-        var localPhotoPath = currentPhotoUri
-        if (storagePhotoUrl == null && currentPhotoUri != null) {
-            try {
-                localPhotoPath = null
-            } catch (e: Exception) {
-                Log.e(TAG, "Error handling photo deletion", e)
-            }
-        } else if (!storagePhotoUrl.isNullOrBlank() && storagePhotoUrl != currentPhotoUri) {
-            scope.launch {
-                try {
-                    val downloadResult = photoStorageManager.downloadAndSavePhoto(
-                        context = context,
-                        storageUrl = storagePhotoUrl,
-                        firestoreId = firestoreId
-                    )
-                    if (downloadResult.isSuccess) {
-                        localPhotoPath = downloadResult.getOrNull()
-                        if (type == SyncType.SCHEDULED) {
-                            localRepository.getScheduledTransactionByFirestoreId(firestoreId)?.let {
-                                localRepository.updateScheduledTransaction(it.copy(photoUri = localPhotoPath))
-                            }
-                        } else if (type == SyncType.TRANSACTION) {
-                            localRepository.getTransactionByFirestoreId(firestoreId)?.let {
-                                localRepository.updateTransaction(it.copy(photoUri = localPhotoPath))
-                            }
-                        }
-                    }
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error downloading photo", e)
-                }
-            }
-        }
-        return localPhotoPath
-    }
 
+        return when {
+            storagePhotoUrl == null && currentPhotoUri != null -> null // Photo deleted
+            !storagePhotoUrl.isNullOrBlank() && storagePhotoUrl != currentPhotoUri -> {
+                downloadPhotoAsync(storagePhotoUrl, firestoreId, type)
+                currentPhotoUri // Keep current until new downloads
+            }
+            else -> currentPhotoUri
+        }
+    }
     // --- NOTIFICATION ---
     private suspend fun sendPendingNotifications() {
         try {
-            val token = try {
-                messaging.token.await()
-            } catch (e: Exception) {
-                null
-            } ?: return
+            val token = messaging.token.await()
             Firebase.functions.getHttpsCallable("sendPendingNotifications")
                 .call(hashMapOf("deviceToken" to token))
-        } catch (_: Exception) {
+        } catch (e: Exception) {
         }
     }
-
     fun stopListening() {
-        transactionListener?.remove()
-        scheduledListener?.remove()
-        budgetListener?.remove()
-        aiMessageListener?.remove()
-        transactionListener = null
-        scheduledListener = null
-        budgetListener = null
-        aiMessageListener = null
+        activeListeners.values.forEach { it.remove() }
+        activeListeners.clear()
     }
 }

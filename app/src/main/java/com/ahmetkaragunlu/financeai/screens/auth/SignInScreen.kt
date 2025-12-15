@@ -1,4 +1,3 @@
-
 package com.ahmetkaragunlu.financeai.screens.auth
 
 import android.widget.Toast
@@ -14,7 +13,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -48,7 +46,6 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -57,7 +54,6 @@ import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.components.EditTextField
 import com.ahmetkaragunlu.financeai.navigation.Screens
 import com.ahmetkaragunlu.financeai.navigation.navigateSingleTopClear
-import com.ahmetkaragunlu.financeai.viewmodel.AuthViewModel
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInStatusCodes
 import com.google.android.gms.common.api.ApiException
@@ -98,6 +94,7 @@ fun SignInScreen(
             AuthState.SUCCESS -> {
                 navController.navigateSingleTopClear(route = Screens.MAIN_GRAPH.route)
             }
+
             AuthState.EMAIL_NOT_VERIFIED -> {
                 Toast.makeText(
                     context,
@@ -105,6 +102,7 @@ fun SignInScreen(
                     Toast.LENGTH_LONG
                 ).show()
             }
+
             AuthState.USER_NOT_FOUND -> {
                 Toast.makeText(
                     context,
@@ -120,6 +118,7 @@ fun SignInScreen(
                     Toast.LENGTH_SHORT
                 ).show()
             }
+
             AuthState.FAILURE -> {
                 Toast.makeText(
                     context,
@@ -170,7 +169,11 @@ fun SignInScreen(
                     imeAction = ImeAction.Next,
                     keyboardType = KeyboardType.Email
                 ),
-                colors = OutlinedTextFieldDefaults.colors(focusedLabelColor = Color.White, focusedTextColor = Color.White, focusedBorderColor = Color.White)
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedLabelColor = Color.White,
+                    focusedTextColor = Color.White,
+                    focusedBorderColor = Color.White
+                )
             )
 
             EditTextField(
@@ -201,10 +204,17 @@ fun SignInScreen(
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedLabelColor = MaterialTheme.colorScheme.onPrimary,
                     focusedTextColor = MaterialTheme.colorScheme.onPrimary,
-                    focusedBorderColor = MaterialTheme.colorScheme.onPrimary),
+                    focusedBorderColor = MaterialTheme.colorScheme.onPrimary
+                ),
                 visualTransformation = if (authViewModel.passwordVisibility) VisualTransformation.None else PasswordVisualTransformation()
             )
-            Row(modifier = modifier.widthIn(max = 380.dp).fillMaxWidth().padding(end = 48.dp), horizontalArrangement = Arrangement.End) {
+            Row(
+                modifier = modifier
+                    .widthIn(max = 380.dp)
+                    .fillMaxWidth()
+                    .padding(end = 48.dp),
+                horizontalArrangement = Arrangement.End
+            ) {
                 Text(
                     text = stringResource(R.string.forgot_password),
                     color = MaterialTheme.colorScheme.onPrimary,
@@ -222,7 +232,9 @@ fun SignInScreen(
                     authViewModel.login()
                 },
                 modifier = modifier
-                    .widthIn(max =400.dp).fillMaxWidth().padding(horizontal = 56.dp)
+                    .widthIn(max = 400.dp)
+                    .fillMaxWidth()
+                    .padding(horizontal = 56.dp)
                     .clip(shape = RoundedCornerShape(12.dp))
                     .background(
                         brush = Brush.linearGradient(
@@ -246,7 +258,9 @@ fun SignInScreen(
                     googleSignInLauncher.launch(signInIntent)
                 },
                 modifier = modifier
-                    .widthIn(max = 400.dp).fillMaxWidth().padding(horizontal = 56.dp)
+                    .widthIn(max = 400.dp)
+                    .fillMaxWidth()
+                    .padding(horizontal = 56.dp)
                     .padding(top = 8.dp, bottom = 36.dp)
                     .clip(shape = RoundedCornerShape(12.dp)),
                 colors = ButtonDefaults.outlinedButtonColors(
