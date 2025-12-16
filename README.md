@@ -76,9 +76,3 @@ Firebase Functions manage server-side notification logic. Supports multi-device 
 
 
 
-![Auth Screen](https://github.com/Ahmetkaragunlu/FinanceAI/blob/master/auth.jpg?raw=true)
-
-![Home Screen](https://github.com/Ahmetkaragunlu/FinanceAI/blob/master/home.png?raw=true)
-
-![AI Screen](https://github.com/Ahmetkaragunlu/FinanceAI/blob/master/ai.png?raw=true)
-
