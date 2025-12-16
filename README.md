@@ -73,3 +73,12 @@ WorkManager handles photo uploads 📤, data synchronization, and scheduled noti
 🔔 Smart Notifications
 
 Firebase Functions manage server-side notification logic. Supports multi-device notification delivery, snooze functionality with specific intervals 💤, and scheduled reminders.
+
+
+
+![Auth Screen](https://github.com/Ahmetkaragunlu/FinanceAI/blob/master/auth.jpg?raw=true)
+
+![Home Screen](https://github.com/Ahmetkaragunlu/FinanceAI/blob/master/home.png?raw=true)
+
+![AI Screen](https://github.com/Ahmetkaragunlu/FinanceAI/blob/master/ai.png?raw=true)
+
