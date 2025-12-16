@@ -1,4 +1,7 @@
 💰 Finance AI 🤖
+
+
+
 AI-powered personal finance management application with offline-first architecture 📱 and real-time multi-device synchronization 🔄.
 
 📋 Overview
