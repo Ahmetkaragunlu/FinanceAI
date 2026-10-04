@@ -6,20 +6,20 @@ import android.util.Log
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.workDataOf
+import com.ahmetkaragunlu.financeai.feature.schedule.domain.repository.ScheduledTransactionRepository
 import com.ahmetkaragunlu.financeai.notification.NotificationWorker
-import com.ahmetkaragunlu.financeai.roomrepository.financerepository.FinanceRepository
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import dagger.hilt.android.AndroidEntryPoint
+import java.util.concurrent.TimeUnit
+import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
-import java.util.concurrent.TimeUnit
-import javax.inject.Inject
 
 @AndroidEntryPoint
 class MyFirebaseMessagingService : FirebaseMessagingService() {
@@ -27,7 +27,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
     lateinit var fcmTokenManager: FCMTokenManager
 
     @Inject
-    lateinit var repository: FinanceRepository
+    lateinit var scheduledTransactionRepository: ScheduledTransactionRepository
 
     @Inject
     lateinit var auth: FirebaseAuth
@@ -66,7 +66,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             "CANCEL_NOTIFICATION" -> handleCancelNotification(data)
             "DISMISS_NOTIFICATION" -> handleDismissNotification(data)
             "RESCHEDULE_NOTIFICATION" -> handleRescheduleNotification(data)
-            else -> Log.w(TAG, "Unknown notification type: $notificationType")
+            else -> Log.w(TAG, "Unknown notification type")
         }
     }
 
@@ -87,7 +87,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
                 return@launch
             }
             val localId = try {
-                repository.getScheduledTransactionByFirestoreId(firestoreId)?.id
+                scheduledTransactionRepository.getScheduledTransactionByFirestoreId(firestoreId)?.id
             } catch (e: Exception) {
                 null
             }
@@ -115,7 +115,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         }
         scope.launch {
             val localId = try {
-                repository.getScheduledTransactionByFirestoreId(firestoreId)?.id
+                scheduledTransactionRepository.getScheduledTransactionByFirestoreId(firestoreId)?.id
             } catch (e: Exception) {
                 null
             }
@@ -152,7 +152,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         }
         scope.launch {
             val localId = try {
-                repository.getScheduledTransactionByFirestoreId(firestoreId)?.id
+                scheduledTransactionRepository.getScheduledTransactionByFirestoreId(firestoreId)?.id
             } catch (e: Exception) {
                 null
             }

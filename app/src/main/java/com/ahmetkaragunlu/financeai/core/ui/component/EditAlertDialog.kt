@@ -1,0 +1,25 @@
+package com.ahmetkaragunlu.financeai.core.ui.component
+
+import androidx.annotation.StringRes
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EditAlertDialog(
+    @StringRes title: Int,
+    @StringRes text: Int,
+    confirmButton: @Composable () -> Unit,
+    onDismissRequest : () -> Unit = {},
+    dismissButton: @Composable (() -> Unit)? = null,
+) {
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismissRequest,
+        title = { Text(stringResource(id = title)) },
+        text = { Text(stringResource(id = text)) },
+        confirmButton = confirmButton,
+        dismissButton = dismissButton,
+    )
+}

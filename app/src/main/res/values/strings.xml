@@ -1,6 +1,5 @@
 <resources>
     <string name="app_name">FinanceAI</string>
-    <string name="default_notification_channel_id">scheduled_transaction_channel</string>
     <string name="finance_ai">Finance AI</string>
 
     <string name="create_an_account">Hesap Oluştur</string>
@@ -24,13 +23,9 @@
     <string name="forgot_password">Şifremi Unuttum?</string>
     <string name="reset_password">Şifreyi Sıfırla</string>
     <string name="this_email_is_already_exists">Bu e-posta zaten kayıtlı</string>
-    <string name="error_name_exists">Bu isim zaten kullanımda</string>
-    <string name="account_created_successfully">Hesap başarıyla oluşturuldu</string>
-    <string name="registration_failed">Kayıt başarısız</string>
     <string name="something_went_wrong">Bir şeyler ters gitti</string>
     <string name="email_verification_could_not_be_sent">E-posta doğrulaması gönderilemedi</string>
     <string name="your_password_has_been_changed_successfully">Şifreniz başarıyla değiştirildi</string>
-    <string name="your_link_has_expired">Bağlantınızın süresi doldu</string>
     <string name="have_an_account_sign_up">Hesabınız yok mu? Kayıt olun</string>
     <string name="welcome">Hoş geldin, %s</string>
     <string name="fill_all_fields_correctly">Lütfen tüm alanları doğru doldurun</string>
@@ -59,7 +54,6 @@
     <string name="yesterday">Dün</string>
     <string name="last_week">Geçen Hafta</string>
     <string name="last_month">Geçen Ay</string>
-    <string name="select_date">Tarih Seç</string>
     <string name="type">Tür</string>
     <string name="scheduled">Planlanan</string>
     <string name="add">İşlem Ekle</string>
@@ -112,30 +106,20 @@
     <string name="reminder_enabled_desc">Bildirim ileri bir tarihte gönderilecek</string>
     <string name="reminder_disabled_desc">İşlem hemen kaydedilecek</string>
     <string name="create_reminder_button">Hatırlatıcı Oluştur</string>
-    <string name="error_reminder_not_created">Hatırlatıcı oluşturulamadı</string>
     <string name="notification_income_title">💰 Gelir Hatırlatıcısı</string>
     <string name="notification_income_message">%1$s tutarındaki %2$s gelirini (%3$s) aldın mı?</string>
     <string name="notification_expense_title">💳 Gider Hatırlatıcısı</string>
     <string name="notification_expense_message">%1$s tutarındaki %2$s ödemesini (%3$s) yaptın mı?</string>
-    <string name="notification_default_title">İşlem Hatırlatıcısı</string>
-    <string name="notification_default_message">İşlemini tamamladın mı?</string>
     <string name="notification_income_expired_title">⏰ Gelir Hatırlatıcısı Süresi Doldu</string>
     <string name="notification_income_expired_message">%1$s tutarındaki %2$s gelirin için planlanan tarih (%3$s) geçti. Hatırlatıcı otomatik olarak iptal edildi.</string>
     <string name="notification_expense_expired_title">⏰ Gider Hatırlatıcısı Süresi Doldu</string>
     <string name="notification_expense_expired_message">%1$s tutarındaki %2$s ödemen için planlanan tarih (%3$s) geçti. Hatırlatıcı otomatik olarak iptal edildi.</string>
-    <string name="notification_default_expired_title">⏰ Hatırlatıcı Süresi Doldu</string>
-    <string name="notification_default_expired_message">Planlanan tarih geçti. Hatırlatıcı otomatik olarak iptal edildi.</string>
     <string name="notification_action_yes">EVET</string>
     <string name="notification_action_no">HAYIR</string>
 
     <string name="error_invalid_amount">Lütfen geçerli bir tutar girin</string>
     <string name="error_select_category">Lütfen bir kategori seçin</string>
-    <string name="error_not_logged_in">Bir şeyler ters gitti</string>
     <string name="error_transaction_save_failed">İşlem kaydedilemedi: %1$s</string>
-    <string name="error_transaction_confirm_failed">İşlem onaylanamadı: %1$s</string>
-    <string name="error_transaction_delete_failed">İşlem silinemedi: %1$s</string>
-    <string name="toast_transaction_saved_success">İşlem başarıyla kaydedildi!</string>
-    <string name="toast_error_with_message">Hata: %1$s</string>
     <string name="updated_successfully">Başarıyla güncellendi</string>
     <string name="invalid_amount">Geçersiz tutar</string>
     <string name="select_category_error">Lütfen bir kategori seçin</string>
@@ -153,7 +137,6 @@
     <string name="error_camera_permission_denied">Kamera izni reddedildi</string>
     <string name="camera_permission_required">Kamera izni gerekli</string>
     <string name="select_location">Konum Seç</string>
-    <string name="current_location">Mevcut Konum</string>
     <string name="search_address_hint">Adres ara</string>
     <string name="confirm_location">Konumu Onayla</string>
     <string name="location_services_disabled">Konum Servisleri Kapalı</string>
@@ -176,14 +159,9 @@
     <string name="delete_transaction_title">İşlemi Sil</string>
     <string name="delete_transaction_message">Bu işlemi silmek istediğinizden emin misiniz?</string>
 
-    <string name="ai_prompt_no_data">Kullanıcının henüz kaydedilmiş bir harcama verisi yok. Bu bilgiye göre genel tavsiyeler ver.</string>
-    <string name="ai_prompt_system_instruction">Sen uzman bir finans asistanısın. Kullanıcının verileri:\nToplam Gelir: %1$s\nToplam Gider: %2$s\nBu verilere dayanarak, samimi ve kısa cevaplar ver.</string>
-    <string name="ai_prompt_user_prefix">Verilen bağlama göre şu soruyu cevapla: %1$s</string>
     <string name="ai_response_error_empty">Üzgünüm, şu an bu soruya yanıt oluşturulamadı.</string>
     <string name="ai_response_error_generic">Bir bağlantı hatası oluştu: %s</string>
     <string name="ai_chat_placeholder">Buraya bir şeyler yaz...</string>
-    <string name="ai_chat_send_desc">Gönder</string>
-    <string name="ai_chat_ai_icon_desc">Yapay Zeka Asistanı</string>
     <string name="ai_chat_loading">Yazıyor...</string>
     <string name="ai_suggestion_summary">📊 Aylık Özet</string>
     <string name="ai_suggestion_saving">💰 Tasarruf Önerisi</string>
@@ -202,16 +180,7 @@
     <string name="create_first_budget_rule_description">İlk bütçe kuralını oluşturarak harcamalarını kategorilere göre takip etmeye başla.</string>
     <string name="add_new_limit">Yeni Limit Ekle</string>
 
-    <string name="november_budget">Kasım Bütçesi</string>
-    <string name="plus_income">+ GELİR</string>
-    <string name="minus_expense">- GİDER</string>
-    <string name="percent_spent">%%%1$s Harcandı</string>
     <string name="attention_budget_exceeded">Dikkat! Bütçe Aşımı</string>
-    <string name="budget_warning_message">Eğlence bütçeni %10 oranında aştın. Bu ayki diğer harcamalarında dikkatli olmalısın!</string>
-    <string name="food_market">Gıda / Market</string>
-    <string name="entertainment_hobby">Eğlence / Hobi</string>
-    <string name="rent">Kira</string>
-    <string name="limit_with_value">Limit: %1$s</string>
 
     <string name="edit_budget_title">Bütçeyi Düzenle</string>
     <string name="select_category_label">Kategori Seçin</string>

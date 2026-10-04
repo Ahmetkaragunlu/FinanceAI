@@ -5,26 +5,26 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import androidx.core.app.NotificationCompat
+import androidx.core.net.toUri
 import androidx.hilt.work.HiltWorker
 import androidx.work.*
 import com.ahmetkaragunlu.financeai.R
-import com.ahmetkaragunlu.financeai.roomdb.entitiy.ScheduledTransactionEntity
-import com.ahmetkaragunlu.financeai.roomdb.type.TransactionType
-import com.ahmetkaragunlu.financeai.roomrepository.financerepository.FinanceRepository
-import com.ahmetkaragunlu.financeai.utils.formatAsCurrency
-import com.ahmetkaragunlu.financeai.utils.formatAsShortDate
+import com.ahmetkaragunlu.financeai.core.format.formatAsCurrency
+import com.ahmetkaragunlu.financeai.core.format.formatAsShortDate
+import com.ahmetkaragunlu.financeai.feature.schedule.domain.model.ScheduledTransaction
+import com.ahmetkaragunlu.financeai.feature.schedule.domain.repository.ScheduledTransactionRepository
+import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
-import kotlinx.coroutines.flow.first
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
-import androidx.core.net.toUri
+import kotlinx.coroutines.flow.first
 
 @HiltWorker
 class NotificationWorker @AssistedInject constructor(
     @Assisted private val appContext: Context,
     @Assisted private val params: WorkerParameters,
-    private val repository: FinanceRepository,
+    private val repository: ScheduledTransactionRepository,
 ) : CoroutineWorker(appContext, params) {
 
     companion object {
@@ -95,7 +95,7 @@ class NotificationWorker @AssistedInject constructor(
 
     private suspend fun checkAllPendingTransactions() {
         val currentTime = System.currentTimeMillis()
-        val allTransactions = repository.getAllScheduledTransactions().first()
+        val allTransactions = repository.observeScheduledTransactions().first()
         allTransactions.forEach { transaction ->
             val endOfScheduledDay = getEndOfDay(transaction.scheduledDate)
             if (currentTime <= endOfScheduledDay) {
@@ -122,7 +122,7 @@ class NotificationWorker @AssistedInject constructor(
     }
 
 
-    private fun showReminderNotification(transaction: ScheduledTransactionEntity) {
+    private fun showReminderNotification(transaction: ScheduledTransaction) {
         val formattedAmount = transaction.amount.formatAsCurrency()
         val categoryName = transaction.category.name.replace("_", " ").lowercase()
             .split(" ")
@@ -213,7 +213,7 @@ class NotificationWorker @AssistedInject constructor(
         val notificationManager = appContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.notify(transaction.firestoreId.hashCode(), notification)
     }
-    private fun sendExpirationNotification(transaction: ScheduledTransactionEntity) {
+    private fun sendExpirationNotification(transaction: ScheduledTransaction) {
         val formattedAmount = transaction.amount.formatAsCurrency()
         val categoryName = transaction.category.name.replace("_", " ").lowercase()
             .split(" ")

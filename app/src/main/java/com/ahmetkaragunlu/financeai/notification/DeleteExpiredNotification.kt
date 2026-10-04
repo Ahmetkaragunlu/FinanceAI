@@ -4,8 +4,8 @@ import android.content.Context
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import com.ahmetkaragunlu.financeai.feature.schedule.domain.repository.ScheduledTransactionRepository
 import com.ahmetkaragunlu.financeai.firebasesync.FirebaseSyncService
-import com.ahmetkaragunlu.financeai.roomrepository.financerepository.FinanceRepository
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 
@@ -13,7 +13,7 @@ import dagger.assisted.AssistedInject
 class DeleteExpiredNotification @AssistedInject constructor(
     @Assisted private val appContext: Context,
     @Assisted private val params: WorkerParameters,
-    private val repository: FinanceRepository,
+    private val repository: ScheduledTransactionRepository,
     private val firebaseSyncService: FirebaseSyncService
 ) : CoroutineWorker(appContext, params) {
 
@@ -26,7 +26,7 @@ class DeleteExpiredNotification @AssistedInject constructor(
             val transaction = repository.getScheduledTransactionById(transactionId)
             if (transaction != null) {
                 if (transaction.firestoreId.isNotEmpty()) {
-                    val deleteResult = firebaseSyncService.deleteScheduledTransactionFromFirebase(
+                    val deleteResult = firebaseSyncService.deleteScheduledTransaction(
                         firestoreId = transaction.firestoreId
                     )
                     if (deleteResult.isFailure) {

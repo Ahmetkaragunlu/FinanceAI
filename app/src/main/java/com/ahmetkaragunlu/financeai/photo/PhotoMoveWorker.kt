@@ -42,7 +42,7 @@ class PhotoMoveWorker @AssistedInject constructor(
                 try {
                     photoStorageManager.deleteScheduledPhotoById(scheduledId)
                 } catch (e: Exception) {
-                    Log.w("PhotoMoveWorker", "Eski fotoğraf silinemedi veya zaten yok: ${e.message}")
+                    Log.w("PhotoMoveWorker", "Eski fotoğraf silinemedi veya zaten yok: ${e.javaClass.simpleName}")
                 }
                 Result.success()
             } else {

@@ -11,17 +11,18 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.workDataOf
 import com.ahmetkaragunlu.financeai.fcm.FCMNotificationSender
+import com.ahmetkaragunlu.financeai.feature.schedule.domain.repository.ScheduledTransactionRepository
+import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.Transaction
+import com.ahmetkaragunlu.financeai.feature.transaction.domain.repository.TransactionRepository
 import com.ahmetkaragunlu.financeai.firebasesync.FirebaseSyncService
 import com.ahmetkaragunlu.financeai.photo.PhotoMoveWorker
-import com.ahmetkaragunlu.financeai.roomdb.entitiy.TransactionEntity
-import com.ahmetkaragunlu.financeai.roomrepository.financerepository.FinanceRepository
 import com.google.firebase.firestore.FirebaseFirestore
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 @AndroidEntryPoint
 class NotificationActionReceiver : BroadcastReceiver() {
@@ -33,7 +34,10 @@ class NotificationActionReceiver : BroadcastReceiver() {
     }
 
     @Inject
-    lateinit var repository: FinanceRepository
+    lateinit var repository: TransactionRepository
+
+    @Inject
+    lateinit var scheduledTransactionRepository: ScheduledTransactionRepository
 
     @Inject
     lateinit var firebaseSyncService: FirebaseSyncService
@@ -63,7 +67,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
         scope.launch {
             try {
                 val scheduledTransaction =
-                    repository.getScheduledTransactionByFirestoreId(firestoreId)
+                    scheduledTransactionRepository.getScheduledTransactionByFirestoreId(firestoreId)
                 if (scheduledTransaction != null) {
                     WorkManager.getInstance(context)
                         .cancelUniqueWork("scheduled_notification_${scheduledTransaction.id}")
@@ -72,8 +76,8 @@ class NotificationActionReceiver : BroadcastReceiver() {
                     WorkManager.getInstance(context)
                         .cancelAllWorkByTag("delete_expired_${scheduledTransaction.id}")
                     val newTransactionFirestoreId =
-                        scheduledTransaction.firestoreId.ifEmpty { firebaseSyncService.getNewTransactionId() }
-                    val transaction = TransactionEntity(
+                        scheduledTransaction.firestoreId.ifEmpty { firebaseSyncService.createTransactionId() }
+                    val transaction = Transaction(
                         amount = scheduledTransaction.amount,
                         transaction = scheduledTransaction.type,
                         note = scheduledTransaction.note ?: "",
@@ -88,7 +92,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
                         firestoreId = newTransactionFirestoreId
                     )
                     repository.insertTransaction(transaction)
-                    repository.deleteScheduledTransaction(scheduledTransaction)
+                    scheduledTransactionRepository.deleteScheduledTransaction(scheduledTransaction)
                     if (!scheduledTransaction.photoUri.isNullOrBlank() && scheduledTransaction.firestoreId.isNotEmpty()) {
                         val constraints = Constraints.Builder()
                             .setRequiredNetworkType(NetworkType.CONNECTED)
@@ -107,7 +111,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
                         WorkManager.getInstance(context).enqueue(moveWork)
                     }
                     try {
-                        val syncResult = firebaseSyncService.syncTransactionToFirebase(transaction)
+                        val syncResult = firebaseSyncService.syncTransaction(transaction)
                         if (syncResult.isSuccess) {
                             repository.updateTransaction(transaction.copy(syncedToFirebase = true))
                             if (scheduledTransaction.firestoreId.isNotEmpty()) {
@@ -117,11 +121,11 @@ class NotificationActionReceiver : BroadcastReceiver() {
                             }
                         }
                     } catch (e: Exception) {
-                        Log.e(TAG, "Senkronizasyon şimdilik başarısız, daha sonra yapılacak.", e)
+                        Log.e(TAG, "Senkronizasyon şimdilik başarısız, daha sonra yapılacak. (${e.javaClass.simpleName})")
                     }
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Confirm işleminde hata", e)
+                Log.e(TAG, "Confirm işleminde hata (${e.javaClass.simpleName})")
             }
         }
     }
@@ -130,12 +134,12 @@ class NotificationActionReceiver : BroadcastReceiver() {
         scope.launch {
             try {
                 val scheduledTransaction =
-                    repository.getScheduledTransactionByFirestoreId(firestoreId)
+                    scheduledTransactionRepository.getScheduledTransactionByFirestoreId(firestoreId)
                 if (scheduledTransaction != null) {
                     fcmNotificationSender.sendRescheduleToAllDevices(firestoreId)
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Cancel işleminde hata", e)
+                Log.e(TAG, "Cancel işleminde hata (${e.javaClass.simpleName})")
             }
         }
     }

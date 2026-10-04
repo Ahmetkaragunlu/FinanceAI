@@ -1,28 +1,7 @@
 package com.ahmetkaragunlu.financeai
 
-import FinanceNavigation
-import android.content.Intent
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import com.ahmetkaragunlu.financeai.ui.theme.FinanceAITheme
 import dagger.hilt.android.AndroidEntryPoint
 
+/** Keeps the existing launcher and explicit PendingIntent component identity stable. */
 @AndroidEntryPoint
-class MainActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContent {
-            FinanceAITheme {
-            FinanceNavigation()
-            }
-        }
-    }
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        setIntent(intent)
-    }
-}
-
+class MainActivity : com.ahmetkaragunlu.financeai.app.MainActivity()

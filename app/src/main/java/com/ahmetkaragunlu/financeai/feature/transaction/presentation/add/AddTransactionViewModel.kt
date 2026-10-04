@@ -1,0 +1,333 @@
+package com.ahmetkaragunlu.financeai.feature.transaction.presentation.add
+
+
+import android.annotation.SuppressLint
+import android.content.Context
+import android.net.Uri
+import android.widget.Toast
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import androidx.work.Constraints
+import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.workDataOf
+import com.ahmetkaragunlu.financeai.R
+import com.ahmetkaragunlu.financeai.feature.location.data.LocationUtil
+import com.ahmetkaragunlu.financeai.feature.location.domain.model.LocationData
+import com.ahmetkaragunlu.financeai.feature.schedule.domain.model.ScheduledTransaction
+import com.ahmetkaragunlu.financeai.feature.schedule.domain.repository.ScheduledTransactionRepository
+import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
+import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.Transaction
+import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
+import com.ahmetkaragunlu.financeai.feature.transaction.domain.repository.TransactionRepository
+import com.ahmetkaragunlu.financeai.feature.transaction.domain.sync.TransactionSync
+import com.ahmetkaragunlu.financeai.feature.schedule.domain.sync.ScheduledTransactionSync
+import com.ahmetkaragunlu.financeai.notification.NotificationWorker
+import com.ahmetkaragunlu.financeai.photo.CameraHelper
+import com.ahmetkaragunlu.financeai.photo.PhotoStorageUtil
+import com.ahmetkaragunlu.financeai.photo.PhotoUploadWorker
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import java.io.File
+import java.util.Calendar
+import java.util.concurrent.TimeUnit
+import javax.inject.Inject
+import kotlinx.coroutines.launch
+
+@HiltViewModel
+class AddTransactionViewModel @Inject constructor(
+    private val repo: TransactionRepository,
+    private val scheduledTransactionRepository: ScheduledTransactionRepository,
+    private val workManager: WorkManager,
+    private val transactionSync: TransactionSync,
+    private val scheduledTransactionSync: ScheduledTransactionSync,
+    @ApplicationContext private val context: Context
+) : ViewModel() {
+
+    var selectedTransactionType by mutableStateOf(TransactionType.EXPENSE)
+    var selectedCategory by mutableStateOf<CategoryType?>(null)
+    var isCategoryDropdownExpanded by mutableStateOf(false)
+
+    val availableCategories: List<CategoryType>
+        get() = CategoryType.entries.filter { it.type == selectedTransactionType }
+
+    var inputAmount by mutableStateOf("")
+        private set
+    var inputNote by mutableStateOf("")
+        private set
+    var selectedDate by mutableLongStateOf(System.currentTimeMillis())
+
+    var isReminderEnabled by mutableStateOf(false)
+    var isDatePickerOpen by mutableStateOf(false)
+
+    var selectedPhotoUri by mutableStateOf<Uri?>(null)
+    var tempCameraPhotoPath by mutableStateOf<String?>(null)
+    var showPhotoBottomSheet by mutableStateOf(false)
+
+    var selectedLocation by mutableStateOf<LocationData?>(null)
+    var showLocationPicker by mutableStateOf(false)
+    var cameraHelperRef by mutableStateOf<CameraHelper?>(null)
+
+    fun updateInputNote(note: String) {
+        inputNote = note
+    }
+
+    fun updateInputAmount(amount: String) {
+        inputAmount = amount
+    }
+
+    fun updateTransactionType(type: TransactionType) {
+        if (selectedTransactionType == type) return
+        selectedTransactionType = type
+        selectedCategory = null
+        inputNote = ""
+        inputAmount = ""
+        selectedDate = System.currentTimeMillis()
+        isReminderEnabled = false
+        clearPhoto()
+        clearLocation()
+    }
+
+    fun updateCategory(category: CategoryType) {
+        selectedCategory = category
+    }
+
+    fun toggleDropdown() {
+        isCategoryDropdownExpanded = !isCategoryDropdownExpanded
+    }
+
+    fun dismissDropdown() {
+        isCategoryDropdownExpanded = false
+    }
+
+    fun updateSelectedDate(date: Long) {
+        selectedDate = date
+    }
+
+    fun toggleReminder(enabled: Boolean) {
+        isReminderEnabled = enabled
+        selectedDate = if (!enabled) {
+            System.currentTimeMillis()
+        } else {
+            Calendar.getInstance().apply {
+                add(Calendar.DAY_OF_YEAR, 1)
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }.timeInMillis
+        }
+    }
+
+    fun openDatePicker() {
+        isDatePickerOpen = true
+    }
+
+    fun closeDatePicker() {
+        isDatePickerOpen = false
+    }
+
+    fun isDateValid(timestamp: Long): Boolean {
+        val today = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.timeInMillis
+
+        return if (isReminderEnabled) {
+            timestamp >= today
+        } else {
+            timestamp <= System.currentTimeMillis()
+        }
+    }
+
+    fun onPhotoSelected(uri: Uri) {
+        selectedPhotoUri = uri
+    }
+
+    fun prepareCameraPhoto(): Pair<File, Uri>? {
+        val result = PhotoStorageUtil.createTempPhotoFile(context)
+        result?.let { (file, _) ->
+            tempCameraPhotoPath = file.absolutePath
+        }
+        return result
+    }
+
+    fun onCameraPhotoTaken() {
+        tempCameraPhotoPath?.let { path ->
+            selectedPhotoUri = Uri.fromFile(File(path))
+        }
+    }
+
+    fun clearPhoto() {
+        selectedPhotoUri = null
+        tempCameraPhotoPath?.let { path ->
+            PhotoStorageUtil.deletePhoto(path)
+        }
+        tempCameraPhotoPath = null
+    }
+
+    fun clearTempCameraPhoto() {
+        tempCameraPhotoPath?.let { path ->
+            PhotoStorageUtil.deletePhoto(path)
+        }
+        tempCameraPhotoPath = null
+    }
+
+    @SuppressLint("StringFormatInvalid")
+    fun onLocationSelected(latitude: Double, longitude: Double) {
+        viewModelScope.launch {
+            try {
+                val locationData = LocationUtil.getAddressFromLocation(
+                    context,
+                    latitude,
+                    longitude
+                )
+                selectedLocation = locationData
+            } catch (e: Exception) {
+                val errorMessage = context.getString(R.string.failure, e.message ?: "")
+                Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    fun clearLocation() {
+        selectedLocation = null
+    }
+
+    fun saveTransaction(onSuccess: () -> Unit, onError: (String) -> Unit) {
+        if (inputAmount.isBlank() || inputAmount.toDoubleOrNull() == null) {
+            onError(context.getString(R.string.error_invalid_amount))
+            return
+        }
+        if (selectedCategory == null) {
+            onError(context.getString(R.string.error_select_category))
+            return
+        }
+        val amount = inputAmount.toDouble()
+
+        viewModelScope.launch {
+            var savedPhotoPath: String? = null
+            try {
+                savedPhotoPath = selectedPhotoUri?.let { uri ->
+                    if (tempCameraPhotoPath != null) {
+                        PhotoStorageUtil.saveTempPhotoAsPermanent(context, tempCameraPhotoPath!!)
+                    } else {
+                        PhotoStorageUtil.savePhotoToInternalStorage(context, uri)
+                    }
+                }
+                val isScheduled = isReminderEnabled
+                val firestoreId =
+                    if (isScheduled) scheduledTransactionSync.createScheduledTransactionId()
+                    else transactionSync.createTransactionId()
+                if (savedPhotoPath != null) {
+                    val constraints = Constraints.Builder()
+                        .setRequiredNetworkType(NetworkType.CONNECTED)
+                        .build()
+                    val uploadWork = OneTimeWorkRequestBuilder<PhotoUploadWorker>()
+                        .setConstraints(constraints)
+                        .setInputData(
+                            workDataOf(
+                                PhotoUploadWorker.KEY_LOCAL_PATH to savedPhotoPath,
+                                PhotoUploadWorker.KEY_FIRESTORE_ID to firestoreId,
+                                PhotoUploadWorker.KEY_COLLECTION_TYPE to if (isScheduled) "scheduled" else "transactions"
+                            )
+                        )
+                        .build()
+                    workManager.enqueue(uploadWork)
+                }
+                if (isScheduled) {
+                    val scheduledTransaction = ScheduledTransaction(
+                        amount = amount,
+                        type = selectedTransactionType,
+                        category = selectedCategory!!,
+                        note = inputNote.ifBlank { "" },
+                        scheduledDate = selectedDate,
+                        notificationSent = false,
+                        expirationNotificationSent = false,
+                        photoUri = savedPhotoPath,
+                        locationFull = selectedLocation?.addressFull,
+                        locationShort = selectedLocation?.addressShort,
+                        latitude = selectedLocation?.latitude,
+                        longitude = selectedLocation?.longitude,
+                        syncedToFirebase = false,
+                        firestoreId = firestoreId
+                    )
+                    val localId = scheduledTransactionRepository.insertScheduledTransaction(scheduledTransaction)
+                    scheduleFirstNotificationOffline(localId)
+                    clearForm()
+                    onSuccess()
+                    launch {
+                        try {
+                            scheduledTransactionSync.syncScheduledTransaction(
+                                scheduledTransaction
+                            )
+                        } catch (e: Exception) {
+                        }
+                    }
+                } else {
+                    val transaction = Transaction(
+                        amount = amount,
+                        transaction = selectedTransactionType,
+                        note = inputNote,
+                        date = selectedDate,
+                        category = selectedCategory!!,
+                        photoUri = savedPhotoPath,
+                        locationFull = selectedLocation?.addressFull,
+                        locationShort = selectedLocation?.addressShort,
+                        latitude = selectedLocation?.latitude,
+                        longitude = selectedLocation?.longitude,
+                        syncedToFirebase = false,
+                        firestoreId = firestoreId
+                    )
+                    repo.insertTransaction(transaction)
+                    clearForm()
+                    onSuccess()
+                    launch {
+                        try {
+                            transactionSync.syncTransaction(transaction)
+                        } catch (e: Exception) {
+                        }
+                    }
+                }
+
+            } catch (e: Exception) {
+                savedPhotoPath?.let { PhotoStorageUtil.deletePhoto(it) }
+                onError(context.getString(R.string.error_transaction_save_failed, e.message ?: ""))
+            }
+        }
+    }
+
+    private fun scheduleFirstNotificationOffline(transactionId: Long) {
+        val workRequest = OneTimeWorkRequestBuilder<NotificationWorker>()
+            .setInitialDelay(5, TimeUnit.SECONDS)
+            .setInputData(
+                workDataOf(
+                    NotificationWorker.TRANSACTION_ID_KEY to transactionId
+                )
+            )
+            .addTag("scheduled_notification_$transactionId")
+            .build()
+        workManager.enqueueUniqueWork(
+            "scheduled_notification_$transactionId",
+            androidx.work.ExistingWorkPolicy.REPLACE,
+            workRequest
+        )
+    }
+
+    private fun clearForm() {
+        inputAmount = ""
+        inputNote = ""
+        selectedCategory = null
+        selectedDate = System.currentTimeMillis()
+        isReminderEnabled = false
+        clearPhoto()
+        clearLocation()
+    }
+}

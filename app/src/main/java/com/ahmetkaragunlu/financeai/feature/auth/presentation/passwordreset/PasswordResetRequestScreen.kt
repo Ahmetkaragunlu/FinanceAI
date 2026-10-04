@@ -1,0 +1,203 @@
+package com.ahmetkaragunlu.financeai.feature.auth.presentation.passwordreset
+
+import android.widget.Toast
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AlternateEmail
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavController
+import com.ahmetkaragunlu.financeai.R
+import com.ahmetkaragunlu.financeai.app.navigation.Screens
+import com.ahmetkaragunlu.financeai.app.navigation.navigateSingleTopClear
+import com.ahmetkaragunlu.financeai.core.ui.component.EditAlertDialog
+import com.ahmetkaragunlu.financeai.core.ui.component.EditTextField
+import com.ahmetkaragunlu.financeai.core.ui.theme.SignUpTextFieldStyles
+import com.ahmetkaragunlu.financeai.feature.auth.presentation.AuthState
+import com.ahmetkaragunlu.financeai.feature.auth.presentation.passwordreset.PasswordResetRequestViewModel
+
+@Composable
+fun PasswordResetRequestScreen(
+    modifier: Modifier = Modifier,
+    viewModel: PasswordResetRequestViewModel = hiltViewModel(),
+    navController: NavController
+) {
+
+    val context = LocalContext.current
+    val uiState by viewModel.authState.collectAsStateWithLifecycle()
+    BackHandler { navController.navigateSingleTopClear(Screens.SignInScreen.route) }
+    LaunchedEffect(uiState) {
+        when (uiState) {
+            AuthState.SUCCESS -> {
+                viewModel.showDialog = true
+            }
+
+            AuthState.USER_NOT_FOUND -> {
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.user_not_found),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+
+            AuthState.FAILURE -> {
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.something_went_wrong),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+
+            else -> {}
+        }
+        viewModel.resetAuthState()
+    }
+
+    Box(
+        modifier =
+            modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .background(
+                    color = colorResource(R.color.background)
+                )
+
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = modifier
+                .fillMaxSize()
+                .padding(top = 240.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.forgot_password),
+                color = MaterialTheme.colorScheme.onPrimary,
+                style = MaterialTheme.typography.displayMedium,
+                modifier = modifier.padding(bottom = 36.dp)
+            )
+            EditTextField(
+                value = viewModel.inputEmail,
+                onValueChange = { viewModel.updateEmail(it) },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.AlternateEmail,
+                        contentDescription = null,
+                        tint = Color.Gray
+                    )
+                },
+                label = R.string.email,
+                keyboardOptions = KeyboardOptions.Default.copy(
+                    imeAction = ImeAction.Next,
+                    keyboardType = KeyboardType.Email
+                ),
+                supportingText = if (viewModel.emailSupportingText()) R.string.error_email else null,
+                colors = SignUpTextFieldStyles.whiteTextFieldColors()
+            )
+            EditTextField(
+                value = viewModel.inputFirstName,
+                onValueChange = { viewModel.updateFirstName(it) },
+                label = R.string.first_name,
+                keyboardOptions = KeyboardOptions.Default.copy(
+                    imeAction = ImeAction.Next,
+                    keyboardType = KeyboardType.Text
+                ),
+                supportingText = if (viewModel.firstNameSupportingText()) R.string.error_firstName else null,
+                colors = SignUpTextFieldStyles.whiteTextFieldColors()
+            )
+            EditTextField(
+                value = viewModel.inputLastName,
+                onValueChange = { viewModel.updateLastName(it) },
+                label = R.string.last_name,
+                keyboardOptions = KeyboardOptions.Default.copy(
+                    imeAction = ImeAction.Done,
+                    keyboardType = KeyboardType.Text
+                ),
+                supportingText = if (viewModel.lastNameSupportingText()) R.string.error_lastName else null,
+                colors = SignUpTextFieldStyles.whiteTextFieldColors()
+            )
+            Button(
+                onClick = {
+                    if (viewModel.isValidResetRequestPassword()) {
+                        viewModel.sendResetPasswordRequest()
+                    } else {
+                        Toast.makeText(
+                            context, context.getString(R.string.fill_all_fields_correctly),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                },
+                modifier =
+                    modifier
+                        .padding(top = 8.dp)
+                        .width(280.dp)
+                        .clip(shape = RoundedCornerShape(12.dp)),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF404349)),
+
+                ) {
+                Text(
+                    text = stringResource(R.string.send_reset_request)
+                )
+            }
+            ShowDialog(
+                navController = navController,
+                viewModel = viewModel
+            )
+
+        }
+    }
+
+}
+
+
+@Composable
+private fun ShowDialog(
+    navController: NavController,
+    viewModel: PasswordResetRequestViewModel = hiltViewModel()
+) {
+    if (viewModel.showDialog) {
+        EditAlertDialog(
+            title = R.string.success,
+            text = R.string.reset_request_sent,
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.showDialog = false
+                    navController.navigateSingleTopClear(Screens.SignInScreen.route)
+                }) {
+                    Text(text = stringResource(R.string.ok))
+                }
+            },
+
+            )
+    }
+}
