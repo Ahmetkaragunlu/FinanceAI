@@ -1,5 +1,7 @@
 package com.ahmetkaragunlu.financeai.feature.budget.data.repository
 
+import com.ahmetkaragunlu.financeai.core.session.local.entity.ActiveAccountRow
+
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
@@ -11,6 +13,7 @@ import com.ahmetkaragunlu.financeai.core.database.FinanceDatabase
 import com.ahmetkaragunlu.financeai.core.session.*
 import com.ahmetkaragunlu.financeai.core.sync.*
 import com.ahmetkaragunlu.financeai.feature.budget.domain.model.*
+import com.ahmetkaragunlu.financeai.feature.budget.domain.error.BudgetException
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -33,7 +36,7 @@ class BudgetRepositoryImplTest {
             val draft = Budget(budgetType = BudgetType.CATEGORY_AMOUNT, category = CategoryType.FOOD, amount = 10.25)
             val id = repository.insertBudget(draft)
             try { repository.insertBudget(draft); fail("Duplicate budget accepted") }
-            catch (_: IllegalArgumentException) { }
+            catch (_: BudgetException.DuplicateRule) { }
             val first = repository.observeBudgets().first().single()
             assertEquals("A_budget_FOOD", first.firestoreId)
             repository.updateBudget(first.copy(amount = 20.75))

@@ -6,6 +6,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
@@ -79,6 +82,7 @@ fun NavGraphBuilder.mainNavGraph(navController: NavHostController) {
 fun MainNavGraphScaffold(navController: NavHostController) {
 
     val mainNavController: NavHostController = rememberNavController()
+    var showLogoutDialog by rememberSaveable { mutableStateOf(false) }
     val currentBackStackEntry by mainNavController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route ?: Screens.HomeScreen.route
 
@@ -88,14 +92,14 @@ fun MainNavGraphScaffold(navController: NavHostController) {
 
     HandleDeepLinks(mainNavController)
 
-    if (homeViewModel.showLogoutDialog) {
+    if (showLogoutDialog) {
         EditAlertDialog(
             title = R.string.sign_out_title,
             text = R.string.sign_out_message,
-            onDismissRequest = { homeViewModel.showLogoutDialog = false },
+            onDismissRequest = { showLogoutDialog = false },
             confirmButton = {
                 TextButton(onClick = {
-                    homeViewModel.showLogoutDialog = false
+                    showLogoutDialog = false
                     sessionViewModel.performSignOut {
                         navController.navigateSingleTopClear(Screens.SignInScreen.route)
                     }
@@ -104,7 +108,7 @@ fun MainNavGraphScaffold(navController: NavHostController) {
                 }
             },
             dismissButton = {
-                TextButton(onClick = { homeViewModel.showLogoutDialog = false }) {
+                TextButton(onClick = { showLogoutDialog = false }) {
                     Text(stringResource(R.string.no), color = Color.Gray)
                 }
             }
@@ -117,7 +121,7 @@ fun MainNavGraphScaffold(navController: NavHostController) {
                 currentRoute = currentRoute,
                 navController = mainNavController,
                 userName = userName,
-                onLogoutClicked = { homeViewModel.showLogoutDialog = true }
+                onLogoutClicked = { showLogoutDialog = true }
             )
         },
         bottomBar = {

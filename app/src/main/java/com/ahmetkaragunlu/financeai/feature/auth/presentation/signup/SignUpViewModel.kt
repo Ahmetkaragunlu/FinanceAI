@@ -32,8 +32,6 @@ class SignUpViewModel @Inject constructor(
         private set
     var inputPassword by mutableStateOf("")
         private set
-    var passwordVisibility by mutableStateOf(false)
-    var showDialog by mutableStateOf(false)
 
     private fun signUp(email: String, password: String, firstName: String, lastName: String) {
         viewModelScope.launch {

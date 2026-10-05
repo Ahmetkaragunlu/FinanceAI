@@ -1,6 +1,5 @@
 package com.ahmetkaragunlu.financeai.feature.transaction.presentation.add
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.net.Uri
 import android.widget.Toast
@@ -10,16 +9,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.work.ExistingWorkPolicy
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.WorkManager
-import androidx.work.workDataOf
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.core.media.PhotoLocalStore
 import com.ahmetkaragunlu.financeai.core.money.MoneyAmounts
 import com.ahmetkaragunlu.financeai.core.session.AccountSession
-import com.ahmetkaragunlu.financeai.core.sync.SyncScheduler
-import com.ahmetkaragunlu.financeai.feature.location.data.LocationUtil
+import com.ahmetkaragunlu.financeai.feature.location.domain.AddressResolver
+import com.ahmetkaragunlu.financeai.feature.location.domain.Coordinates
 import com.ahmetkaragunlu.financeai.feature.location.domain.model.LocationData
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.model.ScheduledTransaction
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.repository.ScheduledTransactionRepository
@@ -27,20 +22,21 @@ import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryTyp
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.Transaction
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.repository.TransactionRepository
-import com.ahmetkaragunlu.financeai.notification.NotificationWorker
-import com.ahmetkaragunlu.financeai.photo.CameraHelper
-import com.ahmetkaragunlu.financeai.photo.PhotoStorageUtil
+import com.ahmetkaragunlu.financeai.feature.transaction.presentation.transactionFailureMessage
 import com.ahmetkaragunlu.financeai.photo.PhotoWorkScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
-import java.util.Calendar
+import java.time.Clock
+import java.time.ZoneId
+import java.time.LocalDate
+import com.ahmetkaragunlu.financeai.core.time.FinancePeriods
 import java.util.UUID
-import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.withContext
 
 @HiltViewModel
@@ -49,16 +45,20 @@ class AddTransactionViewModel @Inject constructor(
     private val session: AccountSession,
     private val repo: TransactionRepository,
     private val scheduledTransactionRepository: ScheduledTransactionRepository,
-    private val workManager: WorkManager,
     private val photoWork: PhotoWorkScheduler,
+    private val addresses: AddressResolver,
+    private val clock: Clock,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private var isSaving = false
+    private var locationJob: Job? = null
+    private var locationRequest = 0L
 
     var selectedTransactionType by mutableStateOf(TransactionType.EXPENSE)
+        private set
     var selectedCategory by mutableStateOf<CategoryType?>(null)
-    var isCategoryDropdownExpanded by mutableStateOf(false)
+        private set
 
     val availableCategories: List<CategoryType>
         get() = CategoryType.entries.filter { it.type == selectedTransactionType }
@@ -67,18 +67,19 @@ class AddTransactionViewModel @Inject constructor(
         private set
     var inputNote by mutableStateOf("")
         private set
-    var selectedDate by mutableLongStateOf(System.currentTimeMillis())
+    var selectedDate by mutableLongStateOf(clock.millis())
+        private set
 
     var isReminderEnabled by mutableStateOf(false)
-    var isDatePickerOpen by mutableStateOf(false)
+        private set
 
     var selectedPhotoUri by mutableStateOf<Uri?>(null)
+        private set
     var tempCameraPhotoPath by mutableStateOf<String?>(null)
-    var showPhotoBottomSheet by mutableStateOf(false)
+        private set
 
     var selectedLocation by mutableStateOf<LocationData?>(null)
-    var showLocationPicker by mutableStateOf(false)
-    var cameraHelperRef by mutableStateOf<CameraHelper?>(null)
+        private set
 
     fun updateInputNote(note: String) {
         inputNote = note
@@ -94,7 +95,7 @@ class AddTransactionViewModel @Inject constructor(
         selectedCategory = null
         inputNote = ""
         inputAmount = ""
-        selectedDate = System.currentTimeMillis()
+        selectedDate = clock.millis()
         isReminderEnabled = false
         clearPhoto()
         clearLocation()
@@ -104,67 +105,38 @@ class AddTransactionViewModel @Inject constructor(
         selectedCategory = category
     }
 
-    fun toggleDropdown() {
-        isCategoryDropdownExpanded = !isCategoryDropdownExpanded
-    }
-
-    fun dismissDropdown() {
-        isCategoryDropdownExpanded = false
-    }
-
-    fun updateSelectedDate(date: Long) {
-        selectedDate = date
-    }
+    fun dateZone(): ZoneId = if (isReminderEnabled) ZoneId.of(session.requireAccount().timeZoneId) else ZoneId.systemDefault()
+    fun selectPickerDate(millis: Long) { selectedDate = FinancePeriods.fromPicker(millis, dateZone()) }
+    fun pickerDate(): Long = FinancePeriods.toPicker(selectedDate, dateZone())
+    fun isPickerDateValid(millis: Long): Boolean = isDateValid(FinancePeriods.fromPicker(millis, dateZone()))
 
     fun toggleReminder(enabled: Boolean) {
         isReminderEnabled = enabled
         selectedDate = if (!enabled) {
-            System.currentTimeMillis()
+            clock.millis()
         } else {
-            Calendar.getInstance().apply {
-                add(Calendar.DAY_OF_YEAR, 1)
-                set(Calendar.HOUR_OF_DAY, 0)
-                set(Calendar.MINUTE, 0)
-                set(Calendar.SECOND, 0)
-                set(Calendar.MILLISECOND, 0)
-            }.timeInMillis
+            LocalDate.now(clock.withZone(dateZone())).plusDays(1).atStartOfDay(dateZone()).toInstant().toEpochMilli()
         }
     }
 
-    fun openDatePicker() {
-        isDatePickerOpen = true
-    }
-
-    fun closeDatePicker() {
-        isDatePickerOpen = false
-    }
-
     fun isDateValid(timestamp: Long): Boolean {
-        val today = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }.timeInMillis
+        val today = LocalDate.now(clock.withZone(dateZone())).atStartOfDay(dateZone()).toInstant().toEpochMilli()
+        val selected = timestamp
 
         return if (isReminderEnabled) {
-            timestamp >= today
+            selected >= today
         } else {
-            timestamp <= System.currentTimeMillis()
+            selected <= clock.millis()
         }
     }
 
     fun onPhotoSelected(uri: Uri) {
+        clearTempCameraPhoto()
         selectedPhotoUri = uri
     }
 
-    fun prepareCameraPhoto(): Pair<File, Uri>? {
-        val result = PhotoStorageUtil.createTempPhotoFile(context)
-        result?.let { (file, _) ->
-            tempCameraPhotoPath = file.absolutePath
-        }
-        return result
-    }
+    fun cameraOwnerId(): String? = session.account.value?.ownerId
+    fun registerCameraDraft(path: String) { clearTempCameraPhoto(); tempCameraPhotoPath = path }
 
     fun onCameraPhotoTaken() {
         tempCameraPhotoPath?.let { path ->
@@ -175,37 +147,41 @@ class AddTransactionViewModel @Inject constructor(
     fun clearPhoto() {
         selectedPhotoUri = null
         tempCameraPhotoPath?.let { path ->
-            PhotoStorageUtil.deletePhoto(path)
+            viewModelScope.launch { photoStore.delete(path) }
         }
         tempCameraPhotoPath = null
     }
 
     fun clearTempCameraPhoto() {
         tempCameraPhotoPath?.let { path ->
-            PhotoStorageUtil.deletePhoto(path)
+            viewModelScope.launch { photoStore.delete(path) }
         }
         tempCameraPhotoPath = null
     }
 
-    @SuppressLint("StringFormatInvalid")
     fun onLocationSelected(latitude: Double, longitude: Double) {
-        viewModelScope.launch {
+        val account = session.account.value ?: return
+        locationJob?.cancel()
+        val request = ++locationRequest
+        locationJob = viewModelScope.launch {
             try {
-                val locationData = LocationUtil.getAddressFromLocation(
-                    context,
-                    latitude,
-                    longitude
-                )
-                selectedLocation = locationData
+                val locationData = addresses.resolve(Coordinates(latitude, longitude))
+                if (request == locationRequest && session.isCurrent(account)) {
+                    selectedLocation = locationData ?: LocationData(latitude, longitude,
+                        context.getString(R.string.location_coordinates, latitude, longitude), context.getString(R.string.location_label))
+                    if (locationData == null) Toast.makeText(context, context.getString(R.string.address_not_found), Toast.LENGTH_SHORT).show()
+                }
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
-                val errorMessage = context.getString(R.string.failure, e.message ?: "")
-                Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+                if (request == locationRequest && session.isCurrent(account))
+                    Toast.makeText(context, context.getString(R.string.address_not_found), Toast.LENGTH_SHORT).show()
             }
         }
     }
 
     fun clearLocation() {
+        locationRequest++
+        locationJob?.cancel()
         selectedLocation = null
     }
 
@@ -237,6 +213,10 @@ class AddTransactionViewModel @Inject constructor(
             var committed = false
             try {
                 savedPhotoPath = photo?.let { photoStore.save(it, cameraPath, account.ownerId) }
+                if (photo != null && savedPhotoPath == null) {
+                    if (session.isCurrent(account)) onError(context.getString(R.string.photo_save_failed))
+                    return@launch
+                }
                 val firestoreId = UUID.randomUUID().toString()
                 if (isScheduled) {
                     val scheduledTransaction = ScheduledTransaction(
@@ -256,9 +236,8 @@ class AddTransactionViewModel @Inject constructor(
                         syncedToFirebase = false,
                         firestoreId = firestoreId
                     )
-                    val localId = scheduledTransactionRepository.insertScheduledTransaction(scheduledTransaction)
+                    scheduledTransactionRepository.insertScheduledTransaction(scheduledTransaction)
                     committed = true
-                    if (session.isCurrent(account)) scheduleFirstNotificationOffline(localId, account.ownerId)
                 } else {
                     val transaction = Transaction(
                         ownerId = account.ownerId, currencyCode = account.currencyCode,
@@ -287,35 +266,16 @@ class AddTransactionViewModel @Inject constructor(
 
                 if (!committed) withContext(NonCancellable) { photoStore.delete(savedPhotoPath) }
                 if (e is CancellationException) throw e
-                if (session.isCurrent(account)) onError(context.getString(R.string.error_transaction_save_failed, e.message ?: ""))
+                if (session.isCurrent(account)) onError(transactionFailureMessage(context, e, R.string.error_transaction_save_failed))
             } finally { isSaving = false }
         }
-    }
-
-    private fun scheduleFirstNotificationOffline(transactionId: Long, ownerId: String) {
-        val workRequest = OneTimeWorkRequestBuilder<NotificationWorker>()
-            .setInitialDelay(5, TimeUnit.SECONDS)
-            .setInputData(
-                workDataOf(
-                    NotificationWorker.TRANSACTION_ID_KEY to transactionId,
-                    SyncScheduler.OWNER_ID to ownerId
-                )
-            )
-            .addTag("scheduled_notification_$transactionId")
-            .addTag("account_${ownerId}")
-            .build()
-        workManager.enqueueUniqueWork(
-            "scheduled_notification_$transactionId",
-            ExistingWorkPolicy.REPLACE,
-            workRequest
-        )
     }
 
     private fun clearForm() {
         inputAmount = ""
         inputNote = ""
         selectedCategory = null
-        selectedDate = System.currentTimeMillis()
+        selectedDate = clock.millis()
         isReminderEnabled = false
         clearPhoto()
         clearLocation()

@@ -29,7 +29,6 @@ class PasswordResetRequestViewModel @Inject constructor(
         private set
     var inputEmail by mutableStateOf("")
         private set
-    var showDialog by mutableStateOf(false)
 
     fun sendResetPasswordRequest() {
         viewModelScope.launch {

@@ -7,7 +7,6 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
@@ -87,6 +86,8 @@
             <intent-filter>
                 <action android:name="com.ahmetkaragunlu.financeai.ACTION_CONFIRM" />
                 <action android:name="com.ahmetkaragunlu.financeai.ACTION_CANCEL" />
+                <action android:name="com.ahmetkaragunlu.financeai.ACTION_SNOOZE" />
+                <action android:name="com.ahmetkaragunlu.financeai.ACTION_DISMISS" />
             </intent-filter>
         </receiver>
 
@@ -94,7 +95,11 @@
             android:name="androidx.startup.InitializationProvider"
             android:authorities="${applicationId}.androidx-startup"
             android:exported="false"
-            tools:node="remove">
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
         </provider>
 
     </application>

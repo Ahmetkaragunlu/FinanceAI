@@ -1,7 +1,7 @@
 package com.ahmetkaragunlu.financeai.feature.budget.data.mapper
 
 import com.ahmetkaragunlu.financeai.core.money.MoneyAmounts
-import com.ahmetkaragunlu.financeai.feature.budget.data.local.BudgetEntity
+import com.ahmetkaragunlu.financeai.feature.budget.data.local.entity.BudgetEntity
 import com.ahmetkaragunlu.financeai.feature.budget.domain.model.Budget
 
 fun BudgetEntity.toDomain(): Budget = Budget(

@@ -1,0 +1,6 @@
+# Single-package build policy: approve only reviewed Firebase SDK scripts.
+allowBuilds:
+  '@firebase/util@1.15.3': true
+  protobufjs@7.6.6: true
+  # Optional CLI native binding; deployment and emulator flows do not require its build.
+  re2: false

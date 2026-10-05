@@ -1,153 +1,109 @@
 package com.ahmetkaragunlu.financeai.feature.location.presentation
 
-import android.Manifest
-import android.annotation.SuppressLint
 import android.content.Context
-import android.content.Intent
-import android.content.pm.PackageManager
-import android.location.LocationManager
-import android.provider.Settings
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ahmetkaragunlu.financeai.R
-import com.ahmetkaragunlu.financeai.feature.location.data.LocationUtil
-import com.google.android.gms.location.LocationServices
-import com.google.android.gms.location.Priority
+import com.ahmetkaragunlu.financeai.feature.location.domain.AddressResolver
+import com.ahmetkaragunlu.financeai.feature.location.domain.Coordinates
+import com.ahmetkaragunlu.financeai.feature.location.domain.LocationGateway
 import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.tasks.CancellationTokenSource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 @HiltViewModel
 class LocationPickerViewModel @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val locations: LocationGateway,
+    private val addresses: AddressResolver
 ) : ViewModel() {
+    private val mutableState = MutableStateFlow(LocationPickerUiState())
+    val uiState = mutableState.asStateFlow()
+    private var requestId = 0L
+    private var requestJob: Job? = null
 
-    private val _uiState = MutableStateFlow(LocationPickerUiState())
-    val uiState: StateFlow<LocationPickerUiState> = _uiState.asStateFlow()
+    init { refreshPermission() }
 
-    var searchQuery by  mutableStateOf("")
-    var isSearching by  mutableStateOf(false)
-    private val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
-
-    init {
-        checkLocationPermission()
+    fun updateSearchQuery(query: String) {
+        mutableState.value = mutableState.value.copy(searchQuery = query)
+    }
+    fun refreshPermission(): Boolean {
+        val granted = locations.hasPermission()
+        updatePermissionState(granted)
+        return granted
     }
     fun updatePermissionState(isGranted: Boolean) {
-        _uiState.value = _uiState.value.copy(hasLocationPermission = isGranted)
-        if (!isGranted) {
-            _uiState.value = _uiState.value.copy(
-                errorMessage = context.getString(R.string.location_permission_required)
-            )
-        }
+        mutableState.value = mutableState.value.copy(hasLocationPermission = isGranted,
+            errorMessage = if (isGranted) null else context.getString(R.string.location_permission_required))
+        if (!isGranted) { requestId++; requestJob?.cancel(); mutableState.value = mutableState.value.copy(isLoading = false, isSearching = false) }
     }
-    private fun checkLocationPermission() {
-        val hasPermission = ContextCompat.checkSelfPermission(
-            context,
-            Manifest.permission.ACCESS_FINE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED
-
-        _uiState.value = _uiState.value.copy(hasLocationPermission = hasPermission)
+    fun isLocationEnabled() = locations.isEnabled()
+    private fun begin(): Long {
+        requestJob?.cancel()
+        mutableState.value = mutableState.value.copy(isSearching = false)
+        return ++requestId
     }
-
-    fun isLocationEnabled(): Boolean {
-        val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
-                locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
-    }
-
-    fun openLocationSettings() {
-        val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK
-        }
-        context.startActivity(intent)
-    }
-
-    @SuppressLint("MissingPermission")
-    fun getCurrentLocation() {
-        if (!_uiState.value.hasLocationPermission) {
-            _uiState.value = _uiState.value.copy(
-                errorMessage = context.getString(R.string.location_permission_required)
-            )
+    fun getCurrentLocation(onSettingsRequired: () -> Unit = {}) {
+        if (!refreshPermission()) return
+        if (!locations.isEnabled()) {
+            mutableState.value = mutableState.value.copy(errorMessage = context.getString(R.string.gps_disabled))
+            onSettingsRequired()
             return
         }
-        if (!isLocationEnabled()) {
-            _uiState.value = _uiState.value.copy(
-                errorMessage = context.getString(R.string.gps_disabled),
-                showLocationSettingsDialog = true
-            )
-            return
-        }
-        _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
-        viewModelScope.launch {
+        val id = begin()
+        mutableState.value = mutableState.value.copy(isLoading = true, errorMessage = null)
+        requestJob = viewModelScope.launch {
             try {
-                val cancellationTokenSource = CancellationTokenSource()
-                fusedLocationClient.getCurrentLocation(
-                    Priority.PRIORITY_HIGH_ACCURACY,
-                    cancellationTokenSource.token
-                ).addOnSuccessListener { location ->
-                    if (location != null) {
-                        val latLng = LatLng(location.latitude, location.longitude)
-                        selectLocation(latLng)
-                    } else {
-                        _uiState.value = _uiState.value.copy(
-                            isLoading = false,
-                            errorMessage = context.getString(R.string.location_not_available)
-                        )
-                    }
-                }.addOnFailureListener { exception ->
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        errorMessage = context.getString(R.string.location_error, exception.localizedMessage ?: "")
-                    )
-                }
-            } catch (e: Exception) {
-                if (e is CancellationException) throw e
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    errorMessage = context.getString(R.string.location_not_available)
-                )
-            }
+                val coordinate = locations.current()
+                if (id != requestId) return@launch
+                if (coordinate == null) fail(id, R.string.location_not_available) else resolve(coordinate, id)
+            } catch (e: CancellationException) { throw e }
+            catch (_: Exception) { fail(id, R.string.location_not_available) }
         }
     }
-    fun selectLocation(latLng: LatLng) {
-        _uiState.value = _uiState.value.copy(
-            selectedLocation = latLng,
-            currentLocation = latLng,
-            isLoading = true
-        )
-        viewModelScope.launch {
+    fun selectLocation(value: LatLng) {
+        val id = begin()
+        requestJob = viewModelScope.launch { resolve(Coordinates(value.latitude, value.longitude), id) }
+    }
+    fun search() {
+        val query = mutableState.value.searchQuery.trim()
+        if (query.isEmpty()) return
+        val id = begin()
+        mutableState.value = mutableState.value.copy(isSearching = true)
+        requestJob = viewModelScope.launch {
             try {
-                val locationData = LocationUtil.getAddressFromLocation(
-                    context,
-                    latLng.latitude,
-                    latLng.longitude
-                )
-
-                _uiState.value = _uiState.value.copy(
-                    addressText = locationData?.addressFull ?: context.getString(R.string.address_not_found),
-                    isLoading = false
-                )
-            } catch (e: Exception) {
-                if (e is CancellationException) throw e
-                _uiState.value = _uiState.value.copy(
-                    addressText = context.getString(R.string.location_coordinates, latLng.latitude, latLng.longitude),
-                    isLoading = false
-                )
-            }
+                val result = addresses.search(query)
+                if (id != requestId) return@launch
+                if (result == null) fail(id, R.string.address_not_found) else resolve(result, id)
+            } catch (e: CancellationException) { throw e }
+            catch (_: Exception) { fail(id, R.string.address_not_found) }
+            finally { if (id == requestId) mutableState.value = mutableState.value.copy(isSearching = false) }
         }
     }
-    fun dismissLocationSettingsDialog() {
-        _uiState.value = _uiState.value.copy(showLocationSettingsDialog = false)
+    private suspend fun resolve(coordinate: Coordinates, id: Long) {
+        if (id != requestId) return
+        val selected = LatLng(coordinate.latitude, coordinate.longitude)
+        mutableState.value = mutableState.value.copy(selectedLocation = selected, currentLocation = selected,
+            isLoading = true, errorMessage = null)
+        try {
+            val address = addresses.resolve(coordinate)
+            if (id == requestId) mutableState.value = mutableState.value.copy(addressText = address?.addressFull
+                ?: context.getString(R.string.location_coordinates, coordinate.latitude, coordinate.longitude),
+                errorMessage = if (address == null) context.getString(R.string.address_not_found) else null, isLoading = false)
+        } catch (e: CancellationException) { throw e }
+        catch (_: Exception) {
+            if (id == requestId) mutableState.value = mutableState.value.copy(
+                addressText = context.getString(R.string.location_coordinates, coordinate.latitude, coordinate.longitude),
+                errorMessage = context.getString(R.string.address_not_found), isLoading = false)
+        }
+    }
+    private fun fail(id: Long, message: Int) {
+        if (id == requestId) mutableState.value = mutableState.value.copy(isLoading = false, errorMessage = context.getString(message))
     }
 }

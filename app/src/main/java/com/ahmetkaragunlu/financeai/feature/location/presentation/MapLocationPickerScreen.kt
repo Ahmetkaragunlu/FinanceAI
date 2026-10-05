@@ -1,7 +1,9 @@
 package com.ahmetkaragunlu.financeai.feature.location.presentation
 
 import android.Manifest
-import android.content.pm.PackageManager
+import android.content.Intent
+import android.provider.Settings
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -41,8 +43,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -51,14 +55,12 @@ import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ahmetkaragunlu.financeai.R
-import com.ahmetkaragunlu.financeai.feature.location.data.LocationUtil
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
@@ -66,9 +68,9 @@ import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
+import com.google.maps.android.compose.DragState
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.rememberMarkerState
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,8 +81,12 @@ fun MapLocationPickerScreen(
 ) {
     BackHandler {onDismiss()}
     val context = LocalContext.current
+    var showLocationSettingsDialog by rememberSaveable { mutableStateOf(false) }
+    val requestCurrentLocation: () -> Unit = {
+        viewModel.getCurrentLocation(onSettingsRequired = { showLocationSettingsDialog = true })
+    }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val scope = rememberCoroutineScope()
+    val latestSelection by rememberUpdatedState(uiState.selectedLocation)
     val lifecycleOwner = LocalLifecycleOwner.current
 
 
@@ -93,18 +99,15 @@ fun MapLocationPickerScreen(
         val hasPermission = fineLocationGranted || coarseLocationGranted
         viewModel.updatePermissionState(hasPermission)
         if (hasPermission) {
-            viewModel.getCurrentLocation()
+            requestCurrentLocation()
         }
     }
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                val hasPermission = ContextCompat.checkSelfPermission(
-                    context,
-                    Manifest.permission.ACCESS_FINE_LOCATION
-                ) == PackageManager.PERMISSION_GRANTED
-                if (hasPermission && viewModel.isLocationEnabled()) {
-                    viewModel.getCurrentLocation()
+                val hasPermission = viewModel.refreshPermission()
+                if (hasPermission && viewModel.isLocationEnabled() && latestSelection == null) {
+                    requestCurrentLocation()
                 }
             }
         }
@@ -114,12 +117,9 @@ fun MapLocationPickerScreen(
         }
     }
     LaunchedEffect(Unit) {
-        val hasPermission = ContextCompat.checkSelfPermission(
-            context,
-            Manifest.permission.ACCESS_FINE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED
+        val hasPermission = viewModel.refreshPermission()
         if (hasPermission) {
-            viewModel.getCurrentLocation()
+            requestCurrentLocation()
         } else {
             locationPermissionLauncher.launch(
                 arrayOf(
@@ -128,6 +128,10 @@ fun MapLocationPickerScreen(
                 )
             )
         }
+    }
+
+    LaunchedEffect(uiState.errorMessage) {
+        uiState.errorMessage?.let { Toast.makeText(context, it, Toast.LENGTH_SHORT).show() }
     }
 
     Scaffold(
@@ -142,7 +146,7 @@ fun MapLocationPickerScreen(
                     },
                     actions = {
                         IconButton(
-                            onClick = { viewModel.getCurrentLocation() },
+                            onClick = requestCurrentLocation,
                             enabled = !uiState.isLoading
                         ) {
                             Icon(Icons.Default.MyLocation, contentDescription = null)
@@ -156,31 +160,23 @@ fun MapLocationPickerScreen(
                     )
                 )
                 OutlinedTextField(
-                    value = viewModel.searchQuery,
-                    onValueChange = { viewModel.searchQuery = it },
+                    value = uiState.searchQuery,
+                    onValueChange = viewModel::updateSearchQuery,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                     placeholder ={ Text(stringResource(R.string.search_address_hint)) },
                     leadingIcon = { Icon(Icons.Default.Search, null) },
                     trailingIcon = {
-                        if (viewModel.searchQuery.isNotEmpty()) {
-                            IconButton(onClick = { viewModel.searchQuery = "" }) {
+                        if (uiState.searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { viewModel.updateSearchQuery("") }) {
                                 Icon(Icons.Default.Clear, null)
                             }
                         }
                     },
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                     keyboardActions = KeyboardActions(
-                        onSearch = {
-                            scope.launch {
-                                viewModel.isSearching = true
-                                LocationUtil.searchLocation(context, viewModel.searchQuery)?.let { latLng ->
-                                    viewModel.selectLocation(latLng)
-                                }
-                               viewModel.isSearching = false
-                            }
-                        }
+                        onSearch = { viewModel.search() }
                     ),
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
@@ -233,8 +229,12 @@ fun MapLocationPickerScreen(
                 uiState.selectedLocation?.let { location ->
                     val markerState = rememberMarkerState(position = location)
 
-                    LaunchedEffect(markerState.position) {
-                        if (markerState.position != location) {
+                    LaunchedEffect(location) {
+                        if (markerState.dragState == DragState.END && markerState.position != location) markerState.position = location
+                    }
+
+                    LaunchedEffect(markerState.dragState) {
+                        if (markerState.dragState == DragState.END && markerState.position != uiState.selectedLocation) {
                             viewModel.selectLocation(markerState.position)
                         }
                     }
@@ -247,7 +247,7 @@ fun MapLocationPickerScreen(
                 }
             }
 
-            if (uiState.isLoading || viewModel.isSearching) {
+            if (uiState.isLoading || uiState.isSearching) {
                 CircularProgressIndicator(
                     modifier = Modifier.align(Alignment.Center)
                 )
@@ -291,22 +291,22 @@ fun MapLocationPickerScreen(
             }
         }
     }
-    if (uiState.showLocationSettingsDialog) {
+    if (showLocationSettingsDialog) {
         AlertDialog(
-            onDismissRequest = { viewModel.dismissLocationSettingsDialog() },
+            onDismissRequest = { showLocationSettingsDialog = false },
             icon = { Icon(Icons.Default.LocationOff, null) },
             title = { Text(stringResource(R.string.location_services_disabled)) },
             text = { Text(stringResource(R.string.location_services_disabled_message)) },
             confirmButton = {
                 TextButton(onClick = {
-                    viewModel.openLocationSettings()
-                    viewModel.dismissLocationSettingsDialog()
+                    context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+                    showLocationSettingsDialog = false
                 }) {
                     Text(stringResource(R.string.open_settings))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { viewModel.dismissLocationSettingsDialog() }) {
+                TextButton(onClick = { showLocationSettingsDialog = false }) {
                     Text(stringResource(R.string.cancel))
                 }
             }

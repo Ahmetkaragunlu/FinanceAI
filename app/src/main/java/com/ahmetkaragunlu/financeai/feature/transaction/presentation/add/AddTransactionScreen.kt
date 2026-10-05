@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -33,7 +34,6 @@ import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.app.navigation.Screens
 import com.ahmetkaragunlu.financeai.app.navigation.navigateSingleTopClear
 import com.ahmetkaragunlu.financeai.core.format.*
-import com.ahmetkaragunlu.financeai.core.time.FinancePeriods
 import com.ahmetkaragunlu.financeai.core.ui.component.EditTextField
 import com.ahmetkaragunlu.financeai.core.ui.component.FinanceDropdownMenu
 import com.ahmetkaragunlu.financeai.core.ui.component.getAccountCurrencySymbol
@@ -42,8 +42,8 @@ import com.ahmetkaragunlu.financeai.feature.location.presentation.MapLocationPic
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.*
 import com.ahmetkaragunlu.financeai.photo.CameraHelper
+import com.ahmetkaragunlu.financeai.photo.PhotoStorageUtil
 import com.ahmetkaragunlu.financeai.photo.PhotoSourceBottomSheet
-import java.time.ZoneId
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,6 +53,11 @@ fun AddTransactionScreen(
     navController: NavHostController
 ) {
     val context = LocalContext.current
+    var isCategoryDropdownExpanded by rememberSaveable { mutableStateOf(false) }
+    var isDatePickerOpen by rememberSaveable { mutableStateOf(false) }
+    var showPhotoBottomSheet by rememberSaveable { mutableStateOf(false) }
+    var showLocationPicker by rememberSaveable { mutableStateOf(false) }
+    var cameraHelperRef by remember { mutableStateOf<CameraHelper?>(null) }
     // Photo Picker Launcher
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -73,16 +78,22 @@ fun AddTransactionScreen(
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
-        viewModel.cameraHelperRef?.onPermissionResult(isGranted)
+        cameraHelperRef?.onPermissionResult(isGranted)
     }
     val cameraHelper = remember(context, viewModel, cameraLauncher, cameraPermissionLauncher) {
         CameraHelper(
             context = context,
             cameraLauncher = cameraLauncher,
             permissionLauncher = cameraPermissionLauncher,
-            onPreparePhoto = viewModel::prepareCameraPhoto
+            onPreparePhoto = {
+                viewModel.cameraOwnerId()?.let { owner ->
+                    PhotoStorageUtil.createTempPhotoFile(context, owner)?.also { (file, _) ->
+                        viewModel.registerCameraDraft(file.absolutePath)
+                    }
+                }
+            }
         ).also {
-            viewModel.cameraHelperRef = it
+            cameraHelperRef = it
         }
     }
 
@@ -136,7 +147,7 @@ fun AddTransactionScreen(
             // Amount Field
             EditTextField(
                 value = viewModel.inputAmount,
-                onValueChange = { viewModel.updateInputAmount(it) },
+                onValueChange = viewModel::updateInputAmount,
                 modifier = modifier
                     .widthIn(max = 450.dp)
                     .padding(bottom = 16.dp)
@@ -161,12 +172,12 @@ fun AddTransactionScreen(
                     .widthIn(max = 450.dp)
                     .padding(bottom = 14.dp)
                     .fillMaxWidth(),
-                expanded = viewModel.isCategoryDropdownExpanded,
+                expanded = isCategoryDropdownExpanded,
                 onExpandedChange = { isOpen ->
-                    if (isOpen) viewModel.toggleDropdown() else viewModel.dismissDropdown()
+                    isCategoryDropdownExpanded = isOpen
                 },
                 options = viewModel.availableCategories,
-                onOptionSelected = { category -> viewModel.updateCategory(category) },
+                onOptionSelected = viewModel::updateCategory,
                 itemLabel = { category -> stringResource(category.toResId()) },
                 trigger = {
                     OutlinedTextField(
@@ -185,12 +196,12 @@ fun AddTransactionScreen(
                                 imageVector = Icons.Default.ArrowDropDown,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.clickable { viewModel.toggleDropdown() }
+                                modifier = Modifier.clickable { isCategoryDropdownExpanded = !isCategoryDropdownExpanded }
                             )
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { viewModel.toggleDropdown() },
+                            .clickable { isCategoryDropdownExpanded = !isCategoryDropdownExpanded },
                         colors = OutlinedTextFieldDefaults.colors(
                             disabledContainerColor = Color(0xFF353b45),
                             disabledTextColor = MaterialTheme.colorScheme.onPrimary
@@ -204,7 +215,7 @@ fun AddTransactionScreen(
             // Note Field
             EditTextField(
                 value = viewModel.inputNote,
-                onValueChange = { viewModel.updateInputNote(it) },
+                onValueChange = viewModel::updateInputNote,
                 keyboardOptions = KeyboardOptions.Default.copy(
                     imeAction = ImeAction.Done,
                     keyboardType = KeyboardType.Text
@@ -220,8 +231,9 @@ fun AddTransactionScreen(
             // Date Picker
             DatePickerField(
                 selectedDate = viewModel.selectedDate,
-                onDateClick = { viewModel.openDatePicker() },
+                onDateClick = { isDatePickerOpen = true },
                 isRemenderEnabled = viewModel.isReminderEnabled,
+                zone = viewModel.dateZone(),
                 modifier = modifier
                     .widthIn(max = 450.dp)
                     .padding(bottom = 14.dp)
@@ -231,7 +243,7 @@ fun AddTransactionScreen(
             // Reminder Switch
             ReminderSwitch(
                 isEnabled = viewModel.isReminderEnabled,
-                onToggle = { viewModel.toggleReminder(it) },
+                onToggle = viewModel::toggleReminder,
                 modifier = modifier
                     .widthIn(max = 450.dp)
                     .padding(bottom = 16.dp)
@@ -248,7 +260,7 @@ fun AddTransactionScreen(
                 // Location Card
                 Card(
                     onClick = {
-                        viewModel.showLocationPicker = true
+                        showLocationPicker = true
                     },
                     modifier = Modifier
                         .weight(1f)
@@ -325,7 +337,7 @@ fun AddTransactionScreen(
                 Card(
                     onClick = {
                         if (viewModel.selectedPhotoUri == null) {
-                            viewModel.showPhotoBottomSheet = true
+                            showPhotoBottomSheet = true
                         }
                     },
                     modifier = modifier
@@ -422,48 +434,48 @@ fun AddTransactionScreen(
         }
     }
 
-    if (viewModel.showLocationPicker) {
+    if (showLocationPicker) {
         MapLocationPickerScreen(
             onLocationSelected = { lat, lon ->
                 viewModel.onLocationSelected(lat, lon)
-                viewModel.showLocationPicker = false
+                showLocationPicker = false
             },
             onDismiss = {
-                viewModel.showLocationPicker = false
+                showLocationPicker = false
             }
         )
     }
 
     // Photo Source Bottom Sheet
-    if (viewModel.showPhotoBottomSheet) {
+    if (showPhotoBottomSheet) {
         PhotoSourceBottomSheet(
-            onDismiss = { viewModel.showPhotoBottomSheet = false },
+            onDismiss = { showPhotoBottomSheet = false },
             onCameraClick = { cameraHelper.launchCamera() },
             onGalleryClick = { photoPickerLauncher.launch("image/*") }
         )
     }
 
     // Date Picker Dialog
-    if (viewModel.isDatePickerOpen) {
+    if (isDatePickerOpen) {
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = viewModel.selectedDate,
+            initialSelectedDateMillis = viewModel.pickerDate(),
             selectableDates = object : SelectableDates {
                 override fun isSelectableDate(utcTimeMillis: Long): Boolean {
-                    return viewModel.isDateValid(utcTimeMillis)
+                    return viewModel.isPickerDateValid(utcTimeMillis)
                 }
             }
         )
 
         DatePickerDialog(
-            onDismissRequest = { viewModel.closeDatePicker() },
+            onDismissRequest = { isDatePickerOpen = false },
             colors = DatePickerDefaults.colors(containerColor = Color(0xFF2B2D31)),
             confirmButton = {
                 TextButton(
                     onClick = {
                         datePickerState.selectedDateMillis?.let { timestamp ->
-                            if (viewModel.isDateValid(timestamp)) {
-                                viewModel.updateSelectedDate(FinancePeriods.fromPicker(timestamp, ZoneId.systemDefault()))
-                                viewModel.closeDatePicker()
+                            if (viewModel.isPickerDateValid(timestamp)) {
+                                viewModel.selectPickerDate(timestamp)
+                                isDatePickerOpen = false
                             }
                         }
                     }
@@ -475,7 +487,7 @@ fun AddTransactionScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { viewModel.closeDatePicker() }) {
+                TextButton(onClick = { isDatePickerOpen = false }) {
                     Text(
                         stringResource(id = R.string.cancel),
                         color = MaterialTheme.colorScheme.onPrimary

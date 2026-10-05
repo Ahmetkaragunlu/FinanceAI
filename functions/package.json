@@ -1,0 +1,23 @@
+{
+  "name": "financeai-functions",
+  "private": true,
+  "main": "index.js",
+  "engines": {
+    "node": "22"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "check": "node --check index.js && node --check src/reminder-policy.js && node --check src/schedule-service.js"
+  },
+  "dependencies": {
+    "@google-cloud/functions-framework": "3.5.1",
+    "firebase-admin": "^12.0.0",
+    "firebase-functions": "^5.0.0",
+    "luxon": "3.7.2"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "5.0.2",
+    "firebase": "12.19.0",
+    "firebase-tools": "15.32.1"
+  }
+}

@@ -27,6 +27,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,7 +52,6 @@ import com.ahmetkaragunlu.financeai.core.ui.component.EditAlertDialog
 import com.ahmetkaragunlu.financeai.core.ui.component.EditTextField
 import com.ahmetkaragunlu.financeai.core.ui.theme.SignUpTextFieldStyles
 import com.ahmetkaragunlu.financeai.feature.auth.presentation.AuthState
-import com.ahmetkaragunlu.financeai.feature.auth.presentation.passwordreset.PasswordResetViewModel
 
 @Composable
 fun PasswordResetScreen(
@@ -59,6 +61,9 @@ fun PasswordResetScreen(
     viewModel: PasswordResetViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
+    var passwordVisibility by rememberSaveable { mutableStateOf(false) }
+    var confirmPasswordVisibility by rememberSaveable { mutableStateOf(false) }
+    var showDialog by rememberSaveable { mutableStateOf(false) }
     val uiState by viewModel.authState.collectAsStateWithLifecycle()
     BackHandler {
         navController.navigateSingleTopClear(Screens.SignInScreen.route)
@@ -66,7 +71,7 @@ fun PasswordResetScreen(
     LaunchedEffect(uiState) {
         when (uiState) {
             AuthState.SUCCESS -> {
-                viewModel.showDialog = true
+                showDialog = true
             }
 
             AuthState.FAILURE -> {
@@ -106,7 +111,7 @@ fun PasswordResetScreen(
             )
             EditTextField(
                 value = viewModel.inputNewPassword,
-                onValueChange = { viewModel.updateNewPassword(it) },
+                onValueChange = viewModel::updateNewPassword,
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.Lock,
@@ -123,19 +128,19 @@ fun PasswordResetScreen(
                 colors = SignUpTextFieldStyles.whiteTextFieldColors(),
                 trailingIcon = {
                     Icon(
-                        imageVector = if (viewModel.passwordVisibility) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                        imageVector = if (passwordVisibility) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                         contentDescription = null,
                         tint = Color(0xFFcfccf0),
                         modifier = modifier.clickable {
-                            viewModel.passwordVisibility = !viewModel.passwordVisibility
+                            passwordVisibility = !passwordVisibility
                         }
                     )
                 },
-                visualTransformation = if (viewModel.passwordVisibility) VisualTransformation.None else PasswordVisualTransformation()
+                visualTransformation = if (passwordVisibility) VisualTransformation.None else PasswordVisualTransformation()
             )
             EditTextField(
                 value = viewModel.inputConfirmPassword,
-                onValueChange = { viewModel.updateConfirmPassword(it) },
+                onValueChange = viewModel::updateConfirmPassword,
                 label = R.string.confirm_password,
                 keyboardOptions = KeyboardOptions.Default.copy(
                     imeAction = ImeAction.Done,
@@ -145,12 +150,12 @@ fun PasswordResetScreen(
                 colors = SignUpTextFieldStyles.whiteTextFieldColors(),
                 trailingIcon = {
                     Icon(
-                        imageVector = if (viewModel.confirmPasswordVisibility) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                        imageVector = if (confirmPasswordVisibility) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                         contentDescription = null,
                         tint = Color(0xFFcfccf0),
                         modifier = modifier.clickable {
-                            viewModel.confirmPasswordVisibility =
-                                !viewModel.confirmPasswordVisibility
+                            confirmPasswordVisibility =
+                                !confirmPasswordVisibility
                         }
                     )
                 },
@@ -161,7 +166,7 @@ fun PasswordResetScreen(
                         tint = Color.Gray
                     )
                 },
-                visualTransformation = if (viewModel.confirmPasswordVisibility) VisualTransformation.None else PasswordVisualTransformation()
+                visualTransformation = if (confirmPasswordVisibility) VisualTransformation.None else PasswordVisualTransformation()
             )
             Button(
                 onClick = {
@@ -187,8 +192,11 @@ fun PasswordResetScreen(
                 )
             }
             ShowDialog(
-                navController = navController,
-                viewModel = viewModel
+                visible = showDialog,
+                onConfirm = {
+                    showDialog = false
+                    navController.navigateSingleTopClear(Screens.SignInScreen.route)
+                }
             )
         }
     }
@@ -197,21 +205,18 @@ fun PasswordResetScreen(
 
 @Composable
 private fun ShowDialog(
-    navController: NavController,
-    viewModel: PasswordResetViewModel = hiltViewModel()
+    visible: Boolean,
+    onConfirm: () -> Unit
 ) {
-    if (viewModel.showDialog) {
+    if (visible) {
         EditAlertDialog(
             title = R.string.success,
             text = R.string.your_password_has_been_changed_successfully,
             confirmButton = {
-                TextButton(onClick = {
-                    viewModel.showDialog = false
-                    navController.navigateSingleTopClear(Screens.SignInScreen.route)
-                }) {
+                TextButton(onClick = onConfirm) {
                     Text(text = stringResource(R.string.ok))
                 }
-            },
+            }
         )
     }
 }

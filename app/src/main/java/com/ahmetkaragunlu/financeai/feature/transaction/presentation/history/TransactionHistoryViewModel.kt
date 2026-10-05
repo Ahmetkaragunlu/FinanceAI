@@ -28,8 +28,6 @@ class TransactionHistoryViewModel @Inject constructor(
     private val repository: TransactionRepository,
     private val calendar: FinanceCalendar
 ) : ViewModel() {
-    var isHistoryPage by mutableStateOf(true)
-
     // Filter states
     var selectedDateResId by mutableIntStateOf(R.string.date)
         private set
@@ -40,10 +38,8 @@ class TransactionHistoryViewModel @Inject constructor(
     var selectedCategory by mutableStateOf<CategoryType?>(null)
         private set
 
-    var isDateMenuOpen by mutableStateOf(false)
-    var isTypeMenuOpen by mutableStateOf(false)
-    var isCategoryMenuOpen by mutableStateOf(false)
     var showCategoryError by mutableStateOf(false)
+        private set
 
     // Static options
     val dateOptions = listOf(
@@ -99,7 +95,6 @@ class TransactionHistoryViewModel @Inject constructor(
     // Filter update functions
     fun onDateSelected(dateResId: Int) {
         selectedDateResId = dateResId
-        isDateMenuOpen = false
         triggerRefresh()
     }
 
@@ -108,26 +103,20 @@ class TransactionHistoryViewModel @Inject constructor(
             selectedCategory = null
         }
         selectedType = type
-        isTypeMenuOpen = false
         showCategoryError = false
         triggerRefresh()
     }
 
     fun onCategorySelected(category: CategoryType?) {
         selectedCategory = category
-        isCategoryMenuOpen = false
         showCategoryError = false
         triggerRefresh()
     }
 
-    fun onCategoryDropdownClicked() {
-        if (selectedType == null) {
-            showCategoryError = true
-            isCategoryMenuOpen = false
-        } else {
-            showCategoryError = false
-            isCategoryMenuOpen = true
-        }
+    fun canOpenCategoryMenu(): Boolean {
+        val canOpen = selectedType != null
+        showCategoryError = !canOpen
+        return canOpen
     }
 
     private fun triggerRefresh() {

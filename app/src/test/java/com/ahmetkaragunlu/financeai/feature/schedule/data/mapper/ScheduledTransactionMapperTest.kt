@@ -1,6 +1,6 @@
 package com.ahmetkaragunlu.financeai.feature.schedule.data.mapper
 
-import com.ahmetkaragunlu.financeai.feature.schedule.data.local.ScheduledTransactionEntity
+import com.ahmetkaragunlu.financeai.feature.schedule.data.local.entity.ScheduledTransactionEntity
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
 import org.junit.Assert.assertEquals

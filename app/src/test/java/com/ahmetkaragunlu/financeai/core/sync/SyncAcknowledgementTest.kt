@@ -1,9 +1,17 @@
 package com.ahmetkaragunlu.financeai.core.sync
 
+import com.ahmetkaragunlu.financeai.core.sync.local.entity.SyncRecord
+
 import org.junit.Assert.*
 import org.junit.Test
 
 class SyncAcknowledgementTest {
+    @Test fun `server deletion acknowledges only the exact previous local mutation`() {
+        assertTrue(acknowledgesDeletion(true, "created", "created"))
+        assertFalse(acknowledgesDeletion(true, "created", "new-edit"))
+        assertFalse(acknowledgesDeletion(false, "created", "created"))
+        assertFalse(acknowledgesDeletion(true, null, null))
+    }
     private val current = SyncRecord("A", "transactions", "receipt", basePayload = "old",
         pendingPayload = "latest", mutationId = "new")
 

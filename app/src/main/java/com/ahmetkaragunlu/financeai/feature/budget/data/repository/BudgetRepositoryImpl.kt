@@ -1,12 +1,16 @@
 package com.ahmetkaragunlu.financeai.feature.budget.data.repository
 
+import com.ahmetkaragunlu.financeai.core.firebase.FirestoreCollections
+
 import androidx.room.withTransaction
+import com.ahmetkaragunlu.financeai.core.error.DataAccessException
+import com.ahmetkaragunlu.financeai.feature.budget.domain.error.BudgetException
 import com.ahmetkaragunlu.financeai.core.database.FinanceDatabase
 import com.ahmetkaragunlu.financeai.core.money.MoneyAmounts
 import com.ahmetkaragunlu.financeai.core.session.AccountSession
 import com.ahmetkaragunlu.financeai.core.sync.PendingChanges
 import com.ahmetkaragunlu.financeai.core.sync.SyncScheduler
-import com.ahmetkaragunlu.financeai.feature.budget.data.local.BudgetDao
+import com.ahmetkaragunlu.financeai.feature.budget.data.local.dao.BudgetDao
 import com.ahmetkaragunlu.financeai.feature.budget.data.mapper.toDomain
 import com.ahmetkaragunlu.financeai.feature.budget.data.mapper.toEntity
 import com.ahmetkaragunlu.financeai.feature.budget.data.remote.toFirebaseMap
@@ -41,12 +45,12 @@ class BudgetRepositoryImpl @Inject constructor(
             val duplicate = budgetDao.getAllBudgetsOneShot().firstOrNull { row ->
                 row.id != prepared.id && (if (prepared.budgetType == BudgetType.GENERAL_MONTHLY) row.budgetType == prepared.budgetType else row.category == prepared.category)
             }
-            require(duplicate == null) { "Duplicate budget rule" }
+            if (duplicate != null) throw BudgetException.DuplicateRule()
             val existing = budgetDao.getBudgetByFirestoreId(prepared.firestoreId)
-            check(prepared.id == 0 || existing?.id == prepared.id) { "Stale record" }
+            if (prepared.id != 0 && existing?.id != prepared.id) throw DataAccessException.StaleRecord()
             val row = prepared.toEntity().copy(id = existing?.id ?: 0)
             val result = budgetDao.insertBudget(row)
-            pendingChanges.record(account.ownerId, "budgets", row.firestoreId, prepared.toFirebaseMap())
+            pendingChanges.record(account.ownerId, FirestoreCollections.BUDGETS, row.firestoreId, prepared.toFirebaseMap())
             result
         }
         scheduler.enqueue(account.ownerId)
@@ -61,7 +65,7 @@ class BudgetRepositoryImpl @Inject constructor(
             database.withTransaction {
                 val existing = budgetDao.getBudgetByFirestoreId(budget.firestoreId) ?: return@withTransaction
                 budgetDao.deleteBudget(existing)
-                pendingChanges.record(account.ownerId, "budgets", existing.firestoreId, null)
+                pendingChanges.record(account.ownerId, FirestoreCollections.BUDGETS, existing.firestoreId, null)
             }
             scheduler.enqueue(account.ownerId)
         }

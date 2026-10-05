@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.ahmetkaragunlu.financeai.core.format.formatAsDate
+import java.time.ZoneId
 
 
 @Composable
@@ -20,9 +21,10 @@ fun DatePickerField(
     selectedDate: Long,
     onDateClick: () -> Unit,
     modifier: Modifier = Modifier,
-    isRemenderEnabled : Boolean
+    isRemenderEnabled : Boolean,
+    zone: ZoneId = ZoneId.systemDefault()
 ) {
-    val formattedDate = selectedDate.formatAsDate()
+    val formattedDate = selectedDate.formatAsDate(zone = zone)
 
     OutlinedTextField(
         value = formattedDate,

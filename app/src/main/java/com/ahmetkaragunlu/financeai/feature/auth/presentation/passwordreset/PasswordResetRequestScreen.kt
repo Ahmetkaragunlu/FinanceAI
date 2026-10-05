@@ -24,6 +24,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,7 +47,6 @@ import com.ahmetkaragunlu.financeai.core.ui.component.EditAlertDialog
 import com.ahmetkaragunlu.financeai.core.ui.component.EditTextField
 import com.ahmetkaragunlu.financeai.core.ui.theme.SignUpTextFieldStyles
 import com.ahmetkaragunlu.financeai.feature.auth.presentation.AuthState
-import com.ahmetkaragunlu.financeai.feature.auth.presentation.passwordreset.PasswordResetRequestViewModel
 
 @Composable
 fun PasswordResetRequestScreen(
@@ -54,12 +56,13 @@ fun PasswordResetRequestScreen(
 ) {
 
     val context = LocalContext.current
+    var showDialog by rememberSaveable { mutableStateOf(false) }
     val uiState by viewModel.authState.collectAsStateWithLifecycle()
     BackHandler { navController.navigateSingleTopClear(Screens.SignInScreen.route) }
     LaunchedEffect(uiState) {
         when (uiState) {
             AuthState.SUCCESS -> {
-                viewModel.showDialog = true
+                showDialog = true
             }
 
             AuthState.USER_NOT_FOUND -> {
@@ -108,7 +111,7 @@ fun PasswordResetRequestScreen(
             )
             EditTextField(
                 value = viewModel.inputEmail,
-                onValueChange = { viewModel.updateEmail(it) },
+                onValueChange = viewModel::updateEmail,
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.AlternateEmail,
@@ -126,7 +129,7 @@ fun PasswordResetRequestScreen(
             )
             EditTextField(
                 value = viewModel.inputFirstName,
-                onValueChange = { viewModel.updateFirstName(it) },
+                onValueChange = viewModel::updateFirstName,
                 label = R.string.first_name,
                 keyboardOptions = KeyboardOptions.Default.copy(
                     imeAction = ImeAction.Next,
@@ -137,7 +140,7 @@ fun PasswordResetRequestScreen(
             )
             EditTextField(
                 value = viewModel.inputLastName,
-                onValueChange = { viewModel.updateLastName(it) },
+                onValueChange = viewModel::updateLastName,
                 label = R.string.last_name,
                 keyboardOptions = KeyboardOptions.Default.copy(
                     imeAction = ImeAction.Done,
@@ -170,8 +173,11 @@ fun PasswordResetRequestScreen(
                 )
             }
             ShowDialog(
-                navController = navController,
-                viewModel = viewModel
+                visible = showDialog,
+                onConfirm = {
+                    showDialog = false
+                    navController.navigateSingleTopClear(Screens.SignInScreen.route)
+                }
             )
 
         }
@@ -182,22 +188,18 @@ fun PasswordResetRequestScreen(
 
 @Composable
 private fun ShowDialog(
-    navController: NavController,
-    viewModel: PasswordResetRequestViewModel = hiltViewModel()
+    visible: Boolean,
+    onConfirm: () -> Unit
 ) {
-    if (viewModel.showDialog) {
+    if (visible) {
         EditAlertDialog(
             title = R.string.success,
             text = R.string.reset_request_sent,
             confirmButton = {
-                TextButton(onClick = {
-                    viewModel.showDialog = false
-                    navController.navigateSingleTopClear(Screens.SignInScreen.route)
-                }) {
+                TextButton(onClick = onConfirm) {
                     Text(text = stringResource(R.string.ok))
                 }
-            },
-
-            )
+            }
+        )
     }
 }

@@ -11,6 +11,10 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -41,6 +45,8 @@ fun TransactionHistoryScreen(
     navController: NavHostController
 ) {
     val transactions by viewModel.transactions.collectAsStateWithLifecycle()
+    var isHistoryPage by rememberSaveable { mutableStateOf(true) }
+    val contentStateHolder = rememberSaveableStateHolder()
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -54,9 +60,9 @@ fun TransactionHistoryScreen(
                 .padding(16.dp)
         ) {
             OutlinedButton(
-                onClick = { viewModel.isHistoryPage = true },
+                onClick = { isHistoryPage = true },
                 modifier = modifier.weight(1f),
-                colors = if (viewModel.isHistoryPage) {
+                colors = if (isHistoryPage) {
                     ButtonDefaults.buttonColors(containerColor = Color(0xFF353b45))
                 } else {
                     ButtonDefaults.outlinedButtonColors()
@@ -70,9 +76,9 @@ fun TransactionHistoryScreen(
             Spacer(modifier = modifier.width(16.dp))
 
             OutlinedButton(
-                onClick = { viewModel.isHistoryPage = false },
+                onClick = { isHistoryPage = false },
                 modifier = modifier.weight(1f),
-                colors = if (!viewModel.isHistoryPage) {
+                colors = if (!isHistoryPage) {
                     ButtonDefaults.buttonColors(containerColor = Color(0xFF353b45))
                 } else {
                     ButtonDefaults.outlinedButtonColors()
@@ -84,13 +90,15 @@ fun TransactionHistoryScreen(
                 )
             }
         }
-        if (viewModel.isHistoryPage) {
-            HistoryContent(
-                viewModel = viewModel,
-                transactions = transactions,
-                navController = navController,
-                modifier = modifier
-            )
+        if (isHistoryPage) {
+            contentStateHolder.SaveableStateProvider("history") {
+                HistoryContent(
+                    viewModel = viewModel,
+                    transactions = transactions,
+                    navController = navController,
+                    modifier = modifier
+                )
+            }
         } else {
             ScheduledTransactionScreen()
         }
@@ -104,6 +112,9 @@ private fun HistoryContent(
     navController: NavHostController,
     modifier: Modifier
 ) {
+    var isDateMenuOpen by rememberSaveable { mutableStateOf(false) }
+    var isTypeMenuOpen by rememberSaveable { mutableStateOf(false) }
+    var isCategoryMenuOpen by rememberSaveable { mutableStateOf(false) }
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -117,17 +128,20 @@ private fun HistoryContent(
         ) {
             FinanceDropdownMenu(
                 modifier = modifier.weight(1f),
-                expanded = viewModel.isDateMenuOpen,
-                onExpandedChange = { viewModel.isDateMenuOpen = it },
+                expanded = isDateMenuOpen,
+                onExpandedChange = { isDateMenuOpen = it },
                 options = viewModel.dateOptions,
-                onOptionSelected = { id -> viewModel.onDateSelected(id) },
+                onOptionSelected = { id ->
+                    viewModel.onDateSelected(id)
+                    isDateMenuOpen = false
+                },
                 itemLabel = { id -> stringResource(id) },
                 trigger = {
                     EditButton(
                         modifier = Modifier.fillMaxWidth(),
                         label = viewModel.selectedDateResId,
                         icon = R.drawable.calendar,
-                        onClick = { viewModel.isDateMenuOpen = true }
+                        onClick = { isDateMenuOpen = true }
                     )
                 }
             )
@@ -135,17 +149,20 @@ private fun HistoryContent(
             Column(modifier = Modifier.weight(1f)) {
                 FinanceDropdownMenu(
                     modifier = Modifier.fillMaxWidth(),
-                    expanded = viewModel.isCategoryMenuOpen,
-                    onExpandedChange = { if (!it) viewModel.isCategoryMenuOpen = false },
+                    expanded = isCategoryMenuOpen,
+                    onExpandedChange = { if (!it) isCategoryMenuOpen = false },
                     options = viewModel.categoryOptions,
-                    onOptionSelected = { category -> viewModel.onCategorySelected(category) },
+                    onOptionSelected = { category ->
+                        viewModel.onCategorySelected(category)
+                        isCategoryMenuOpen = false
+                    },
                     itemLabel = { category -> stringResource(category.toResId()) },
                     trigger = {
                         EditButton(
                             modifier = Modifier.fillMaxWidth(),
                             label = viewModel.selectedCategory?.toResId() ?: R.string.category,
                             icon = R.drawable.categories,
-                            onClick = { viewModel.onCategoryDropdownClicked() }
+                            onClick = { isCategoryMenuOpen = viewModel.canOpenCategoryMenu() }
                         )
                     }
                 )
@@ -161,17 +178,20 @@ private fun HistoryContent(
             Spacer(modifier = modifier.width(8.dp))
             FinanceDropdownMenu(
                 modifier = modifier.weight(1f),
-                expanded = viewModel.isTypeMenuOpen,
-                onExpandedChange = { viewModel.isTypeMenuOpen = it },
+                expanded = isTypeMenuOpen,
+                onExpandedChange = { isTypeMenuOpen = it },
                 options = TransactionType.entries,
-                onOptionSelected = { type -> viewModel.onTypeSelected(type) },
+                onOptionSelected = { type ->
+                    viewModel.onTypeSelected(type)
+                    isTypeMenuOpen = false
+                },
                 itemLabel = { type -> stringResource(viewModel.getTypeResId(type)) },
                 trigger = {
                     EditButton(
                         modifier = Modifier.fillMaxWidth(),
                         label = viewModel.getTypeResId(viewModel.selectedType),
                         icon = R.drawable.type,
-                        onClick = { viewModel.isTypeMenuOpen = true }
+                        onClick = { isTypeMenuOpen = true }
                     )
                 }
             )

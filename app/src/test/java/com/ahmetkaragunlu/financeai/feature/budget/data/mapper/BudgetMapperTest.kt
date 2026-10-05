@@ -1,6 +1,6 @@
 package com.ahmetkaragunlu.financeai.feature.budget.data.mapper
 
-import com.ahmetkaragunlu.financeai.feature.budget.data.local.BudgetEntity
+import com.ahmetkaragunlu.financeai.feature.budget.data.local.entity.BudgetEntity
 import com.ahmetkaragunlu.financeai.feature.budget.domain.model.BudgetType
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 import org.junit.Assert.assertEquals

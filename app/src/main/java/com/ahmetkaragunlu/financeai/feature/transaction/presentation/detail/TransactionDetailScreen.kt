@@ -47,6 +47,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -76,9 +80,11 @@ import com.ahmetkaragunlu.financeai.core.ui.component.FinanceDropdownMenu
 import com.ahmetkaragunlu.financeai.core.ui.component.formatAsAccountCurrency
 import com.ahmetkaragunlu.financeai.core.ui.component.getAccountCurrencySymbol
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
+import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toIconResId
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toResId
 import com.ahmetkaragunlu.financeai.photo.CameraHelper
+import com.ahmetkaragunlu.financeai.photo.PhotoStorageUtil
 import com.ahmetkaragunlu.financeai.photo.PhotoSourceBottomSheet
 import java.io.File
 
@@ -91,19 +97,29 @@ fun TransactionDetailScreen(
 ) {
     val transaction by viewModel.transaction.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    var showEditBottomSheet by rememberSaveable { mutableStateOf(false) }
+    var showDeleteDialog by rememberSaveable { mutableStateOf(false) }
+    var showPhotoZoomDialog by rememberSaveable { mutableStateOf(false) }
+    var showPhotoSourceSheet by rememberSaveable { mutableStateOf(false) }
+    var isCategoryDropdownExpanded by rememberSaveable { mutableStateOf(false) }
+    var cameraHelperRef by remember { mutableStateOf<CameraHelper?>(null) }
+    LaunchedEffect(viewModel.photoErrorResId) {
+        viewModel.photoErrorResId?.let {
+            Toast.makeText(context, context.getString(it), Toast.LENGTH_SHORT).show()
+            viewModel.consumePhotoError()
+        }
+    }
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { success ->
         if (success) {
             viewModel.onCameraPhotoTaken()
-        }
+        } else viewModel.clearCameraDraft()
     }
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
-        if (!isGranted) {
-            Toast.makeText(context, context.getString(R.string.camera_permission_required), Toast.LENGTH_SHORT).show()
-        }
+        cameraHelperRef?.onPermissionResult(isGranted)
     }
 
     val galleryLauncher = rememberLauncherForActivityResult(
@@ -117,8 +133,14 @@ fun TransactionDetailScreen(
             context = context,
             cameraLauncher = cameraLauncher,
             permissionLauncher = permissionLauncher,
-            onPreparePhoto = viewModel::prepareCameraPhoto
-        )
+            onPreparePhoto = {
+                viewModel.cameraOwnerId()?.let { owner ->
+                    PhotoStorageUtil.createTempPhotoFile(context, owner)?.also { (file, _) ->
+                        viewModel.registerCameraDraft(file.absolutePath)
+                    }
+                }
+            }
+        ).also { cameraHelperRef = it }
     }
 
     transaction?.let { tx ->
@@ -217,7 +239,7 @@ fun TransactionDetailScreen(
                                 modifier = modifier
                                     .fillMaxWidth()
                                     .height(180.dp)
-                                    .clickable { viewModel.showPhotoZoomDialog = true },
+                                    .clickable { showPhotoZoomDialog = true },
                                 shape = RoundedCornerShape(12.dp),
                                 colors = CardDefaults.cardColors(containerColor = Color(0xFF2D3748))
                             ) {
@@ -244,7 +266,7 @@ fun TransactionDetailScreen(
                             }
                         } else {
                             OutlinedButton(
-                                onClick = { viewModel.showPhotoSourceSheet = true },
+                                onClick = { showPhotoSourceSheet = true },
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
                             ) {
@@ -266,7 +288,7 @@ fun TransactionDetailScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Button(
-                    onClick = { viewModel.openEditBottomSheet() },
+                    onClick = { if (viewModel.prepareEdit()) showEditBottomSheet = true },
                     modifier = modifier
                         .weight(1f)
                         .height(50.dp),
@@ -280,7 +302,7 @@ fun TransactionDetailScreen(
                 }
 
                 Button(
-                    onClick = { viewModel.showDeleteDialog = true },
+                    onClick = { showDeleteDialog = true },
                     modifier = modifier
                         .weight(1f)
                         .height(50.dp),
@@ -296,9 +318,9 @@ fun TransactionDetailScreen(
         }
 
         // --- Photo Zoom Dialog ---
-        if (viewModel.showPhotoZoomDialog && tx.photoUri != null) {
+        if (showPhotoZoomDialog && tx.photoUri != null) {
             Dialog(
-                onDismissRequest = { viewModel.showPhotoZoomDialog = false },
+                onDismissRequest = { showPhotoZoomDialog = false },
                 properties = DialogProperties(usePlatformDefaultWidth = false)
             ) {
                 Box(
@@ -311,12 +333,12 @@ fun TransactionDetailScreen(
                         contentDescription = stringResource(R.string.full_screen_photo_desc),
                         modifier = Modifier
                             .fillMaxSize()
-                            .clickable { viewModel.showPhotoZoomDialog = false },
+                            .clickable { showPhotoZoomDialog = false },
                         contentScale = ContentScale.Fit
                     )
 
                     IconButton(
-                        onClick = { viewModel.showPhotoZoomDialog = false },
+                        onClick = { showPhotoZoomDialog = false },
                         modifier = Modifier
                             .align(Alignment.TopStart)
                             .padding(16.dp)
@@ -332,7 +354,7 @@ fun TransactionDetailScreen(
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
                         Button(
-                            onClick = { viewModel.showPhotoSourceSheet = true },
+                            onClick = { showPhotoSourceSheet = true },
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = Color.Gray,
                                 contentColor = MaterialTheme.colorScheme.onPrimary
@@ -343,7 +365,7 @@ fun TransactionDetailScreen(
                             Text(stringResource(R.string.change))
                         }
                         Button(
-                            onClick = { viewModel.deletePhoto() },
+                            onClick = { viewModel.deletePhoto(onSuccess = { showPhotoZoomDialog = false }) },
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = Color.Red,
                                 contentColor = MaterialTheme.colorScheme.onPrimary
@@ -358,21 +380,31 @@ fun TransactionDetailScreen(
             }
         }
         // --- Photo Source Bottom Sheet ---
-        if (viewModel.showPhotoSourceSheet) {
+        if (showPhotoSourceSheet) {
             PhotoSourceBottomSheet(
-                onDismiss = { viewModel.showPhotoSourceSheet = false },
+                onDismiss = { showPhotoSourceSheet = false },
                 onCameraClick = { cameraHelper.launchCamera() },
                 onGalleryClick = { galleryLauncher.launch("image/*") }
             )
         }
         // Edit Bottom Sheet
-        if (viewModel.showEditBottomSheet) {
+        // A restored UI flag must not reopen a form whose ViewModel draft was lost with the process.
+        if (showEditBottomSheet && viewModel.editCategory != null) {
             EditBottomSheet(
-                viewModel = viewModel,
-                onDismiss = { viewModel.showEditBottomSheet = false },
+                amount = viewModel.editAmount,
+                note = viewModel.editNote,
+                category = viewModel.editCategory,
+                categories = viewModel.availableCategories,
+                onAmountChange = viewModel::updateEditAmount,
+                onNoteChange = viewModel::updateEditNote,
+                onCategoryChange = viewModel::updateEditCategory,
+                categoryDropdownExpanded = isCategoryDropdownExpanded,
+                onCategoryDropdownExpandedChange = { isCategoryDropdownExpanded = it },
+                onDismiss = { showEditBottomSheet = false },
                 onSave = {
                     viewModel.updateTransaction(
                         onSuccess = {
+                            showEditBottomSheet = false
                             Toast.makeText(context, context.getString(R.string.updated_successfully), Toast.LENGTH_SHORT).show()
                         },
                         onError = { error ->
@@ -382,15 +414,16 @@ fun TransactionDetailScreen(
                 }
             )
         }
-        if (viewModel.showDeleteDialog) {
+        if (showDeleteDialog) {
             EditAlertDialog(
                 title = R.string.delete_transaction_title,
                 text = R.string.delete_transaction_message,
-                onDismissRequest = { viewModel.showDeleteDialog = false },
+                onDismissRequest = { showDeleteDialog = false },
                 confirmButton = {
                     TextButton(onClick = {
                         viewModel.deleteTransaction(
                             onSuccess = {
+                                showDeleteDialog = false
                                 Toast.makeText(context, context.getString(R.string.success), Toast.LENGTH_SHORT).show()
                                 navController.navigateSingleTopClear(Screens.TRANSACTION_HISTORY_SCREEN.route)
                             },
@@ -399,7 +432,7 @@ fun TransactionDetailScreen(
                     }) { Text(stringResource(R.string.delete), color = Color.Red) }
                 },
                 dismissButton = {
-                    TextButton(onClick = { viewModel.showDeleteDialog = false }) {
+                    TextButton(onClick = { showDeleteDialog = false }) {
                         Text(stringResource(R.string.cancel))
                     }
                 }
@@ -411,7 +444,15 @@ fun TransactionDetailScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EditBottomSheet(
-    viewModel: TransactionDetailViewModel,
+    amount: String,
+    note: String,
+    category: CategoryType?,
+    categories: List<CategoryType>,
+    onAmountChange: (String) -> Unit,
+    onNoteChange: (String) -> Unit,
+    onCategoryChange: (CategoryType) -> Unit,
+    categoryDropdownExpanded: Boolean,
+    onCategoryDropdownExpandedChange: (Boolean) -> Unit,
     onDismiss: () -> Unit,
     onSave: () -> Unit
 ) {
@@ -432,8 +473,8 @@ private fun EditBottomSheet(
             )
             // Amount
             EditTextField(
-                value = viewModel.editAmount,
-                onValueChange = { viewModel.editAmount = it },
+                value = amount,
+                onValueChange = onAmountChange,
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions.Default.copy(
                     imeAction = ImeAction.Next,
@@ -456,17 +497,17 @@ private fun EditBottomSheet(
             // Category Dropdown
             FinanceDropdownMenu(
                 modifier = Modifier.fillMaxWidth(),
-                expanded = viewModel.isCategoryDropdownExpanded,
-                onExpandedChange = { viewModel.isCategoryDropdownExpanded = it },
-                options = viewModel.availableCategories,
+                expanded = categoryDropdownExpanded,
+                onExpandedChange = onCategoryDropdownExpandedChange,
+                options = categories,
                 onOptionSelected = { category ->
-                    viewModel.editCategory = category
-                    viewModel.isCategoryDropdownExpanded = false
+                    onCategoryChange(category)
+                    onCategoryDropdownExpandedChange(false)
                 },
                 itemLabel = { category -> stringResource(category.toResId()) },
                 trigger = {
                     OutlinedTextField(
-                        value = viewModel.editCategory?.let { stringResource(it.toResId()) } ?: "",
+                        value = category?.let { stringResource(it.toResId()) } ?: "",
                         onValueChange = {},
                         readOnly = true,
                         placeholder = {
@@ -481,13 +522,13 @@ private fun EditBottomSheet(
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.clickable {
-                                    viewModel.isCategoryDropdownExpanded = true
+                                    onCategoryDropdownExpandedChange(true)
                                 }
                             )
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { viewModel.isCategoryDropdownExpanded = true },
+                            .clickable { onCategoryDropdownExpandedChange(true) },
                         colors = OutlinedTextFieldDefaults.colors(
                             disabledContainerColor = Color(0xFF404349),
                             disabledTextColor = MaterialTheme.colorScheme.onPrimary
@@ -499,8 +540,8 @@ private fun EditBottomSheet(
             )
             //Note
             EditTextField(
-                value = viewModel.editNote,
-                onValueChange = { viewModel.editNote = it },
+                value = note,
+                onValueChange = onNoteChange,
                 keyboardOptions = KeyboardOptions.Default.copy(
                     imeAction = ImeAction.Done,
                     keyboardType = KeyboardType.Text

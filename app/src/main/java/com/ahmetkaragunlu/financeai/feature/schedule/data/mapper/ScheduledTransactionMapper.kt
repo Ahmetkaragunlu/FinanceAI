@@ -1,7 +1,7 @@
 package com.ahmetkaragunlu.financeai.feature.schedule.data.mapper
 
 import com.ahmetkaragunlu.financeai.core.money.MoneyAmounts
-import com.ahmetkaragunlu.financeai.feature.schedule.data.local.ScheduledTransactionEntity
+import com.ahmetkaragunlu.financeai.feature.schedule.data.local.entity.ScheduledTransactionEntity
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.model.ScheduledTransaction
 
 fun ScheduledTransactionEntity.toDomain(): ScheduledTransaction = ScheduledTransaction(

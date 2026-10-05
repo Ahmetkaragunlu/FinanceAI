@@ -1,0 +1,135 @@
+{
+  "project": "financeai-7e7bc",
+  "bucket": "financeai-7e7bc.firebasestorage.app",
+  "sourcePackageCount": 1,
+  "rules": [
+    {
+      "release": "projects/financeai-7e7bc/releases/firebase.storage/financeai-7e7bc.firebasestorage.app",
+      "ruleset": "projects/financeai-7e7bc/rulesets/80a7979f-44a2-4a00-acf0-b4fcc0ca5f9c"
+    },
+    {
+      "release": "projects/financeai-7e7bc/releases/cloud.firestore",
+      "ruleset": "projects/financeai-7e7bc/rulesets/e1bf21d5-07a6-426f-82d5-96a6d9a7b1b5"
+    }
+  ],
+  "functions": [
+    {
+      "name": "projects/financeai-7e7bc/locations/us-central1/functions/scheduleReminderTask",
+      "runtime": "nodejs20",
+      "entryPoint": "scheduleReminderTask",
+      "status": "ACTIVE",
+      "event": "providers/cloud.firestore/eventTypes/document.create",
+      "resource": "projects/financeai-7e7bc/databases/(default)/documents/notification_reminders/{reminderId}",
+      "https": false,
+      "labels": {
+        "deployment-tool": "cli-firebase",
+        "firebase-functions-hash": "a19fc570a4431c11a78e26021ab2c6311252a458"
+      },
+      "customEnvironmentKeys": [
+        "EVENTARC_CLOUD_EVENT_SOURCE"
+      ],
+      "maxInstances": 3000
+    },
+    {
+      "name": "projects/financeai-7e7bc/locations/us-central1/functions/sendPendingNotifications",
+      "runtime": "nodejs20",
+      "entryPoint": "sendPendingNotifications",
+      "status": "ACTIVE",
+      "https": true,
+      "labels": {
+        "deployment-tool": "cli-firebase",
+        "deployment-callable": "true",
+        "firebase-functions-hash": "a19fc570a4431c11a78e26021ab2c6311252a458"
+      },
+      "customEnvironmentKeys": [
+        "EVENTARC_CLOUD_EVENT_SOURCE"
+      ]
+    },
+    {
+      "name": "projects/financeai-7e7bc/locations/us-central1/functions/sendScheduledNotification",
+      "runtime": "nodejs20",
+      "entryPoint": "sendScheduledNotification",
+      "status": "ACTIVE",
+      "event": "providers/cloud.firestore/eventTypes/document.create",
+      "resource": "projects/financeai-7e7bc/databases/(default)/documents/scheduled_transactions/{transactionId}",
+      "https": false,
+      "labels": {
+        "deployment-tool": "cli-firebase",
+        "firebase-functions-hash": "a19fc570a4431c11a78e26021ab2c6311252a458"
+      },
+      "customEnvironmentKeys": [
+        "EVENTARC_CLOUD_EVENT_SOURCE"
+      ],
+      "maxInstances": 3000
+    },
+    {
+      "name": "projects/financeai-7e7bc/locations/us-central1/functions/onNotificationDismissed",
+      "runtime": "nodejs20",
+      "entryPoint": "onNotificationDismissed",
+      "status": "ACTIVE",
+      "event": "providers/cloud.firestore/eventTypes/document.create",
+      "resource": "projects/financeai-7e7bc/databases/(default)/documents/notification_dismissals/{dismissalId}",
+      "https": false,
+      "labels": {
+        "deployment-tool": "cli-firebase",
+        "firebase-functions-hash": "a19fc570a4431c11a78e26021ab2c6311252a458"
+      },
+      "customEnvironmentKeys": [
+        "EVENTARC_CLOUD_EVENT_SOURCE"
+      ],
+      "maxInstances": 3000
+    },
+    {
+      "name": "projects/financeai-7e7bc/locations/us-central1/functions/checkExpiredReminders",
+      "runtime": "nodejs20",
+      "entryPoint": "checkExpiredReminders",
+      "status": "ACTIVE",
+      "event": "google.pubsub.topic.publish",
+      "resource": "projects/financeai-7e7bc/topics/firebase-schedule-checkExpiredReminders-us-central1",
+      "https": false,
+      "labels": {
+        "firebase-functions-hash": "a19fc570a4431c11a78e26021ab2c6311252a458",
+        "deployment-tool": "cli-firebase",
+        "deployment-scheduled": "true"
+      },
+      "customEnvironmentKeys": [
+        "EVENTARC_CLOUD_EVENT_SOURCE"
+      ],
+      "maxInstances": 3000
+    },
+    {
+      "name": "projects/financeai-7e7bc/locations/us-central1/functions/onScheduledTransactionDelete",
+      "runtime": "nodejs20",
+      "entryPoint": "onScheduledTransactionDelete",
+      "status": "ACTIVE",
+      "event": "providers/cloud.firestore/eventTypes/document.delete",
+      "resource": "projects/financeai-7e7bc/databases/(default)/documents/scheduled_transactions/{transactionId}",
+      "https": false,
+      "labels": {
+        "deployment-tool": "cli-firebase",
+        "firebase-functions-hash": "a19fc570a4431c11a78e26021ab2c6311252a458"
+      },
+      "customEnvironmentKeys": [
+        "EVENTARC_CLOUD_EVENT_SOURCE"
+      ],
+      "maxInstances": 3000
+    },
+    {
+      "name": "projects/financeai-7e7bc/locations/us-central1/functions/manualSendToAllDevices",
+      "runtime": "nodejs20",
+      "entryPoint": "manualSendToAllDevices",
+      "status": "ACTIVE",
+      "event": "providers/cloud.firestore/eventTypes/document.create",
+      "resource": "projects/financeai-7e7bc/databases/(default)/documents/notification_triggers/{triggerId}",
+      "https": false,
+      "labels": {
+        "deployment-tool": "cli-firebase",
+        "firebase-functions-hash": "a19fc570a4431c11a78e26021ab2c6311252a458"
+      },
+      "customEnvironmentKeys": [
+        "EVENTARC_CLOUD_EVENT_SOURCE"
+      ],
+      "maxInstances": 3000
+    }
+  ]
+}

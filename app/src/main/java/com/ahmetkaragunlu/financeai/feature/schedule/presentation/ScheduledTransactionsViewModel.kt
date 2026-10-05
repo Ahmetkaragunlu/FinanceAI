@@ -15,6 +15,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.map
+import java.time.ZoneId
 
 @HiltViewModel
 class ScheduledTransactionsViewModel @Inject constructor(
@@ -22,6 +24,8 @@ class ScheduledTransactionsViewModel @Inject constructor(
     private val complete: CompleteScheduledTransaction,
     private val scheduledTransactionRepository: ScheduledTransactionRepository,
 ) : ViewModel() {
+    val timeZoneId = session.account.map { it?.timeZoneId ?: ZoneId.systemDefault().id }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), session.account.value?.timeZoneId ?: ZoneId.systemDefault().id)
     val scheduledTransactions: StateFlow<List<ScheduledTransaction>> =
         scheduledTransactionRepository.observeScheduledTransactions()
             .distinctUntilChanged().stateIn(

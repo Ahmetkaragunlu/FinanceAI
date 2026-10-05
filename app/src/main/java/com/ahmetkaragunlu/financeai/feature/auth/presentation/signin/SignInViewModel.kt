@@ -33,7 +33,6 @@ class SignInViewModel @Inject constructor(
         private set
     var inputPassword by mutableStateOf("")
         private set
-    var passwordVisibility by mutableStateOf(false)
 
     private fun signIn(email: String, password: String) {
         viewModelScope.launch {
@@ -70,7 +69,7 @@ class SignInViewModel @Inject constructor(
         viewModelScope.launch {
             _authState.value = try {
                 googleSignInClient.signOut().await()
-                val email = account.email ?: throw Exception("Email not found")
+                val email = account.email ?: throw AuthException.MissingGoogleEmail()
 
                 val isRegistered = authRepository.isUserRegistered(email)
                 if (isRegistered) {

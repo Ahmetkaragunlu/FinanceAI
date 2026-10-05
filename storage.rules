@@ -1,0 +1,37 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function ownsPhotos(ownerId, collection) {
+      return request.auth != null && request.auth.uid == ownerId
+        && collection in ['transactions', 'scheduled'];
+    }
+
+    // Both Android preparation paths produce JPEGs. This checks declared metadata,
+    // not the bytes themselves; image decoding/validation belongs to preparation.
+    function isJpegUpload() {
+      return request.resource.size > 0
+        && request.resource.contentType in ['image/jpeg', 'image/jpg'];
+    }
+
+    // Current versioned uploads; account folder ownership also permits same-UID devices.
+    match /users/{ownerId}/{collection}/{recordId}/{fileName} {
+      allow get, delete: if ownsPhotos(ownerId, collection) && fileName.matches('.+[.]jpg');
+      // An upload retry may overwrite its own path; only the owner may do so.
+      allow create, update: if ownsPhotos(ownerId, collection)
+        && fileName.matches('.+[.]jpg') && isJpegUpload();
+    }
+
+    // Existing app paths remain accessible; publishing rules does not migrate/delete files.
+    match /users/{ownerId}/{collection}/{fileName} {
+      allow get, delete: if ownsPhotos(ownerId, collection) && fileName.matches('.+_photo[.]jpg');
+      allow create, update: if ownsPhotos(ownerId, collection)
+        && fileName.matches('.+_photo[.]jpg') && isJpegUpload();
+    }
+
+    // The app knows exact references. No client-wide bucket listing or other folders.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

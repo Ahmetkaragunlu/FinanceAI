@@ -5,6 +5,13 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class FinancePeriodsTest {
+    @Test fun `picker roundtrip keeps account day across east and west time zones`() {
+        val picker = Instant.parse("2026-10-05T00:00:00Z").toEpochMilli()
+        for (name in listOf("Europe/Istanbul", "Asia/Tokyo", "America/Los_Angeles")) {
+            val zone = ZoneId.of(name)
+            assertEquals(picker, FinancePeriods.toPicker(FinancePeriods.fromPicker(picker, zone), zone))
+        }
+    }
     @Test fun `month has exclusive next month boundary across year change`() {
         val clock = Clock.fixed(Instant.parse("2026-12-31T20:00:00Z"), ZoneId.of("Europe/Istanbul"))
         val month = FinancePeriods.month(clock)

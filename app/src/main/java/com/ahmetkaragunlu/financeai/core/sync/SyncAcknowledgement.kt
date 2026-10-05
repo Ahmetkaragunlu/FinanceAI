@@ -1,5 +1,10 @@
 package com.ahmetkaragunlu.financeai.core.sync
 
+import com.ahmetkaragunlu.financeai.core.sync.local.entity.SyncRecord
+
+internal fun acknowledgesDeletion(deleted: Boolean, previousMutationId: String?, pendingMutationId: String?): Boolean =
+    deleted && pendingMutationId != null && previousMutationId == pendingMutationId
+
 internal data class SyncAcknowledgement(val record: SyncRecord, val applyRemote: Boolean)
 
 /** An old in-flight success may advance the baseline, but must never erase a newer local intention. */

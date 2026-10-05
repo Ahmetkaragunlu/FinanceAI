@@ -20,4 +20,6 @@ object FinancePeriods {
     /** Material date picker millis encode a UTC calendar date, not a local midnight instant. */
     fun fromPicker(millis: Long, zone: ZoneId): Long = Instant.ofEpochMilli(millis)
         .atZone(ZoneId.of("UTC")).toLocalDate().atStartOfDay(zone).toInstant().toEpochMilli()
+    fun toPicker(millis: Long, zone: ZoneId): Long = Instant.ofEpochMilli(millis)
+        .atZone(zone).toLocalDate().atStartOfDay(ZoneId.of("UTC")).toInstant().toEpochMilli()
 }

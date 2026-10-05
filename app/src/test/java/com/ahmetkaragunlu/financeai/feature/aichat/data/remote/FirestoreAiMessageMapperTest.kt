@@ -1,6 +1,6 @@
 package com.ahmetkaragunlu.financeai.feature.aichat.data.remote
 
-import com.ahmetkaragunlu.financeai.feature.aichat.data.local.AiMessageEntity
+import com.ahmetkaragunlu.financeai.feature.aichat.data.local.entity.AiMessageEntity
 import java.util.Date
 import org.junit.Assert.assertEquals
 import org.junit.Test

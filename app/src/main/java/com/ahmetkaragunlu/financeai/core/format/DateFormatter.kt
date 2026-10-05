@@ -20,11 +20,11 @@ object DateFormatter {
         }
     }
 
-    fun formatScheduleDate(context: Context, timestamp: Long): String {
-        val date = Instant.ofEpochMilli(timestamp).atZone(ZoneId.systemDefault()).toLocalDate()
+    fun formatScheduleDate(context: Context, timestamp: Long, zone: ZoneId = ZoneId.systemDefault()): String {
+        val date = Instant.ofEpochMilli(timestamp).atZone(zone).toLocalDate()
         return when (date) {
-            LocalDate.now() -> context.getString(R.string.today)
-            LocalDate.now().plusDays(1) -> context.getString(R.string.tomorrow)
+            LocalDate.now(zone) -> context.getString(R.string.today)
+            LocalDate.now(zone).plusDays(1) -> context.getString(R.string.tomorrow)
             else -> date.format(DateTimeFormatter.ofPattern("dd MMM", Locale.getDefault()))
         }
     }
@@ -44,4 +44,4 @@ object DateFormatter {
     fun getCurrentMonthRange(): Pair<Long, Long> = FinancePeriods.month(Clock.systemDefaultZone()).let { it.start to it.endExclusive }
 }
 fun Long.formatRelativeDate(context: Context): String = DateFormatter.formatRelativeDate(context, this)
-fun Long.formatScheduleDate(context: Context): String = DateFormatter.formatScheduleDate(context, this)
+fun Long.formatScheduleDate(context: Context, zone: ZoneId = ZoneId.systemDefault()): String = DateFormatter.formatScheduleDate(context, this, zone)

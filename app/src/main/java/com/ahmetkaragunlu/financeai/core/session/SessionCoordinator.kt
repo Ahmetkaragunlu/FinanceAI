@@ -1,5 +1,10 @@
 package com.ahmetkaragunlu.financeai.core.session
 
+import com.ahmetkaragunlu.financeai.core.firebase.FirestoreCollections
+
+import com.ahmetkaragunlu.financeai.core.session.local.entity.AccountPreferences
+import com.ahmetkaragunlu.financeai.core.session.local.entity.ActiveAccountRow
+
 import android.app.NotificationManager
 import android.content.Context
 import android.util.Log
@@ -8,6 +13,7 @@ import androidx.work.WorkManager
 import com.ahmetkaragunlu.financeai.core.coroutines.di.ApplicationScope
 import com.ahmetkaragunlu.financeai.core.database.FinanceDatabase
 import com.ahmetkaragunlu.financeai.core.money.MoneyAmounts
+import com.ahmetkaragunlu.financeai.core.sync.contract.FinancialFields
 import com.ahmetkaragunlu.financeai.core.sync.AccountSyncEngine
 import com.ahmetkaragunlu.financeai.core.sync.SyncScheduler
 import com.google.firebase.auth.FirebaseAuth
@@ -16,6 +22,7 @@ import com.google.firebase.firestore.SetOptions
 import dagger.Lazy
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.Locale
+import java.time.ZoneId
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.*
@@ -65,26 +72,26 @@ class SessionCoordinator @Inject constructor(
         stopAccount()
         if (user == null) return@withLock
         val local = database.accountDao().get(user.uid)
-        val currency = local?.currencyCode ?: withTimeout(15_000) {
+        val preferences = local?.takeIf { it.timeZoneId != null } ?: withTimeout(15_000) {
             val proposed = MoneyAmounts.currencyForRegion(Locale.getDefault())
-            val ref = firestore.collection("users").document(user.uid)
+            val ref = firestore.collection(FirestoreCollections.USERS).document(user.uid)
             firestore.runTransaction { transaction ->
-                val existing = transaction.get(ref).getString("currencyCode")
-                if (existing != null) {
-                    require(MoneyAmounts.scale(existing) >= 0)
-                    existing
-                } else {
-                    transaction.set(ref, mapOf("currencyCode" to checkNotNull(proposed) { "Device region has no currency" }), SetOptions.merge())
-                    checkNotNull(proposed)
-                }
+                val document = transaction.get(ref)
+                val currency = document.getString(FinancialFields.CURRENCY_CODE) ?: local?.currencyCode
+                    ?: checkNotNull(proposed) { "Device region has no currency" }
+                require(MoneyAmounts.scale(currency) >= 0)
+                val zone = document.getString("timeZoneId") ?: ZoneId.systemDefault().id
+                ZoneId.of(zone)
+                transaction.set(ref, mapOf(FinancialFields.CURRENCY_CODE to currency, "timeZoneId" to zone), SetOptions.merge())
+                AccountPreferences(user.uid, currency, zone)
             }.await()
         }
         check(auth.currentUser?.uid == user.uid)
         database.withTransaction {
-            database.accountDao().save(AccountPreferences(user.uid, currency))
+            database.accountDao().save(preferences)
             database.accountDao().setActive(ActiveAccountRow(ownerId = user.uid))
         }
-        session.activate(user.uid, currency)
+        session.activate(user.uid, preferences.currencyCode, checkNotNull(preferences.timeZoneId))
         val account = session.requireAccount()
         scheduler.enqueue(account.ownerId)
         startAccountJob(account)

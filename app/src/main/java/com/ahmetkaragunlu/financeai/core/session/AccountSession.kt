@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-data class ActiveAccount(val ownerId: String, val currencyCode: String, val generation: Long)
+data class ActiveAccount(val ownerId: String, val currencyCode: String, val generation: Long, val timeZoneId: String = "UTC")
 
 @Singleton
 class AccountSession @Inject constructor() {
@@ -23,8 +23,8 @@ class AccountSession @Inject constructor() {
 
     fun requireAccount(): ActiveAccount = checkNotNull(account.value) { "Account not ready" }
     fun isCurrent(account: ActiveAccount): Boolean = this.account.value == account
-    internal fun activate(ownerId: String, currencyCode: String) {
-        mutableAccount.value = ActiveAccount(ownerId, currencyCode, ++generation)
+    internal fun activate(ownerId: String, currencyCode: String, timeZoneId: String = "UTC") {
+        mutableAccount.value = ActiveAccount(ownerId, currencyCode, ++generation, timeZoneId)
     }
     internal fun deactivate() { generation++; mutableAccount.value = null }
 

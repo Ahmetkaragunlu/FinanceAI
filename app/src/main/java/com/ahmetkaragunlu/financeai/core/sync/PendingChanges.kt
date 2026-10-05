@@ -1,5 +1,10 @@
 package com.ahmetkaragunlu.financeai.core.sync
 
+import com.ahmetkaragunlu.financeai.core.firebase.FirestoreCollections
+import com.ahmetkaragunlu.financeai.core.media.PhotoFields
+
+import com.ahmetkaragunlu.financeai.core.sync.local.entity.SyncRecord
+
 import com.ahmetkaragunlu.financeai.core.database.FinanceDatabase
 import java.util.UUID
 import javax.inject.Inject
@@ -15,8 +20,8 @@ class PendingChanges @Inject constructor(private val database: FinanceDatabase) 
         dao.save(previous.copy(
             pendingPayload = payload?.let { values ->
                 val photo = previous.pendingPayload ?: previous.basePayload
-                val preserved = photo?.let(SyncPayload::decode).orEmpty().filterKeys { it == "photoStorageUrl" || it == "photoRemoved" || it == "photoVersion" }
-                val defaults = if (collection in setOf("transactions", "scheduled_transactions")) mapOf("photoStorageUrl" to null, "photoRemoved" to false, "photoVersion" to null) else emptyMap()
+                val preserved = photo?.let(SyncPayload::decode).orEmpty().filterKeys { it in setOf(PhotoFields.STORAGE_URL, PhotoFields.REMOVED, PhotoFields.VERSION, PhotoFields.INTENT) }
+                val defaults = if (collection in setOf(FirestoreCollections.TRANSACTIONS, FirestoreCollections.SCHEDULED_TRANSACTIONS)) mapOf(PhotoFields.STORAGE_URL to null, PhotoFields.REMOVED to false, PhotoFields.VERSION to null) else emptyMap()
                 SyncPayload.encode(defaults + preserved + values)
             }, pendingDelete = payload == null,
             mutationId = UUID.randomUUID().toString(), permanentFailure = false

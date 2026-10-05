@@ -29,6 +29,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -53,7 +56,6 @@ import com.ahmetkaragunlu.financeai.core.ui.component.EditAlertDialog
 import com.ahmetkaragunlu.financeai.core.ui.component.EditTextField
 import com.ahmetkaragunlu.financeai.core.ui.theme.SignUpTextFieldStyles
 import com.ahmetkaragunlu.financeai.feature.auth.presentation.AuthState
-import com.ahmetkaragunlu.financeai.feature.auth.presentation.signup.SignUpViewModel
 
 @Composable
 fun SignUpScreen(
@@ -64,6 +66,8 @@ fun SignUpScreen(
 
     val uiState by viewModel.authState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    var passwordVisibility by rememberSaveable { mutableStateOf(false) }
+    var showDialog by rememberSaveable { mutableStateOf(false) }
 
     BackHandler {
         navController.navigateSingleTopClear(Screens.SignInScreen.route)
@@ -80,7 +84,7 @@ fun SignUpScreen(
             }
 
             AuthState.VERIFICATION_EMAIL_SENT -> {
-                viewModel.showDialog = true
+                showDialog = true
             }
 
             AuthState.VERIFICATION_EMAIL_FAILED -> {
@@ -106,8 +110,12 @@ fun SignUpScreen(
     }
 
     ShowDialog(
-        viewModel = viewModel,
-        navController = navController
+        visible = showDialog,
+        onConfirm = {
+            showDialog = false
+            viewModel.resetAuthState()
+            navController.navigateSingleTopClear(Screens.SignInScreen.route)
+        }
     )
 
     Box(
@@ -150,7 +158,7 @@ fun SignUpScreen(
             ) {
                 EditTextField(
                     value = viewModel.inputEmail,
-                    onValueChange = { viewModel.updateEmail(it) },
+                    onValueChange = viewModel::updateEmail,
                     label = R.string.email,
                     keyboardOptions = KeyboardOptions.Default.copy(
                         imeAction = ImeAction.Next,
@@ -161,7 +169,7 @@ fun SignUpScreen(
                 )
                 EditTextField(
                     value = viewModel.inputPassword,
-                    onValueChange = { viewModel.updatePassword(it) },
+                    onValueChange = viewModel::updatePassword,
                     label = R.string.password,
                     keyboardOptions = KeyboardOptions.Default.copy(
                         imeAction = ImeAction.Next,
@@ -169,21 +177,21 @@ fun SignUpScreen(
                     ),
                     trailingIcon = {
                         Icon(
-                            imageVector = if (viewModel.passwordVisibility) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                            imageVector = if (passwordVisibility) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSecondary,
                             modifier = modifier.clickable {
-                                viewModel.passwordVisibility = !viewModel.passwordVisibility
+                                passwordVisibility = !passwordVisibility
                             }
                         )
                     },
                     colors = SignUpTextFieldStyles.whiteTextFieldColors(),
                     supportingText = if (viewModel.passwordSupportingText()) R.string.error_password else null,
-                    visualTransformation = if (viewModel.passwordVisibility) VisualTransformation.None else PasswordVisualTransformation()
+                    visualTransformation = if (passwordVisibility) VisualTransformation.None else PasswordVisualTransformation()
                 )
                 EditTextField(
                     value = viewModel.inputFirstName,
-                    onValueChange = { viewModel.updateFirstName(it) },
+                    onValueChange = viewModel::updateFirstName,
                     label = R.string.first_name,
                     keyboardOptions = KeyboardOptions.Default.copy(
                         imeAction = ImeAction.Next,
@@ -194,7 +202,7 @@ fun SignUpScreen(
                 )
                 EditTextField(
                     value = viewModel.inputLastName,
-                    onValueChange = { viewModel.updateLastName(it) },
+                    onValueChange = viewModel::updateLastName,
                     label = R.string.last_name,
                     keyboardOptions = KeyboardOptions.Default.copy(
                         imeAction = ImeAction.Done,
@@ -258,21 +266,15 @@ fun SignUpScreen(
 
 @Composable
 private fun ShowDialog(
-    viewModel: SignUpViewModel = hiltViewModel(),
-    navController: NavController
+    visible: Boolean,
+    onConfirm: () -> Unit
 ) {
-    if (viewModel.showDialog) {
+    if (visible) {
         EditAlertDialog(
             title = R.string.email_verification_sent,
-            text = (R.string.email_diaolog),
+            text = R.string.email_diaolog,
             confirmButton = {
-                TextButton(
-                    onClick = {
-                        viewModel.showDialog = false
-                        viewModel.resetAuthState()
-                        navController.navigateSingleTopClear(Screens.SignInScreen.route)
-                    }
-                ) {
+                TextButton(onClick = onConfirm) {
                     Text(text = stringResource(R.string.ok))
                 }
             }

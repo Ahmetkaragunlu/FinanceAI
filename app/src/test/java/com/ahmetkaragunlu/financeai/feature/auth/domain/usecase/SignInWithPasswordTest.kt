@@ -31,7 +31,7 @@ class SignInWithPasswordTest {
 
     @Test
     fun `authentication failure does not trigger verification refresh`() {
-        val failure = AuthException.InvalidCredentials
+        val failure = AuthException.InvalidCredentials()
         val repository = RecordingAuthRepository(signInFailure = failure)
 
         val thrown = assertThrows(AuthException::class.java) {

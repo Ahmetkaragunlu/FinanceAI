@@ -1,4 +1,7 @@
 <resources>
+    <string name="photo_save_failed">Fotoğraf kaydedilemedi. Lütfen tekrar deneyin.</string>
+    <string name="photo_capture_failed">Kamera açılamadı. Lütfen tekrar deneyin.</string>
+    <string name="photo_delete_failed">Fotoğraf kaldırılamadı. Lütfen tekrar deneyin.</string>
     <string name="app_name">FinanceAI</string>
     <string name="finance_ai">Finance AI</string>
 
@@ -125,6 +128,11 @@
     <string name="select_category_error">Lütfen bir kategori seçin</string>
     <string name="update_failed">Güncelleme başarısız: %1$s</string>
     <string name="delete_failed">Silme başarısız: %1$s</string>
+    <string name="error_network_unavailable">Bağlantı kurulamadı. Lütfen tekrar deneyin.</string>
+    <string name="error_access_denied">Bu işlem için yetkiniz yok.</string>
+    <string name="error_rate_limited">Çok fazla istek gönderildi. Lütfen biraz sonra tekrar deneyin.</string>
+    <string name="error_stale_record">Kayıt güncel değil. Veriyi yenileyip tekrar deneyin.</string>
+    <string name="error_operation_retry">İşlem tamamlanamadı. Lütfen tekrar deneyin.</string>
     <string name="no_scheduled_transactions">Planlanmış işlem bulunamadı</string>
     <string name="warning">Uyarı</string>
     <string name="budget_rule_exists_error">Bu kategori için zaten bir kural var.</string>
@@ -133,9 +141,7 @@
     <string name="remove_photo">Fotoğrafı Kaldır</string>
     <string name="camera">Kamera</string>
     <string name="gallery">Galeri</string>
-    <string name="error_camera_failed">Kamera hatası: %1$s</string>
     <string name="error_camera_permission_denied">Kamera izni reddedildi</string>
-    <string name="camera_permission_required">Kamera izni gerekli</string>
     <string name="select_location">Konum Seç</string>
     <string name="search_address_hint">Adres ara</string>
     <string name="confirm_location">Konumu Onayla</string>
@@ -145,7 +151,6 @@
     <string name="address_not_found">Adres bulunamadı</string>
     <string name="location_permission_required">Konum izni gerekli</string>
     <string name="gps_disabled">GPS kapalı. Lütfen konum servislerini etkinleştirin.</string>
-    <string name="location_error">Konum hatası: %s</string>
     <string name="location_not_available">Konum kullanılamıyor</string>
     <string name="location_info_unavailable">Konum bilgisi alınamıyor</string>
     <string name="location_label">Konum</string>

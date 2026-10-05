@@ -1,9 +1,6 @@
 package com.ahmetkaragunlu.financeai.feature.home.presentation
 
 import android.content.Context
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ahmetkaragunlu.financeai.core.format.formatAsCurrency
@@ -49,8 +46,6 @@ class HomeViewModel @Inject constructor(
     }
 
     private val month = calendar.observeMonth()
-
-    var showLogoutDialog by mutableStateOf(false)
 
     val userName: StateFlow<String> = flow {
         val name = authRepository.getUserName()

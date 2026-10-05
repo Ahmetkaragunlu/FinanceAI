@@ -1,12 +1,16 @@
 package com.ahmetkaragunlu.financeai.feature.transaction.data.repository
 
+import com.ahmetkaragunlu.financeai.core.firebase.FirestoreCollections
+import com.ahmetkaragunlu.financeai.core.media.PhotoFields
+
 import androidx.room.withTransaction
+import com.ahmetkaragunlu.financeai.core.error.DataAccessException
 import com.ahmetkaragunlu.financeai.core.database.FinanceDatabase
 import com.ahmetkaragunlu.financeai.core.money.MoneyAmounts
 import com.ahmetkaragunlu.financeai.core.session.AccountSession
 import com.ahmetkaragunlu.financeai.core.sync.PendingChanges
 import com.ahmetkaragunlu.financeai.core.sync.SyncScheduler
-import com.ahmetkaragunlu.financeai.feature.transaction.data.local.TransactionDao
+import com.ahmetkaragunlu.financeai.feature.transaction.data.local.dao.TransactionDao
 import com.ahmetkaragunlu.financeai.feature.transaction.data.mapper.toDomain
 import com.ahmetkaragunlu.financeai.feature.transaction.data.mapper.toEntity
 import com.ahmetkaragunlu.financeai.feature.transaction.data.remote.toFirebaseMap
@@ -17,6 +21,7 @@ import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.Transaction
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.repository.TransactionRepository
 import java.util.UUID
+import java.io.File
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -39,15 +44,18 @@ class TransactionRepositoryImpl @Inject constructor(
             firestoreId = value.firestoreId.ifBlank { UUID.randomUUID().toString() }, syncedToFirebase = false)
         val id = database.withTransaction {
             val existing = transactionDao.getTransactionByFirestoreId(prepared.firestoreId)
-            check(prepared.id == 0 || existing?.id == prepared.id) { "Stale record" }
+            if (prepared.id != 0 && existing?.id != prepared.id) throw DataAccessException.StaleRecord()
             val row = prepared.toEntity().copy(id = existing?.id ?: 0)
             val result = transactionDao.insertTransaction(row)
             val payload = prepared.toFirebaseMap().toMutableMap()
             if (existing?.photoUri != null && row.photoUri == null) {
-                payload["photoStorageUrl"] = null
-                payload["photoRemoved"] = true
-            } else if (row.photoUri != null && row.photoUri != existing?.photoUri) payload["photoRemoved"] = false
-            pendingChanges.record(account.ownerId, "transactions", row.firestoreId, payload)
+                payload[PhotoFields.STORAGE_URL] = null
+                payload[PhotoFields.REMOVED] = true
+            } else if (row.photoUri != null && row.photoUri != existing?.photoUri) {
+                payload[PhotoFields.REMOVED] = false
+                if (!row.photoUri.startsWith("http")) payload[PhotoFields.INTENT] = File(row.photoUri).nameWithoutExtension
+            }
+            pendingChanges.record(account.ownerId, FirestoreCollections.TRANSACTIONS, row.firestoreId, payload)
             result
         }
         scheduler.enqueue(account.ownerId)
@@ -60,7 +68,7 @@ class TransactionRepositoryImpl @Inject constructor(
             database.withTransaction {
                 val existing = transactionDao.getTransactionByFirestoreId(transaction.firestoreId) ?: return@withTransaction
                 transactionDao.deleteTransaction(existing)
-                pendingChanges.record(account.ownerId, "transactions", existing.firestoreId, null)
+                pendingChanges.record(account.ownerId, FirestoreCollections.TRANSACTIONS, existing.firestoreId, null)
             }
             scheduler.enqueue(account.ownerId)
         }

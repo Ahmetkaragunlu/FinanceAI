@@ -1,7 +1,7 @@
 package com.ahmetkaragunlu.financeai.feature.transaction.data.mapper
 
 import com.ahmetkaragunlu.financeai.core.money.MoneyAmounts
-import com.ahmetkaragunlu.financeai.feature.transaction.data.local.TransactionEntity
+import com.ahmetkaragunlu.financeai.feature.transaction.data.local.entity.TransactionEntity
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.Transaction
 
 fun TransactionEntity.toDomain(): Transaction = Transaction(

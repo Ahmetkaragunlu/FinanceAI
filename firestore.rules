@@ -1,0 +1,60 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function own(data) { return signedIn() && data.userId == request.auth.uid; }
+    function sameOwner() { return own(resource.data) && own(request.resource.data); }
+    function stableAccount(field) {
+      return !(field in resource.data) || request.resource.data[field] == resource.data[field];
+    }
+    function ownPlan(id) {
+      return own(get(/databases/$(database)/documents/scheduled_transactions/$(id)).data);
+    }
+
+    match /users/{uid} {
+      allow get: if signedIn() && request.auth.uid == uid;
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.get('uid', uid) == uid;
+      allow update: if signedIn() && request.auth.uid == uid
+        && stableAccount('currencyCode') && stableAccount('timeZoneId') && stableAccount('email')
+        && request.resource.data.get('uid', uid) == uid;
+    }
+    match /{collection}/{id} {
+      allow list: if collection in ['transactions', 'scheduled_transactions', 'budgets', 'ai_messages']
+        && own(resource.data);
+      allow get: if collection in ['transactions', 'scheduled_transactions', 'budgets', 'ai_messages']
+        && signedIn() && (!exists(/databases/$(database)/documents/$(collection)/$(id)) || own(resource.data));
+      allow create: if collection in ['transactions', 'scheduled_transactions', 'budgets', 'ai_messages']
+        && own(request.resource.data)
+        && (collection != 'scheduled_transactions' || !request.resource.data.keys().hasAny(['completedFrom', 'previousMutationId']))
+        && !(collection == 'transactions' && id.matches('completed_.*'));
+      allow update: if collection in ['transactions', 'scheduled_transactions', 'budgets', 'ai_messages']
+        && sameOwner()
+        && (collection != 'scheduled_transactions' || resource.data.get('completedFrom', null) == null
+            || request.resource.data.deleted == true)
+        && (collection != 'scheduled_transactions'
+            || !request.resource.data.diff(resource.data).affectedKeys().hasAny(['completedFrom', 'previousMutationId']));
+    }
+    match /schedule_commands/{id} {
+      allow list: if own(resource.data);
+      allow get: if signedIn() && (!exists(/databases/$(database)/documents/schedule_commands/$(id)) || own(resource.data));
+      allow create: if own(request.resource.data)
+        && request.resource.data.keys().hasOnly(['userId', 'transactionId', 'type', 'scheduledDate', 'requestedAt', 'plan', 'base', 'processed'])
+        && request.resource.data.type in ['complete', 'snooze', 'expiration_shown']
+        && request.resource.data.processed == false
+        && request.resource.data.transactionId is string
+        && request.resource.data.transactionId.size() > 0
+        && request.resource.data.scheduledDate is int && request.resource.data.requestedAt is int
+        && (ownPlan(request.resource.data.transactionId)
+            || (request.resource.data.type == 'complete'
+                && !exists(/databases/$(database)/documents/scheduled_transactions/$(request.resource.data.transactionId))
+                && own(request.resource.data.plan)));
+    }
+    match /schedule_states/{id} {
+      allow list: if own(resource.data);
+      allow get: if signedIn() && (!exists(/databases/$(database)/documents/schedule_states/$(id)) || own(resource.data));
+    }
+    // No client writes to shared state, delivery events, receipts or legacy notification triggers.
+    match /{document=**} { allow read, write: if false; }
+  }
+}

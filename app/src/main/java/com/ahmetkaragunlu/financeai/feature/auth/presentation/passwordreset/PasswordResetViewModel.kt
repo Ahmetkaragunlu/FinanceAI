@@ -27,9 +27,6 @@ class PasswordResetViewModel @Inject constructor(
         private set
     var inputConfirmPassword by mutableStateOf("")
         private set
-    var passwordVisibility by mutableStateOf(false)
-    var confirmPasswordVisibility by mutableStateOf(false)
-    var showDialog by mutableStateOf(false)
 
     fun resetPassword(oobCode: String) {
         viewModelScope.launch {

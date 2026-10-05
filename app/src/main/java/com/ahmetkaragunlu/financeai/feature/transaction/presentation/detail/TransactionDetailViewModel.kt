@@ -8,7 +8,6 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.work.*
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.core.media.PhotoLocalStore
 import com.ahmetkaragunlu.financeai.core.money.MoneyAmounts
@@ -16,7 +15,7 @@ import com.ahmetkaragunlu.financeai.core.session.AccountSession
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.Transaction
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.repository.TransactionRepository
-import com.ahmetkaragunlu.financeai.photo.PhotoStorageUtil
+import com.ahmetkaragunlu.financeai.feature.transaction.presentation.transactionFailureMessage
 import com.ahmetkaragunlu.financeai.photo.PhotoWorkScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -25,6 +24,10 @@ import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 @HiltViewModel
 class TransactionDetailViewModel @Inject constructor(
@@ -44,84 +47,102 @@ class TransactionDetailViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = null
         )
-    var showEditBottomSheet by mutableStateOf(false)
-    var showDeleteDialog by mutableStateOf(false)
-    var showPhotoZoomDialog by mutableStateOf(false)
-    var showPhotoSourceSheet by mutableStateOf(false)
 
     var editAmount by mutableStateOf("")
+        private set
     var editNote by mutableStateOf("")
+        private set
     var editCategory by mutableStateOf<CategoryType?>(null)
-    var isCategoryDropdownExpanded by mutableStateOf(false)
+        private set
     var tempCameraPhotoPath by mutableStateOf<String?>(null)
+        private set
+    var photoErrorResId by mutableStateOf<Int?>(null)
+        private set
+    private val photoUpdates = Mutex()
+    private var photoRequest = 0L
+    fun consumePhotoError() { photoErrorResId = null }
 
     val availableCategories: List<CategoryType>
         get() = transaction.value?.let { tx ->
             CategoryType.entries.filter { it.type == tx.transaction }
         } ?: emptyList()
 
-    fun prepareCameraPhoto(): Pair<File, Uri>? {
-        val result = PhotoStorageUtil.createTempPhotoFile(context)
-        result?.let { (file, _) ->
-            tempCameraPhotoPath = file.absolutePath
-        }
-        return result
+    fun cameraOwnerId(): String? = session.account.value?.ownerId
+    fun registerCameraDraft(path: String) { clearCameraDraft(); tempCameraPhotoPath = path }
+    fun clearCameraDraft() {
+        val path = tempCameraPhotoPath
+        tempCameraPhotoPath = null
+        viewModelScope.launch { photoStore.delete(path) }
     }
 
-    fun onPhotoSelected(uri: Uri) {
-        updatePhotoInternal(uri)
-    }
+    fun onPhotoSelected(uri: Uri) { clearCameraDraft(); updatePhotoInternal(uri, null) }
 
     fun onCameraPhotoTaken() {
         tempCameraPhotoPath?.let { path ->
-            updatePhotoInternal(Uri.fromFile(File(path)))
+            updatePhotoInternal(Uri.fromFile(File(path)), path)
         }
     }
 
-    private fun updatePhotoInternal(uri: Uri) {
+    private fun updatePhotoInternal(uri: Uri, cameraPath: String?) {
         val currentTx = transaction.value ?: return
         val account = session.account.value?.takeIf { it.ownerId == currentTx.ownerId } ?: return
 
+        val request = ++photoRequest
+        photoErrorResId = null
         viewModelScope.launch {
-            val savedPath = photoStore.save(uri, tempCameraPhotoPath, currentTx.ownerId)
-            tempCameraPhotoPath = null
-            if (!session.isCurrent(account)) { photoStore.delete(savedPath); return@launch }
-            if (savedPath != null) {
-                val updatedTx = currentTx.copy(
-                    photoUri = savedPath,
-                    syncedToFirebase = false
-                )
-                repository.updateTransaction(updatedTx)
-                photoStore.delete(currentTx.photoUri)
-
-                if (updatedTx.firestoreId.isNotEmpty()) {
-                    enqueuePhotoUploadWorker(updatedTx)
+            photoUpdates.withLock {
+                var saved: String? = null
+                var committed = false
+                try {
+                    if (request != photoRequest || !session.isCurrent(account)) return@withLock
+                    saved = photoStore.save(uri, cameraPath, account.ownerId)
+                    if (tempCameraPhotoPath == cameraPath) tempCameraPhotoPath = null
+                    if (saved == null) { photoErrorResId = R.string.photo_save_failed; return@withLock }
+                    if (request != photoRequest || !session.isCurrent(account)) return@withLock
+                    val latest = repository.observeTransactionById(transactionId).first() ?: return@withLock
+                    val updated = latest.copy(photoUri = saved, syncedToFirebase = false)
+                    repository.updateTransaction(updated)
+                    committed = true
+                    photoStore.delete(latest.photoUri)
+                    photoWork.upload(updated.ownerId, "transactions", updated.firestoreId, updated.photoUri)
+                } catch (e: CancellationException) { throw e }
+                catch (_: Exception) { if (session.isCurrent(account)) photoErrorResId = R.string.photo_save_failed }
+                finally {
+                    if (!committed) withContext(NonCancellable) { photoStore.delete(saved) }
                 }
             }
         }
     }
 
-    private fun enqueuePhotoUploadWorker(transaction: Transaction) {
-        photoWork.upload(transaction.ownerId, "transactions", transaction.firestoreId, transaction.photoUri)
+    fun deletePhoto(onSuccess: () -> Unit) {
+        val currentTx = transaction.value ?: return
+        val account = session.account.value?.takeIf { it.ownerId == currentTx.ownerId } ?: return
+        photoRequest++
+        photoErrorResId = null
+        viewModelScope.launch {
+            photoUpdates.withLock {
+                try {
+                    if (!session.isCurrent(account)) return@withLock
+                    val latest = repository.observeTransactionById(transactionId).first() ?: return@withLock
+                    repository.updateTransaction(latest.copy(photoUri = null, syncedToFirebase = false))
+                    photoStore.delete(latest.photoUri)
+                    if (session.isCurrent(account)) onSuccess()
+                } catch (e: CancellationException) { throw e }
+                catch (_: Exception) { if (session.isCurrent(account)) photoErrorResId = R.string.photo_delete_failed }
+            }
+        }
+    }
+    fun prepareEdit(): Boolean {
+        val tx = transaction.value ?: return false
+        editAmount = tx.amount.toString()
+        editNote = tx.note
+        editCategory = tx.category
+        return true
     }
 
-    fun deletePhoto() {
-        val currentTx = transaction.value ?: return
-        viewModelScope.launch {
-            val updatedTx = currentTx.copy(photoUri = null, syncedToFirebase = false)
-            repository.updateTransaction(updatedTx)
-            photoStore.delete(currentTx.photoUri)
-            showPhotoZoomDialog = false
-        }
-    }
-    fun openEditBottomSheet() {
-        transaction.value?.let { tx ->
-            editAmount = tx.amount.toString()
-            editNote = tx.note
-            editCategory = tx.category
-            showEditBottomSheet = true
-        }
-    }
+    fun updateEditAmount(amount: String) { editAmount = amount }
+    fun updateEditNote(note: String) { editNote = note }
+    fun updateEditCategory(category: CategoryType) { editCategory = category }
 
     fun updateTransaction(
         onSuccess: () -> Unit,
@@ -151,11 +172,10 @@ class TransactionDetailViewModel @Inject constructor(
                 )
                 repository.updateTransaction(updatedTransaction)
 
-                showEditBottomSheet = false
                 if (session.isCurrent(account)) onSuccess()
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
-                if (session.isCurrent(account)) onError(context.getString(R.string.update_failed, e.message ?: ""))
+                if (session.isCurrent(account)) onError(transactionFailureMessage(context, e, R.string.update_failed))
             }
         }
     }
@@ -172,11 +192,10 @@ class TransactionDetailViewModel @Inject constructor(
                 if (!session.isCurrent(account)) return@launch
                 repository.deleteTransaction(currentTransaction)
                 photoStore.delete(currentTransaction.photoUri)
-                showDeleteDialog = false
                 if (session.isCurrent(account)) onSuccess()
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
-                if (session.isCurrent(account)) onError(context.getString(R.string.delete_failed, e.message ?: ""))
+                if (session.isCurrent(account)) onError(transactionFailureMessage(context, e, R.string.delete_failed))
             }
         }
     }

@@ -1,16 +1,23 @@
 package com.ahmetkaragunlu.financeai.feature.schedule.data
 
+import com.ahmetkaragunlu.financeai.core.firebase.FirestoreCollections
+import com.ahmetkaragunlu.financeai.core.sync.contract.SyncFields
+import com.ahmetkaragunlu.financeai.core.media.PhotoFields
+
 import androidx.room.withTransaction
+import com.ahmetkaragunlu.financeai.feature.schedule.domain.reminder.ScheduleCommandType
 import com.ahmetkaragunlu.financeai.core.database.FinanceDatabase
 import com.ahmetkaragunlu.financeai.core.session.AccountSession
 import com.ahmetkaragunlu.financeai.core.sync.PendingChanges
 import com.ahmetkaragunlu.financeai.core.sync.SyncPayload
 import com.ahmetkaragunlu.financeai.core.sync.SyncScheduler
 import com.ahmetkaragunlu.financeai.feature.schedule.data.mapper.toDomain
+import com.ahmetkaragunlu.financeai.feature.schedule.data.remote.toFirebaseMap as scheduledToFirebaseMap
+import com.ahmetkaragunlu.financeai.feature.schedule.data.reminder.ScheduleCommandQueue
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.model.ScheduledTransaction
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.usecase.CompleteScheduledTransaction
 import com.ahmetkaragunlu.financeai.feature.transaction.data.mapper.toEntity
-import com.ahmetkaragunlu.financeai.feature.transaction.data.remote.toFirebaseMap
+import com.ahmetkaragunlu.financeai.feature.transaction.data.remote.toFirebaseMap as transactionToFirebaseMap
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.Transaction
 import java.time.Clock
 import javax.inject.Inject
@@ -21,7 +28,8 @@ class RoomScheduledCompletion @Inject constructor(
     private val session: AccountSession,
     private val pending: PendingChanges,
     private val scheduler: SyncScheduler,
-    private val clock: Clock
+    private val clock: Clock,
+    private val commands: ScheduleCommandQueue
 ) : CompleteScheduledTransaction {
     override suspend operator fun invoke(value: ScheduledTransaction): Transaction? = session.withAccount { account ->
         require(value.ownerId == account.ownerId)
@@ -29,6 +37,8 @@ class RoomScheduledCompletion @Inject constructor(
             val scheduled = database.scheduledTransactionDao().getScheduledTransactionById(value.id) ?: return@withTransaction null
             val current = scheduled.toDomain()
             if (scheduled.firestoreId != value.firestoreId) return@withTransaction null
+            if (database.reminderStateDao().get(account.ownerId, scheduled.firestoreId)?.active == false)
+                return@withTransaction null
             val remoteId = "completed_${scheduled.firestoreId}"
             val existing = database.transactionDao().getTransactionByFirestoreId(remoteId)
             if (existing != null) return@withTransaction null
@@ -40,14 +50,16 @@ class RoomScheduledCompletion @Inject constructor(
             )
             val id = database.transactionDao().insertTransaction(transaction.toEntity())
             database.scheduledTransactionDao().deleteScheduledTransaction(scheduled)
-            val payload = transaction.toFirebaseMap().toMutableMap()
-            val photoState = database.syncRecordDao().get(account.ownerId, "scheduled_transactions", scheduled.firestoreId)
+            val payload = transaction.transactionToFirebaseMap().toMutableMap()
+            val photoState = database.syncRecordDao().get(account.ownerId, FirestoreCollections.SCHEDULED_TRANSACTIONS, scheduled.firestoreId)
             val photoMetadata = (photoState?.pendingPayload ?: photoState?.basePayload)?.let(SyncPayload::decode)
-                .orEmpty().filterKeys { it in setOf("photoStorageUrl", "photoRemoved", "photoVersion") }
+                .orEmpty().filterKeys { it in setOf(PhotoFields.STORAGE_URL, PhotoFields.REMOVED, PhotoFields.VERSION, PhotoFields.INTENT) }
             payload.putAll(photoMetadata)
-            if (current.photoUri?.startsWith("https://") == true) payload["photoStorageUrl"] = current.photoUri
-            pending.record(account.ownerId, "transactions", remoteId, payload)
-            pending.record(account.ownerId, "scheduled_transactions", scheduled.firestoreId, null)
+            if (current.photoUri?.startsWith("https://") == true) payload[PhotoFields.STORAGE_URL] = current.photoUri
+            pending.record(account.ownerId, FirestoreCollections.TRANSACTIONS, remoteId, payload)
+            pending.record(account.ownerId, FirestoreCollections.SCHEDULED_TRANSACTIONS, scheduled.firestoreId, null)
+            commands.enqueue(account, scheduled.firestoreId, scheduled.scheduledDate, ScheduleCommandType.COMPLETE,
+                current.scheduledToFirebaseMap() + photoMetadata + mapOf(SyncFields.USER_ID to account.ownerId))
             transaction.copy(id = id.toInt())
         }
         if (result != null) scheduler.enqueue(account.ownerId)

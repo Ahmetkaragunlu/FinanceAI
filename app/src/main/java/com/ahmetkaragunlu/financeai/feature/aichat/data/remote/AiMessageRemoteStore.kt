@@ -1,14 +1,16 @@
 package com.ahmetkaragunlu.financeai.feature.aichat.data.remote
 
+import com.ahmetkaragunlu.financeai.core.firebase.FirestoreCollections
+
 import com.ahmetkaragunlu.financeai.core.database.FinanceDatabase
 import com.ahmetkaragunlu.financeai.core.session.ActiveAccount
 import com.ahmetkaragunlu.financeai.core.sync.RemoteRecordStore
-import com.ahmetkaragunlu.financeai.feature.aichat.data.local.AiMessageEntity
+import com.ahmetkaragunlu.financeai.feature.aichat.data.local.entity.AiMessageEntity
 import java.util.Date
 import javax.inject.Inject
 
 class AiMessageRemoteStore @Inject constructor(private val database: FinanceDatabase) : RemoteRecordStore {
-    override val collection = "ai_messages"
+    override val collection = FirestoreCollections.AI_MESSAGES
     override fun normalize(data: Map<String, Any?>, account: ActiveAccount): Map<String, Any?> = mapOf(
         "text" to (data["text"] as? String ?: ""),
         "isAi" to (data["isAi"] as? Boolean ?: false),

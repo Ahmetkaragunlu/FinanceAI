@@ -33,7 +33,7 @@ class SignUpViewModelTest {
 
     @Test
     fun `existing account retains its specific result`() = runTest {
-        val repository = FakeAuthRepository().apply { registrationFailure = AuthException.EmailExists }
+        val repository = FakeAuthRepository().apply { registrationFailure = AuthException.EmailExists() }
         val viewModel = SignUpViewModel(repository)
         viewModel.saveUser()
         advanceUntilIdle()
@@ -42,7 +42,7 @@ class SignUpViewModelTest {
 
     @Test
     fun `verification email failure is not treated as registration success`() = runTest {
-        val repository = FakeAuthRepository().apply { registrationFailure = AuthException.VerificationEmailFailed }
+        val repository = FakeAuthRepository().apply { registrationFailure = AuthException.VerificationEmailFailed() }
         val viewModel = SignUpViewModel(repository)
         viewModel.saveUser()
         advanceUntilIdle()

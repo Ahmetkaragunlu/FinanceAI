@@ -27,7 +27,7 @@ class AccountMigrationTest {
             db.version = 13
         }
         val database = Room.databaseBuilder(context, FinanceDatabase::class.java, name)
-            .addMigrations(AccountMigration.MIGRATION_13_14).build()
+            .addMigrations(AccountMigration.MIGRATION_13_14, DeviceWorkMigration.MIGRATION_14_15).build()
         try {
             database.openHelper.writableDatabase.query("SELECT amount FROM legacy_v13_transaction_table WHERE id = 73").use {
                 assertTrue(it.moveToFirst()); assertEquals(125.50, it.getDouble(0), 0.0)

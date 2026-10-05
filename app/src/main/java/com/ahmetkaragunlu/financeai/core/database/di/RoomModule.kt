@@ -4,10 +4,11 @@ import android.content.Context
 import androidx.room.Room
 import com.ahmetkaragunlu.financeai.core.database.AccountMigration
 import com.ahmetkaragunlu.financeai.core.database.FinanceDatabase
-import com.ahmetkaragunlu.financeai.feature.aichat.data.local.AiMessageDao
-import com.ahmetkaragunlu.financeai.feature.budget.data.local.BudgetDao
-import com.ahmetkaragunlu.financeai.feature.schedule.data.local.ScheduledTransactionDao
-import com.ahmetkaragunlu.financeai.feature.transaction.data.local.TransactionDao
+import com.ahmetkaragunlu.financeai.core.database.DeviceWorkMigration
+import com.ahmetkaragunlu.financeai.feature.aichat.data.local.dao.AiMessageDao
+import com.ahmetkaragunlu.financeai.feature.budget.data.local.dao.BudgetDao
+import com.ahmetkaragunlu.financeai.feature.schedule.data.local.dao.ScheduledTransactionDao
+import com.ahmetkaragunlu.financeai.feature.transaction.data.local.dao.TransactionDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -27,7 +28,7 @@ object RoomModule {
             FinanceDatabase::class.java,
             "finance_db"
         )
-            .addMigrations(AccountMigration.MIGRATION_13_14)
+            .addMigrations(AccountMigration.MIGRATION_13_14, DeviceWorkMigration.MIGRATION_14_15)
             .build()
     }
 

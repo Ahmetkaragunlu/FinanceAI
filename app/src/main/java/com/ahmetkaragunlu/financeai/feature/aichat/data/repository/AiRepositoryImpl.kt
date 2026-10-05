@@ -1,5 +1,7 @@
 package com.ahmetkaragunlu.financeai.feature.aichat.data.repository
 
+import com.ahmetkaragunlu.financeai.core.firebase.FirestoreCollections
+
 import android.content.Context
 import androidx.room.withTransaction
 import com.ahmetkaragunlu.financeai.R
@@ -11,8 +13,8 @@ import com.ahmetkaragunlu.financeai.core.session.AccountSession
 import com.ahmetkaragunlu.financeai.core.session.ActiveAccount
 import com.ahmetkaragunlu.financeai.core.sync.PendingChanges
 import com.ahmetkaragunlu.financeai.core.sync.SyncScheduler
-import com.ahmetkaragunlu.financeai.feature.aichat.data.local.AiMessageDao
-import com.ahmetkaragunlu.financeai.feature.aichat.data.local.AiMessageEntity
+import com.ahmetkaragunlu.financeai.feature.aichat.data.local.dao.AiMessageDao
+import com.ahmetkaragunlu.financeai.feature.aichat.data.local.entity.AiMessageEntity
 import com.ahmetkaragunlu.financeai.feature.aichat.data.mapper.toDomain
 import com.ahmetkaragunlu.financeai.feature.aichat.data.remote.toFirebaseMap
 import com.ahmetkaragunlu.financeai.feature.aichat.domain.model.AiMessage
@@ -20,7 +22,7 @@ import com.ahmetkaragunlu.financeai.feature.aichat.domain.repository.AiRepositor
 import com.ahmetkaragunlu.financeai.feature.budget.domain.calculation.calculateBudgetUsagePercentage
 import com.ahmetkaragunlu.financeai.feature.budget.domain.calculation.calculateCategoryBudgetLimit
 import com.ahmetkaragunlu.financeai.feature.budget.domain.repository.BudgetRepository
-import com.ahmetkaragunlu.financeai.feature.transaction.data.local.TransactionDao
+import com.ahmetkaragunlu.financeai.feature.transaction.data.local.dao.TransactionDao
 import com.ahmetkaragunlu.financeai.feature.transaction.data.mapper.toDomain
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.FinancialSummary
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.Transaction
@@ -77,7 +79,7 @@ class AiRepositoryImpl @Inject constructor(
                 firebaseId = UUID.randomUUID().toString())
             database.withTransaction {
                 aiMessageDao.insertMessage(entity)
-                pendingChanges.record(active.ownerId, "ai_messages", entity.firebaseId!!, entity.toFirebaseMap())
+                pendingChanges.record(active.ownerId, FirestoreCollections.AI_MESSAGES, entity.firebaseId!!, entity.toFirebaseMap())
             }
             scheduler.enqueue(active.ownerId)
         }

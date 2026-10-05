@@ -33,6 +33,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -55,7 +58,6 @@ import com.ahmetkaragunlu.financeai.app.navigation.Screens
 import com.ahmetkaragunlu.financeai.app.navigation.navigateSingleTopClear
 import com.ahmetkaragunlu.financeai.core.ui.component.EditTextField
 import com.ahmetkaragunlu.financeai.feature.auth.presentation.AuthState
-import com.ahmetkaragunlu.financeai.feature.auth.presentation.signin.SignInViewModel
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInStatusCodes
 import com.google.android.gms.common.api.ApiException
@@ -67,6 +69,7 @@ fun SignInScreen(
     navController: NavController,
 ) {
     val context = LocalContext.current
+    var passwordVisibility by rememberSaveable { mutableStateOf(false) }
     val uiState by viewModel.authState.collectAsStateWithLifecycle()
     BackHandler { }
 
@@ -158,7 +161,7 @@ fun SignInScreen(
 
             EditTextField(
                 value = viewModel.inputEmail,
-                onValueChange = { viewModel.updateEmail(it) },
+                onValueChange = viewModel::updateEmail,
                 label = R.string.email,
                 leadingIcon = {
                     Icon(
@@ -180,7 +183,7 @@ fun SignInScreen(
 
             EditTextField(
                 value = viewModel.inputPassword,
-                onValueChange = { viewModel.updatePassword(it) },
+                onValueChange = viewModel::updatePassword,
                 label = R.string.password,
                 keyboardOptions = KeyboardOptions.Default.copy(
                     imeAction = ImeAction.Done,
@@ -195,11 +198,11 @@ fun SignInScreen(
                 },
                 trailingIcon = {
                     Icon(
-                        imageVector = if (viewModel.passwordVisibility) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                        imageVector = if (passwordVisibility) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onPrimary,
                         modifier = modifier.clickable {
-                            viewModel.passwordVisibility = !viewModel.passwordVisibility
+                            passwordVisibility = !passwordVisibility
                         }
                     )
                 },
@@ -208,7 +211,7 @@ fun SignInScreen(
                     focusedTextColor = MaterialTheme.colorScheme.onPrimary,
                     focusedBorderColor = MaterialTheme.colorScheme.onPrimary
                 ),
-                visualTransformation = if (viewModel.passwordVisibility) VisualTransformation.None else PasswordVisualTransformation()
+                visualTransformation = if (passwordVisibility) VisualTransformation.None else PasswordVisualTransformation()
             )
             Row(
                 modifier = modifier

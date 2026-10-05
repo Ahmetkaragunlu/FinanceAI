@@ -1,6 +1,6 @@
 package com.ahmetkaragunlu.financeai.feature.transaction.data.mapper
 
-import com.ahmetkaragunlu.financeai.feature.transaction.data.local.TransactionEntity
+import com.ahmetkaragunlu.financeai.feature.transaction.data.local.entity.TransactionEntity
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
 import org.junit.Assert.assertEquals

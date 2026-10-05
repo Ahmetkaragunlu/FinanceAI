@@ -50,6 +50,7 @@ import com.ahmetkaragunlu.financeai.feature.schedule.domain.model.ScheduledTrans
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toIconResId
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toResId
+import java.time.ZoneId
 
 @Composable
 fun ScheduledTransactionScreen(
@@ -57,6 +58,7 @@ fun ScheduledTransactionScreen(
     viewModel: ScheduledTransactionsViewModel = hiltViewModel()
 ) {
     val scheduledTransactions by viewModel.scheduledTransactions.collectAsStateWithLifecycle()
+    val timeZoneId by viewModel.timeZoneId.collectAsStateWithLifecycle()
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -83,6 +85,7 @@ fun ScheduledTransactionScreen(
                 ) { transaction ->
                     ScheduledTransactionItem(
                         transaction = transaction,
+                        zone = ZoneId.of(timeZoneId),
                         onExecuteClick = { viewModel.executeScheduledTransaction(transaction) }
                     )
                 }
@@ -95,7 +98,8 @@ fun ScheduledTransactionScreen(
 fun ScheduledTransactionItem(
     transaction: ScheduledTransaction,
     modifier: Modifier = Modifier,
-    onExecuteClick: () -> Unit
+    onExecuteClick: () -> Unit,
+    zone: ZoneId = ZoneId.systemDefault()
 ) {
     val context = LocalContext.current
     Card(
@@ -176,7 +180,7 @@ fun ScheduledTransactionItem(
                     tint = Color.Unspecified
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                val formattedDate = transaction.scheduledDate.formatScheduleDate(context)
+                val formattedDate = transaction.scheduledDate.formatScheduleDate(context, zone)
                 Text(
                     text = "${stringResource(R.string.due_date_label)} $formattedDate",
                     style = MaterialTheme.typography.labelMedium,
