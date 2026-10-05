@@ -11,6 +11,8 @@ import androidx.work.*
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.core.format.formatAsCurrency
 import com.ahmetkaragunlu.financeai.core.format.formatAsShortDate
+import com.ahmetkaragunlu.financeai.core.session.AccountSession
+import com.ahmetkaragunlu.financeai.core.sync.SyncScheduler
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.model.ScheduledTransaction
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.repository.ScheduledTransactionRepository
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
@@ -18,12 +20,14 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 
 @HiltWorker
 class NotificationWorker @AssistedInject constructor(
     @Assisted private val appContext: Context,
     @Assisted private val params: WorkerParameters,
+    private val session: AccountSession,
     private val repository: ScheduledTransactionRepository,
 ) : CoroutineWorker(appContext, params) {
 
@@ -34,6 +38,8 @@ class NotificationWorker @AssistedInject constructor(
     }
 
     override suspend fun doWork(): Result {
+        val ownerId = inputData.getString(SyncScheduler.OWNER_ID) ?: return Result.success()
+        val account = session.account.value?.takeIf { it.ownerId == ownerId } ?: return Result.success()
         return try {
             val specificTransactionId = inputData.getLong(TRANSACTION_ID_KEY, -1L)
             if (specificTransactionId != -1L) {
@@ -43,6 +49,7 @@ class NotificationWorker @AssistedInject constructor(
             }
             Result.success()
         } catch (e: Exception) {
+            if (e is CancellationException) throw e
             Result.failure()
         }
     }
@@ -74,9 +81,10 @@ class NotificationWorker @AssistedInject constructor(
         val workRequest = OneTimeWorkRequestBuilder<NotificationWorker>()
             .setInitialDelay(15, TimeUnit.MINUTES)
             .setInputData(
-                workDataOf(TRANSACTION_ID_KEY to transactionId)
+                workDataOf(TRANSACTION_ID_KEY to transactionId, SyncScheduler.OWNER_ID to session.requireAccount().ownerId)
             )
             .addTag("scheduled_notification_$transactionId")
+            .addTag("account_${session.requireAccount().ownerId}")
             .build()
 
         WorkManager.getInstance(appContext).enqueue(workRequest)
@@ -86,9 +94,10 @@ class NotificationWorker @AssistedInject constructor(
         val workRequest = OneTimeWorkRequestBuilder<DeleteExpiredNotification>()
             .setInitialDelay(24, TimeUnit.HOURS)
             .setInputData(
-                workDataOf(TRANSACTION_ID_KEY to transactionId)
+                workDataOf(TRANSACTION_ID_KEY to transactionId, SyncScheduler.OWNER_ID to session.requireAccount().ownerId)
             )
             .addTag("delete_expired_$transactionId")
+            .addTag("account_${session.requireAccount().ownerId}")
             .build()
         WorkManager.getInstance(appContext).enqueue(workRequest)
     }
@@ -121,9 +130,9 @@ class NotificationWorker @AssistedInject constructor(
         }.timeInMillis
     }
 
-
     private fun showReminderNotification(transaction: ScheduledTransaction) {
-        val formattedAmount = transaction.amount.formatAsCurrency()
+        if (session.account.value?.ownerId != transaction.ownerId) return
+        val formattedAmount = transaction.amount.formatAsCurrency(transaction.currencyCode)
         val categoryName = transaction.category.name.replace("_", " ").lowercase()
             .split(" ")
             .joinToString(" ") { it.replaceFirstChar { char -> char.uppercase() } }
@@ -152,6 +161,7 @@ class NotificationWorker @AssistedInject constructor(
         val confirmIntent = Intent(appContext, NotificationActionReceiver::class.java).apply {
             action = NotificationActionReceiver.ACTION_CONFIRM
             putExtra(FIRESTORE_ID_KEY, transaction.firestoreId)
+            putExtra(SyncScheduler.OWNER_ID, transaction.ownerId)
         }
         val confirmPendingIntent = PendingIntent.getBroadcast(
             appContext,
@@ -163,6 +173,7 @@ class NotificationWorker @AssistedInject constructor(
         val cancelIntent = Intent(appContext, NotificationActionReceiver::class.java).apply {
             action = NotificationActionReceiver.ACTION_CANCEL
             putExtra(FIRESTORE_ID_KEY, transaction.firestoreId)
+            putExtra(SyncScheduler.OWNER_ID, transaction.ownerId)
         }
         val cancelPendingIntent = PendingIntent.getBroadcast(
             appContext,
@@ -214,7 +225,8 @@ class NotificationWorker @AssistedInject constructor(
         notificationManager.notify(transaction.firestoreId.hashCode(), notification)
     }
     private fun sendExpirationNotification(transaction: ScheduledTransaction) {
-        val formattedAmount = transaction.amount.formatAsCurrency()
+        if (session.account.value?.ownerId != transaction.ownerId) return
+        val formattedAmount = transaction.amount.formatAsCurrency(transaction.currencyCode)
         val categoryName = transaction.category.name.replace("_", " ").lowercase()
             .split(" ")
             .joinToString(" ") { it.replaceFirstChar { char -> char.uppercase() } }

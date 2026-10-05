@@ -1,6 +1,7 @@
 package com.ahmetkaragunlu.financeai.core.ui.component
 
 import androidx.annotation.StringRes
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -15,7 +16,7 @@ fun EditAlertDialog(
     onDismissRequest : () -> Unit = {},
     dismissButton: @Composable (() -> Unit)? = null,
 ) {
-    androidx.compose.material3.AlertDialog(
+    AlertDialog(
         onDismissRequest = onDismissRequest,
         title = { Text(stringResource(id = title)) },
         text = { Text(stringResource(id = text)) },

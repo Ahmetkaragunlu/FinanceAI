@@ -10,5 +10,4 @@ interface ScheduledTransactionRepository {
     fun observeScheduledTransactions(): Flow<List<ScheduledTransaction>>
     suspend fun getScheduledTransactionByFirestoreId(firestoreId: String): ScheduledTransaction?
     suspend fun getScheduledTransactionById(localId: Long): ScheduledTransaction?
-    fun observeUnsyncedScheduledTransactions(): Flow<List<ScheduledTransaction>>
 }

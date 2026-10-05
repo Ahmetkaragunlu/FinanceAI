@@ -44,8 +44,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ahmetkaragunlu.financeai.R
-import com.ahmetkaragunlu.financeai.core.format.formatAsCurrency
 import com.ahmetkaragunlu.financeai.core.format.formatScheduleDate
+import com.ahmetkaragunlu.financeai.core.ui.component.formatAsAccountCurrency
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.model.ScheduledTransaction
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toIconResId
@@ -155,7 +155,7 @@ fun ScheduledTransactionItem(
                     }
                 }
                 Text(
-                    text = transaction.amount.formatAsCurrency(),
+                    text = transaction.amount.formatAsAccountCurrency(),
                     style = MaterialTheme.typography.titleMedium,
                     color = if (transaction.type == TransactionType.INCOME) Color(0xFF4CAF50) else Color(
                         0xFFEF5350

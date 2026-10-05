@@ -1,0 +1,41 @@
+package com.ahmetkaragunlu.financeai.core.session
+
+import javax.inject.Inject
+import javax.inject.Singleton
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
+data class ActiveAccount(val ownerId: String, val currencyCode: String, val generation: Long)
+
+@Singleton
+class AccountSession @Inject constructor() {
+    private val mutableAccount = MutableStateFlow<ActiveAccount?>(null)
+    val account = mutableAccount.asStateFlow()
+    val mutex = Mutex()
+    private var generation = 0L
+
+    fun requireAccount(): ActiveAccount = checkNotNull(account.value) { "Account not ready" }
+    fun isCurrent(account: ActiveAccount): Boolean = this.account.value == account
+    internal fun activate(ownerId: String, currencyCode: String) {
+        mutableAccount.value = ActiveAccount(ownerId, currencyCode, ++generation)
+    }
+    internal fun deactivate() { generation++; mutableAccount.value = null }
+
+    suspend fun <T> withAccount(block: suspend (ActiveAccount) -> T): T = mutex.withLock {
+        block(requireAccount())
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun <T> observe(empty: T, source: (ActiveAccount) -> Flow<T>): Flow<T> =
+        account.flatMapLatest { owner ->
+            if (owner == null) flowOf(empty)
+            else source(owner).filter { isCurrent(owner) }
+        }
+}

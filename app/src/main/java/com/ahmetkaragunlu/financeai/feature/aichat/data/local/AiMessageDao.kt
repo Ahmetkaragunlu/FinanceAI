@@ -9,21 +9,15 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface AiMessageDao {
 
-    @Query("SELECT * FROM ai_messages ORDER BY timestamp ASC")
+    @Query("SELECT * FROM ai_messages WHERE ownerId = (SELECT ownerId FROM active_account WHERE id = 0) ORDER BY timestamp ASC")
     fun observeMessages(): Flow<List<AiMessageEntity>>
-
-    @Query("SELECT * FROM ai_messages WHERE isSynced = 0")
-    suspend fun getUnsyncedMessages(): List<AiMessageEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMessage(message: AiMessageEntity): Long
 
-    @Query("UPDATE ai_messages SET isSynced = 1, firebaseId = :firebaseId WHERE id = :localId")
-    suspend fun updateSyncStatus(localId: Long, firebaseId: String)
-
-    @Query("SELECT * FROM ai_messages WHERE firebaseId = :firebaseId LIMIT 1")
+    @Query("SELECT * FROM ai_messages WHERE ownerId = (SELECT ownerId FROM active_account WHERE id = 0) AND firebaseId = :firebaseId LIMIT 1")
     suspend fun getMessageByFirebaseId(firebaseId: String): AiMessageEntity?
 
-    @Query("DELETE FROM ai_messages WHERE firebaseId = :firebaseId")
+    @Query("DELETE FROM ai_messages WHERE ownerId = (SELECT ownerId FROM active_account WHERE id = 0) AND firebaseId = :firebaseId")
     suspend fun deleteMessageByFirebaseId(firebaseId: String)
 }

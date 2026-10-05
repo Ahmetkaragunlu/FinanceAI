@@ -1,12 +1,13 @@
 package com.ahmetkaragunlu.financeai.feature.schedule.data.mapper
 
+import com.ahmetkaragunlu.financeai.core.money.MoneyAmounts
 import com.ahmetkaragunlu.financeai.feature.schedule.data.local.ScheduledTransactionEntity
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.model.ScheduledTransaction
 
 fun ScheduledTransactionEntity.toDomain(): ScheduledTransaction = ScheduledTransaction(
     id = id,
     firestoreId = firestoreId,
-    amount = amount,
+    amount = MoneyAmounts.toMajor(amountMinor, currencyCode),
     type = type,
     category = category,
     note = note,
@@ -18,13 +19,15 @@ fun ScheduledTransactionEntity.toDomain(): ScheduledTransaction = ScheduledTrans
     locationShort = locationShort,
     latitude = latitude,
     longitude = longitude,
+    ownerId = ownerId,
+    currencyCode = currencyCode,
     syncedToFirebase = syncedToFirebase
 )
 
 fun ScheduledTransaction.toEntity(): ScheduledTransactionEntity = ScheduledTransactionEntity(
     id = id,
     firestoreId = firestoreId,
-    amount = amount,
+    amountMinor = MoneyAmounts.toMinor(amount, currencyCode),
     type = type,
     category = category,
     note = note,
@@ -36,5 +39,7 @@ fun ScheduledTransaction.toEntity(): ScheduledTransactionEntity = ScheduledTrans
     locationShort = locationShort,
     latitude = latitude,
     longitude = longitude,
+    ownerId = ownerId,
+    currencyCode = currencyCode,
     syncedToFirebase = syncedToFirebase
 )

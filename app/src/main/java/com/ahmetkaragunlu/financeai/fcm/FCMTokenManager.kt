@@ -7,6 +7,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.messaging.FirebaseMessaging
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.tasks.await
 
 @Singleton
@@ -24,22 +25,26 @@ class FCMTokenManager @Inject constructor(
         try {
             val userId = auth.currentUser?.uid ?: return
             val token = messaging.token.await()
+            if (auth.currentUser?.uid != userId) return
             firestore.collection(USERS_COLLECTION)
                 .document(userId)
                 .update(FCM_TOKENS_FIELD, FieldValue.arrayUnion(token))
                 .await()
         } catch (e: Exception) {
+            if (e is CancellationException) throw e
         }
     }
     suspend fun removeFCMToken() {
         try {
             val userId = auth.currentUser?.uid ?: return
             val token = messaging.token.await()
+            if (auth.currentUser?.uid != userId) return
             firestore.collection(USERS_COLLECTION)
                 .document(userId)
                 .update(FCM_TOKENS_FIELD, FieldValue.arrayRemove(token))
                 .await()
         } catch (e: Exception) {
+            if (e is CancellationException) throw e
         }
     }
 }

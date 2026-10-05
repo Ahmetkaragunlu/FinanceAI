@@ -2,180 +2,46 @@ package com.ahmetkaragunlu.financeai.core.format
 
 import android.content.Context
 import com.ahmetkaragunlu.financeai.R
-import java.text.SimpleDateFormat
-import java.util.*
+import com.ahmetkaragunlu.financeai.core.time.FinancePeriods
+import java.time.*
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 object DateFormatter {
-
-    // Thread-safe formatters
-    private val timeFormatter = ThreadLocal.withInitial {
-        SimpleDateFormat("HH:mm", Locale.getDefault())
-    }
-
-    private val fullDateFormatter = ThreadLocal.withInitial {
-        SimpleDateFormat("dd MMM, HH:mm", Locale.getDefault())
-    }
-
-    private val dateOnlyFormatter = ThreadLocal.withInitial {
-        SimpleDateFormat("dd MMM", Locale.getDefault())
-    }
-
-    // Cache for midnight calculations
-    private var cachedMidnightTimestamp: Long = 0L
-    private var cachedTodayMidnight: Long = 0L
-    private var cachedYesterdayMidnight: Long = 0L
-
     fun formatRelativeDate(context: Context, timestamp: Long): String {
-        val now = System.currentTimeMillis()
-
-        // Update cache if day changed
-        if (cachedMidnightTimestamp != getDayStart(now)) {
-            updateMidnightCache(now)
-        }
-        val timePart = timeFormatter.get()!!.format(timestamp)
-        return when {
-            timestamp >= cachedTodayMidnight -> {
-                context.getString(R.string.today) + ", " + timePart
-            }
-            timestamp >= cachedYesterdayMidnight -> {
-                context.getString(R.string.yesterday) + ", " + timePart
-            }
-            else -> {
-                fullDateFormatter.get()!!.format(timestamp)
-            }
+        val zone = ZoneId.systemDefault()
+        val date = Instant.ofEpochMilli(timestamp).atZone(zone)
+        val today = LocalDate.now(zone)
+        val time = date.format(DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault()))
+        return when (date.toLocalDate()) {
+            today -> context.getString(R.string.today) + ", " + time
+            today.minusDays(1) -> context.getString(R.string.yesterday) + ", " + time
+            else -> date.format(DateTimeFormatter.ofPattern("dd MMM, HH:mm", Locale.getDefault()))
         }
     }
 
     fun formatScheduleDate(context: Context, timestamp: Long): String {
-        val now = System.currentTimeMillis()
-        val todayStart = getDayStart(now)
-
-        val calendar = Calendar.getInstance().apply {
-            timeInMillis = todayStart
-            add(Calendar.DAY_OF_YEAR, 1)
-        }
-        val tomorrowStart = calendar.timeInMillis
-        val targetStart = getDayStart(timestamp)
-        return when (targetStart) {
-            todayStart -> context.getString(R.string.today)
-            tomorrowStart -> {
-                try {
-                    context.getString(R.string.tomorrow)
-                } catch (e: Exception) {
-                    ""
-                }
-            }
-            else -> dateOnlyFormatter.get()!!.format(timestamp)
+        val date = Instant.ofEpochMilli(timestamp).atZone(ZoneId.systemDefault()).toLocalDate()
+        return when (date) {
+            LocalDate.now() -> context.getString(R.string.today)
+            LocalDate.now().plusDays(1) -> context.getString(R.string.tomorrow)
+            else -> date.format(DateTimeFormatter.ofPattern("dd MMM", Locale.getDefault()))
         }
     }
 
-    private fun updateMidnightCache(now: Long) {
-        cachedMidnightTimestamp = getDayStart(now)
-        cachedTodayMidnight = cachedMidnightTimestamp
-        cachedYesterdayMidnight = Calendar.getInstance().apply {
-            timeInMillis = now
-            add(Calendar.DAY_OF_YEAR, -1)
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }.timeInMillis
-    }
-
-    private fun getDayStart(timestamp: Long): Long {
-        return Calendar.getInstance().apply {
-            timeInMillis = timestamp
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }.timeInMillis
-    }
-
-    fun getDateRange(dateResId: Int): Pair<Long, Long> {
+    /** All DAO ranges have an excluded upper bound. Existing rolling filter semantics remain. */
+    fun getDateRange(dateResId: Int, clock: Clock = Clock.systemDefaultZone()): Pair<Long, Long> {
+        val now = ZonedDateTime.now(clock)
         return when (dateResId) {
-            R.string.today -> getTodayRange()
-            R.string.yesterday -> getYesterdayRange()
-            R.string.last_week -> getLastWeekRange()
-            R.string.last_month -> getLastMonthRange()
-            else -> Pair(0L, System.currentTimeMillis())
+            R.string.today -> FinancePeriods.day(now.toLocalDate(), clock.zone).let { it.start to clock.millis() + 1 }
+            R.string.yesterday -> FinancePeriods.day(now.toLocalDate().minusDays(1), clock.zone).let { it.start to it.endExclusive }
+            R.string.last_week -> now.minusDays(7).toInstant().toEpochMilli() to clock.millis() + 1
+            R.string.last_month -> now.minusMonths(1).toInstant().toEpochMilli() to clock.millis() + 1
+            else -> 0L to Long.MAX_VALUE
         }
     }
 
-    private fun getTodayRange(): Pair<Long, Long> {
-        val calendar = Calendar.getInstance()
-        val end = System.currentTimeMillis()
-
-        calendar.set(Calendar.HOUR_OF_DAY, 0)
-        calendar.set(Calendar.MINUTE, 0)
-        calendar.set(Calendar.SECOND, 0)
-        calendar.set(Calendar.MILLISECOND, 0)
-        val start = calendar.timeInMillis
-        return Pair(start, end)
-    }
-
-    private fun getYesterdayRange(): Pair<Long, Long> {
-        val calendar = Calendar.getInstance()
-
-        // Start: Yesterday 00:00:00
-        calendar.add(Calendar.DAY_OF_YEAR, -1)
-        calendar.set(Calendar.HOUR_OF_DAY, 0)
-        calendar.set(Calendar.MINUTE, 0)
-        calendar.set(Calendar.SECOND, 0)
-        calendar.set(Calendar.MILLISECOND, 0)
-        val start = calendar.timeInMillis
-
-        // End: Yesterday 23:59:59
-        calendar.set(Calendar.HOUR_OF_DAY, 23)
-        calendar.set(Calendar.MINUTE, 59)
-        calendar.set(Calendar.SECOND, 59)
-        calendar.set(Calendar.MILLISECOND, 999)
-        val end = calendar.timeInMillis
-
-        return Pair(start, end)
-    }
-
-    private fun getLastWeekRange(): Pair<Long, Long> {
-        val calendar = Calendar.getInstance()
-        val end = System.currentTimeMillis()
-
-        calendar.add(Calendar.DAY_OF_YEAR, -7)
-        val start = calendar.timeInMillis
-
-        return Pair(start, end)
-    }
-
-    private fun getLastMonthRange(): Pair<Long, Long> {
-        val calendar = Calendar.getInstance()
-        val end = System.currentTimeMillis()
-
-        calendar.add(Calendar.MONTH, -1)
-        val start = calendar.timeInMillis
-
-        return Pair(start, end)
-    }
-    fun getCurrentMonthRange(): Pair<Long, Long> {
-        val calendar = Calendar.getInstance()
-
-        calendar.set(Calendar.DAY_OF_MONTH, 1)
-        calendar.set(Calendar.HOUR_OF_DAY, 0)
-        calendar.set(Calendar.MINUTE, 0)
-        calendar.set(Calendar.SECOND, 0)
-        calendar.set(Calendar.MILLISECOND, 0)
-        val start = calendar.timeInMillis
-
-        calendar.add(Calendar.MONTH, 1)
-        calendar.add(Calendar.MILLISECOND, -1)
-        val end = calendar.timeInMillis
-
-        return Pair(start, end)
-    }
-
+    fun getCurrentMonthRange(): Pair<Long, Long> = FinancePeriods.month(Clock.systemDefaultZone()).let { it.start to it.endExclusive }
 }
-fun Long.formatRelativeDate(context: Context): String {
-    return DateFormatter.formatRelativeDate(context, this)
-}
-
-fun Long.formatScheduleDate(context: Context): String {
-    return DateFormatter.formatScheduleDate(context, this)
-}
+fun Long.formatRelativeDate(context: Context): String = DateFormatter.formatRelativeDate(context, this)
+fun Long.formatScheduleDate(context: Context): String = DateFormatter.formatScheduleDate(context, this)

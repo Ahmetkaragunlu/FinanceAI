@@ -7,9 +7,11 @@ import android.net.Uri
 import android.util.Log
 import androidx.core.content.FileProvider
 import androidx.core.graphics.scale
+import com.google.firebase.auth.FirebaseAuth
 import java.io.File
 import java.io.FileOutputStream
 import java.util.UUID
+import kotlinx.coroutines.CancellationException
 
 object PhotoStorageUtil {
 
@@ -17,9 +19,9 @@ object PhotoStorageUtil {
     private const val MAX_IMAGE_SIZE = 1920
     private const val JPEG_QUALITY = 85
 
-    fun savePhotoToInternalStorage(context: Context, photoUri: Uri): String? {
+    fun savePhotoToInternalStorage(context: Context, photoUri: Uri, ownerId: String): String? {
         return try {
-            val photoDir = File(context.filesDir, PHOTO_DIRECTORY)
+            val photoDir = File(context.filesDir, "$PHOTO_DIRECTORY/$ownerId")
             if (!photoDir.exists()) {
                 photoDir.mkdirs()
             }
@@ -44,6 +46,7 @@ object PhotoStorageUtil {
 
             photoFile.absolutePath
         } catch (e: Exception) {
+            if (e is CancellationException) throw e
             Log.e("PhotoStorageUtil", "Could not save photo (${e.javaClass.simpleName})")
             null
         }
@@ -51,7 +54,7 @@ object PhotoStorageUtil {
 
     fun createTempPhotoFile(context: Context): Pair<File, Uri>? {
         return try {
-            val photoDir = File(context.filesDir, PHOTO_DIRECTORY)
+            val photoDir = File(context.filesDir, "$PHOTO_DIRECTORY/${FirebaseAuth.getInstance().currentUser?.uid ?: "unowned"}")
             if (!photoDir.exists()) {
                 photoDir.mkdirs()
             }
@@ -66,16 +69,17 @@ object PhotoStorageUtil {
 
             Pair(photoFile, photoUri)
         } catch (e: Exception) {
+            if (e is CancellationException) throw e
             Log.e("PhotoStorageUtil", "Could not prepare camera file (${e.javaClass.simpleName})")
             null
         }
     }
 
-    fun saveTempPhotoAsPermanent(context: Context, tempPhotoPath: String): String? {
+    fun saveTempPhotoAsPermanent(context: Context, tempPhotoPath: String, ownerId: String): String? {
         return try {
             val tempFile = File(tempPhotoPath)
             if (!tempFile.exists()) return null
-            val photoDir = File(context.filesDir, PHOTO_DIRECTORY)
+            val photoDir = File(context.filesDir, "$PHOTO_DIRECTORY/$ownerId")
             val fileName = "IMG_${UUID.randomUUID()}.jpg"
             val permanentFile = File(photoDir, fileName)
 
@@ -83,6 +87,7 @@ object PhotoStorageUtil {
             tempFile.delete()
             permanentFile.absolutePath
         } catch (e: Exception) {
+            if (e is CancellationException) throw e
             Log.e("PhotoStorageUtil", "Could not finalize photo (${e.javaClass.simpleName})")
             null
         }
@@ -98,6 +103,7 @@ object PhotoStorageUtil {
                 false
             }
         } catch (e: Exception) {
+            if (e is CancellationException) throw e
             Log.e("PhotoStorageUtil", "Could not delete photo (${e.javaClass.simpleName})")
             false
         }

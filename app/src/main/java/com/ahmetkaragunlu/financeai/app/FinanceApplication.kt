@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.*
 import com.ahmetkaragunlu.financeai.R
+import com.ahmetkaragunlu.financeai.core.session.SessionCoordinator
 import com.ahmetkaragunlu.financeai.notification.NotificationWorker
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
@@ -17,9 +18,12 @@ class FinanceApplication : Application(), Configuration.Provider {
     @Inject
     lateinit var workManager: WorkManager
 
+    @Inject lateinit var sessionCoordinator: SessionCoordinator
+
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
+        sessionCoordinator.start()
     }
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder()

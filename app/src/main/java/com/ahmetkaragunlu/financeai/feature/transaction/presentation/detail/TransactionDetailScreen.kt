@@ -69,12 +69,12 @@ import coil.compose.rememberAsyncImagePainter
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.app.navigation.Screens
 import com.ahmetkaragunlu.financeai.app.navigation.navigateSingleTopClear
-import com.ahmetkaragunlu.financeai.core.format.formatAsCurrency
 import com.ahmetkaragunlu.financeai.core.format.formatRelativeDate
-import com.ahmetkaragunlu.financeai.core.format.getCurrencySymbol
 import com.ahmetkaragunlu.financeai.core.ui.component.EditAlertDialog
 import com.ahmetkaragunlu.financeai.core.ui.component.EditTextField
 import com.ahmetkaragunlu.financeai.core.ui.component.FinanceDropdownMenu
+import com.ahmetkaragunlu.financeai.core.ui.component.formatAsAccountCurrency
+import com.ahmetkaragunlu.financeai.core.ui.component.getAccountCurrencySymbol
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toIconResId
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toResId
@@ -184,7 +184,7 @@ fun TransactionDetailScreen(
                         Spacer(modifier = modifier.weight(1f))
 
                         Text(
-                            text = tx.amount.formatAsCurrency(),
+                            text = tx.amount.formatAsAccountCurrency(),
                             color = if (tx.transaction == TransactionType.INCOME) Color.Green else Color.Red
                         )
                     }
@@ -211,7 +211,7 @@ fun TransactionDetailScreen(
                         }
 
                         // Photo Section
-                        if (tx.photoUri != null && File(tx.photoUri).exists()) {
+                        if (tx.photoUri != null && (tx.photoUri.startsWith("https://") || File(tx.photoUri).exists())) {
                             Spacer(modifier = modifier.height(8.dp))
                             Card(
                                 modifier = modifier
@@ -223,7 +223,7 @@ fun TransactionDetailScreen(
                             ) {
                                 Box(modifier = Modifier.fillMaxSize()) {
                                     Image(
-                                        painter = rememberAsyncImagePainter(File(tx.photoUri)),
+                                        painter = rememberAsyncImagePainter(tx.photoUri),
                                         contentDescription = stringResource(R.string.transaction_photo_desc),
                                         modifier = modifier
                                             .fillMaxSize()
@@ -307,7 +307,7 @@ fun TransactionDetailScreen(
                         .background(Color.Black)
                 ) {
                     Image(
-                        painter = rememberAsyncImagePainter(File(tx.photoUri)),
+                        painter = rememberAsyncImagePainter(tx.photoUri),
                         contentDescription = stringResource(R.string.full_screen_photo_desc),
                         modifier = Modifier
                             .fillMaxSize()
@@ -448,7 +448,7 @@ private fun EditBottomSheet(
                 ),
                 trailingIcon = {
                     Text(
-                        getCurrencySymbol(),
+                        getAccountCurrencySymbol(),
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                 }

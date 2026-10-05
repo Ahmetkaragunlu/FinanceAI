@@ -10,7 +10,7 @@ class ScheduledTransactionMapperTest {
     @Test
     fun `schedule identity time notification flags and media survive mapping`() {
         val row = ScheduledTransactionEntity(
-            id = 5_000_000_000, firestoreId = "remote-schedule", amount = 125.50,
+            id = 5_000_000_000, firestoreId = "remote-schedule", currencyCode = "USD", amountMinor = 12550L,
             type = TransactionType.EXPENSE, category = CategoryType.RENT, note = "Kira",
             scheduledDate = 1_800_000_000_000, expirationNotificationSent = true,
             notificationSent = true, photoUri = "file:///schedule.jpg",
@@ -24,7 +24,7 @@ class ScheduledTransactionMapperTest {
     @Test
     fun `pending schedule retains absent note and media without enabling notifications`() {
         val row = ScheduledTransactionEntity(
-            amount = 42.0, type = TransactionType.INCOME, category = CategoryType.FREELANCE,
+            currencyCode = "USD", amountMinor = 4200L, type = TransactionType.INCOME, category = CategoryType.FREELANCE,
             note = null, scheduledDate = 0
         )
 

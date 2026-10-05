@@ -1,5 +1,6 @@
 package com.ahmetkaragunlu.financeai.feature.budget.data.mapper
 
+import com.ahmetkaragunlu.financeai.core.money.MoneyAmounts
 import com.ahmetkaragunlu.financeai.feature.budget.data.local.BudgetEntity
 import com.ahmetkaragunlu.financeai.feature.budget.domain.model.Budget
 
@@ -8,8 +9,10 @@ fun BudgetEntity.toDomain(): Budget = Budget(
     firestoreId = firestoreId,
     budgetType = budgetType,
     category = category,
-    amount = amount,
+    amount = MoneyAmounts.toMajor(amountMinor, currencyCode),
     limitPercentage = limitPercentage,
+    ownerId = ownerId,
+    currencyCode = currencyCode,
     syncedToFirebase = syncedToFirebase
 )
 
@@ -18,7 +21,9 @@ fun Budget.toEntity(): BudgetEntity = BudgetEntity(
     firestoreId = firestoreId,
     budgetType = budgetType,
     category = category,
-    amount = amount,
+    amountMinor = MoneyAmounts.toMinor(amount, currencyCode),
     limitPercentage = limitPercentage,
+    ownerId = ownerId,
+    currencyCode = currencyCode,
     syncedToFirebase = syncedToFirebase
 )

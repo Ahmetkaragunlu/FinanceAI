@@ -2,6 +2,7 @@ package com.ahmetkaragunlu.financeai.core.database.di
 
 import android.content.Context
 import androidx.room.Room
+import com.ahmetkaragunlu.financeai.core.database.AccountMigration
 import com.ahmetkaragunlu.financeai.core.database.FinanceDatabase
 import com.ahmetkaragunlu.financeai.feature.aichat.data.local.AiMessageDao
 import com.ahmetkaragunlu.financeai.feature.budget.data.local.BudgetDao
@@ -13,7 +14,6 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
-
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -27,7 +27,7 @@ object RoomModule {
             FinanceDatabase::class.java,
             "finance_db"
         )
-            .fallbackToDestructiveMigration()
+            .addMigrations(AccountMigration.MIGRATION_13_14)
             .build()
     }
 

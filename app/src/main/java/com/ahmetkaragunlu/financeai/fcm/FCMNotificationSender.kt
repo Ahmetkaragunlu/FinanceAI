@@ -5,6 +5,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.tasks.await
 
 @Singleton
@@ -39,6 +40,7 @@ class FCMNotificationSender @Inject constructor(
                 .add(data)
                 .await()
         } catch (e: Exception) {
+            if (e is CancellationException) throw e
         }
     }
 }

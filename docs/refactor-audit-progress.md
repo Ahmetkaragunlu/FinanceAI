@@ -109,3 +109,37 @@ Beş fazlı kayıtlı plan uygulanacak; account/pending veri ve mapper/insert/sy
 ## Canlı uygulama — 5 Ekim 2026
 
 Kullanıcı talimatıyla Faz 1 başladı ve devam ediyor. Yukarıdaki “üretim başlamadı” ifadeleri tarihsel karar kayıtlarıdır. Güncel uygulanan kaynak haritası, bilinçli kalan sonraki faz sınırları, gerçek test/build/lint sonuçları ve eksiksiz devam adımı docs/refactor-phase-1-progress.md dosyasında birleştirildi; önce bu kayıt okunacak. Auth/form VM, repository/domain/data/Room/Hilt ve app/core/feature temeli uygulandı; dar sync sözleşmeleri eklendi. 33 boş eski klasör, kullanılmayan API/mapper/importlar ve 40 kullanılmayan XML kaynağı temizlendi. Altın Kurallar 8–9 ile bu temizlik ve güvenli log ilkesi her faza zorunlu eklendi. Kaynak temizliğinden sonraki rerun: 29/29 JVM test (28 yeni risk + 1 örnek), debug APK ve lint başarılı; lint 0 error, 137 Warning + 10 Hint, UnusedResources 0. Cihaz/Compose/görsel kontrol yapılmadı. Faz 1 kapanışı henüz ilan edilmedi; son sahiplik/constructor değerlendirmesi kayıtlı sıradaki adım. Faz 2 otomatik başlamaz; tasarım/işleyiş ve kullanıcı dosyaları korunur.
+
+## En güncel devam — Faz 2 uygulaması (5 Ekim 2026)
+
+Son talimat özgün **8 veri/iş kuralları, 15–17 ve 24–26 + üç ek onay** birlikte uygulanmasıdır; üç karar önceki kalanların yerine geçmez. Ayrıntılı kaynak/karar/test/kalan iş kaydı **docs/refactor-phase-2-progress.md** içindedir. Üstteki görüşme/ilk-dilim notları tarihsel kanıttır, güncel durum değildir.
+
+Üç ek karar uygulandı: logout'ta pending/yerel veri korunması ve A→B→A izolasyonu; gerçek örtüşen local/remote conflict'te iki sürüm + kullanıcı seçimi ve güncel remote sürüm kontrolü; ilk cihaz bölgesinden hesapta kalıcı currencyCode ve currency-scale Long alt birim. Eski geliştirme verisi için silme izni çıkarılmadı: tam v13 legacy arşivi korunur, sahibi belirsiz satırlar rastgele UID'ye atanmaz. Offline-first Altın Kural 10 kullanıcı talimatıyla kaldırıldı; mevcut mimari korunur, her faza zorunlu yeni offline işi eklenmez.
+
+Özgün teknik kapsam: gerçek ApplicationScope/SupervisorJob/merkezi IO+Default; seri auth/session/startup/readiness, owner/generation guard ve work restore; atomik Room+outbox/tombstone, revision/mutation ack, server-transaction reconciliation, feature remote store ve conflict dialog; gerçek PK/ID, schema export ve veri koruyan 13→14 migration; ortak budget/FinancialSummary/completion/photo-work, currency/parsing/küsurat, java.time/Clock/exclusive periods/resume refresh. FirebaseSyncService ve boşa çıkan facade/module/type/API/import/XML/5 boş klasör kaldırıldı. PhotoMoveWorker persisted eski iş kimliği için bilinçli korunur, retirement Faz 3'tedir. Güvenli hata logları kalır; geçici debug çıktısı yok.
+
+Son gerçek doğrulama: dört task **--rerun-tasks --offline**, BUILD SUCCESSFUL (51 saniye), **93/93 görev executed**; JVM XML **63/63**, debug/test APK başarılı; lint **0 error + 141 warning + 10 hint**, UnusedResources 0. Pixel_8a Android 16'da dört hedefli instrumentation sınıfı **14/14**, BUILD SUCCESSFUL (11 saniye). Genel UI/Compose/Firebase network/Google-login/multi-device manuel kabul veya sıfır uyarı garantisi değildir.
+
+Önceki açık kararlar kapandı: Home “Bu ay” takvim ayını hesaplar; negatif bakiye progress çizimi kullanıcı kararıyla mevcut haliyle kalır. Faz 2'nin onaylı kapsamı kapanış doğrulamasıyla tamamlandı.
+
+Faz 2 kapandı; Faz 3–5/README/genel son kabul başlamadı. Console/Rules/anahtar/Git history/GuideMate değişmedi; commit/push yapılmadı. Yeni faz ancak kullanıcı istediğinde başlatılır.
+
+## Faz 2 kapanışı — 5 Ekim 2026
+
+**Faz 2'nin kayıtlı uygulama kapsamı tamamlandı ve faz doğrulamaları geçti.** Özgün 8 (veri/iş kuralları), 15–17, 24–26 ile üç ek onay birlikte ele alındı; önceki kalanlar üç yeni kararla değiştirilmedi.
+
+Son kullanıcı kararları:
+- **26.5:** Home başlığı “Bu ay” kalır; gelir/gider/bakiye ve kategori grafiği takvim ayını kullanır. Yerel saatle ayın ilk günü 00.00 dahil, sonraki ayın ilk günü 00.00 hariçtir. Ekim'de 1–31 Ekim'in tamamı kapsanır; Eylül/Kasım dahil olmaz. Home/Budget/aylık AI bütçe hesabı aynı ay sınırındadır; History'nin farklı amaçlı filtreleri ve AI genel geçmiş kapsamı değişmez.
+- **26.7:** Kullanıcı negatif bakiye çubuğunu değiştirmemeyi seçti. remainingIncomeRatio/remainingBalance adları ve hesapları testlidir; negatif metin/tam dolu mevcut çizim bilinçli korunur. Görsel iyileştirme yapılmış sayılmaz ve sonraki faza otomatik uygulanacak iş olarak aktarılmaz.
+
+Kaynak değişikliği HomeViewModel month/observeMonth ve monthlyCategoryExpenses, HomeScreen forwarding adıdır. FinanceCalendar.observeRollingMonth ve artık kullanılmayan ZonedDateTime importu kaldırıldı. UI renk/layout/başlık/progress kodu değişmedi; yalnız ayrıca onaylanan dönem hesabı düzeltildi. Paket/DI/state sahipliği korunur; gereksiz yeni katman veya singleton eklenmedi.
+
+Son gerçek doğrulama:
+- Dört task testDebugUnitTest/assembleDebug/assembleDebugAndroidTest/lintDebug **--rerun-tasks --offline**: BUILD SUCCESSFUL, 49 saniye, **93 görev executed**.
+- JUnit XML **65/65 JVM**, failure/error/skipped 0. İki yeni FinanceCalendar senaryosu tam ay sınırı ve resume refresh ile yeni aya geçişi doğrular.
+- Pixel_8a Android 16'da dört hedefli instrumentation sınıfı **15/15**, BUILD SUCCESSFUL (12 saniye), failure/error/skipped 0. Yeni gerçek Room testi 30 Eylül/1 Kasım'ı dışlar, 1 Ekim ve 31 Ekim'in son milisaniyesini gelir/gider ve kategori özetinde kapsar.
+- Lint **0 error, 141 warning + 10 hint**, UnusedResources 0. git diff --check temiz; debug/test APK başarılı. Genel görsel/manual/Google login/canlı Firebase/Rules/çok cihazlı kabul yapılmadı; sınırsız güvenlik veya server exactly-once garantisi verilmez.
+
+Kapsam kapanış karşılaştırması: 8 ortak data/finans/completion; 15 coroutine/iptal/tamamlanma; 16 gerçek application/session/durable scope; 17 gerekli merkezi dispatcher; 24 seri account/readiness/koruma; 25 migration/ID/atomik outbox/tombstone/reconciliation/conflict; 26 currency/minor/parsing/budget/calendar/ratio uygulanmış ve ilgili risklerle doğrulanmıştır. FCM durable delivery/token retry, reminder politikası, tam medya pipeline ve iki cihazlı server completion sözleşmesi zaten Faz 3 sınırıdır; AI Logic/anahtar Faz 4, UI/navigation/error/theme genel tutarlılık Faz 5'tir. Bunlar Faz 2'nin unutulmuş işi diye gizlenmez; önceki faz planındaki ayrı kapsam olarak korunur.
+
+Çalışan Gradle oturumu yok. Commit/push/Console/Rules/key/history/GuideMate/README işlemi yapılmadı. **Faz 3 otomatik başlatılmaz**; kullanıcı istediğinde önce Altın Kurallar/Test Kalitesi, ilgili madde ayrıntıları, güncel Git ve bu kapanış kaydı okunur.

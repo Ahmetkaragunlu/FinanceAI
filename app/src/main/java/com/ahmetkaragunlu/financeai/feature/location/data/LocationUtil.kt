@@ -9,6 +9,7 @@ import com.ahmetkaragunlu.financeai.feature.location.domain.model.LocationData
 import com.google.android.gms.maps.model.LatLng
 import java.util.Locale
 import kotlin.coroutines.resume
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.suspendCancellableCoroutine
 
 object LocationUtil {
@@ -34,6 +35,7 @@ object LocationUtil {
                 addresses?.firstOrNull()?.let { parseAddress(context, it) }
             }
         } catch (e: Exception) {
+            if (e is CancellationException) throw e
             LocationData(
                 latitude = latitude,
                 longitude = longitude,
@@ -61,6 +63,7 @@ object LocationUtil {
                 addresses?.firstOrNull()?.let { LatLng(it.latitude, it.longitude) }
             }
         } catch (e: Exception) {
+            if (e is CancellationException) throw e
             null
         }
     }

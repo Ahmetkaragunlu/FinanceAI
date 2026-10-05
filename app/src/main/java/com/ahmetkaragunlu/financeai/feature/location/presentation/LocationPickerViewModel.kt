@@ -22,6 +22,7 @@ import com.google.android.gms.tasks.CancellationTokenSource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -111,6 +112,7 @@ class LocationPickerViewModel @Inject constructor(
                     )
                 }
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     errorMessage = context.getString(R.string.location_not_available)
@@ -137,6 +139,7 @@ class LocationPickerViewModel @Inject constructor(
                     isLoading = false
                 )
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 _uiState.value = _uiState.value.copy(
                     addressText = context.getString(R.string.location_coordinates, latLng.latitude, latLng.longitude),
                     isLoading = false

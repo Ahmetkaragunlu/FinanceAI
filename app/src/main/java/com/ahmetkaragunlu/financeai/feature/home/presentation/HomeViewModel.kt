@@ -6,10 +6,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ahmetkaragunlu.financeai.R
-import com.ahmetkaragunlu.financeai.core.format.DateFormatter
 import com.ahmetkaragunlu.financeai.core.format.formatAsCurrency
+import com.ahmetkaragunlu.financeai.core.session.AccountSession
+import com.ahmetkaragunlu.financeai.core.time.FinanceCalendar
 import com.ahmetkaragunlu.financeai.feature.auth.domain.repository.AuthRepository
+import com.ahmetkaragunlu.financeai.feature.budget.domain.calculation.calculateBudgetUsagePercentage
+import com.ahmetkaragunlu.financeai.feature.budget.domain.calculation.calculateCategoryBudgetLimit
 import com.ahmetkaragunlu.financeai.feature.budget.domain.model.Budget
 import com.ahmetkaragunlu.financeai.feature.budget.domain.model.BudgetType
 import com.ahmetkaragunlu.financeai.feature.budget.domain.repository.BudgetRepository
@@ -20,17 +22,21 @@ import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toRe
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
-import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class HomeViewModel @Inject constructor(
+    private val calendar: FinanceCalendar,
+    private val session: AccountSession,
     val repository: TransactionRepository,
     private val budgetRepository: BudgetRepository,
     @ApplicationContext private val context: Context,
@@ -42,7 +48,7 @@ class HomeViewModel @Inject constructor(
         private const val FLOW_TIMEOUT = 5_000L
     }
 
-    private val lastMonthDateRange = DateFormatter.getDateRange(R.string.last_month)
+    private val month = calendar.observeMonth()
 
     var showLogoutDialog by mutableStateOf(false)
 
@@ -55,63 +61,16 @@ class HomeViewModel @Inject constructor(
         initialValue = ""
     )
 
-    private fun Flow<Double?>.toFormattedCurrency(): StateFlow<String> =
-        this.map { (it ?: 0.0).formatAsCurrency() }
-            .distinctUntilChanged()
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(FLOW_TIMEOUT),
-                initialValue = 0.0.formatAsCurrency()
-            )
-
-    val lastMonthIncomeFormatted: StateFlow<String> =
-        repository.observeTotalIncomeByDateRange(lastMonthDateRange.first, lastMonthDateRange.second)
-            .toFormattedCurrency()
-
-    val lastMonthExpenseFormatted: StateFlow<String> =
-        repository.observeTotalExpenseByDateRange(lastMonthDateRange.first, lastMonthDateRange.second)
-            .toFormattedCurrency()
-
-    val lastMonthRemainingBalance: StateFlow<Double> =
-        combine(
-            repository.observeTotalIncomeByDateRange(lastMonthDateRange.first, lastMonthDateRange.second),
-            repository.observeTotalExpenseByDateRange(lastMonthDateRange.first, lastMonthDateRange.second)
-        ) { income, expense ->
-            (income ?: 0.0) - (expense ?: 0.0)
-        }.distinctUntilChanged().stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(FLOW_TIMEOUT),
-            initialValue = 0.0
-        )
-
-    val lastMonthRemainingBalanceFormatted: StateFlow<String> =
-        lastMonthRemainingBalance.toFormattedCurrency()
-
-    val spendingPercentage: StateFlow<Double> =
-        combine(
-            repository.observeTotalIncomeByDateRange(lastMonthDateRange.first, lastMonthDateRange.second),
-            repository.observeTotalExpenseByDateRange(lastMonthDateRange.first, lastMonthDateRange.second)
-        ) { income, expense ->
-            calculateSpendingPercentage(income ?: 0.0, expense ?: 0.0)
-        }.distinctUntilChanged().stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(FLOW_TIMEOUT),
-            initialValue = 0.0
-        )
-
-    val homeUiState: StateFlow<HomeUiState> = combine(
-        lastMonthIncomeFormatted,
-        lastMonthExpenseFormatted,
-        lastMonthRemainingBalance,
-        lastMonthRemainingBalanceFormatted,
-        spendingPercentage
-    ) { income, expense, balance, balanceFormatted, percentage ->
+    val homeUiState: StateFlow<HomeUiState> = month.flatMapLatest {
+        repository.observeFinancialSummary(it.start, it.endExclusive)
+    }.map { summary ->
+        val currency = session.account.value?.currencyCode ?: "XXX"
         HomeUiState(
-            totalIncome = income,
-            totalExpense = expense,
-            remainingBalance = balance,
-            remainingBalanceFormatted = balanceFormatted,
-            spendingPercentage = percentage
+            totalIncome = summary.income.formatAsCurrency(currency),
+            totalExpense = summary.expense.formatAsCurrency(currency),
+            remainingBalance = summary.remainingBalance,
+            remainingBalanceFormatted = summary.remainingBalance.formatAsCurrency(currency),
+            remainingIncomeRatio = summary.remainingIncomeRatio
         )
     }.distinctUntilChanged().stateIn(
         scope = viewModelScope,
@@ -119,12 +78,8 @@ class HomeViewModel @Inject constructor(
         initialValue = HomeUiState()
     )
 
-    val lastMonthCategoryExpenses: StateFlow<List<CategoryExpense>> =
-        repository.observeCategoryExpensesByTypeAndDateRange(
-            transactionType = TransactionType.EXPENSE,
-            startDate = lastMonthDateRange.first,
-            endDate = lastMonthDateRange.second
-        ).distinctUntilChanged().stateIn(
+    val monthlyCategoryExpenses: StateFlow<List<CategoryExpense>> =
+        month.flatMapLatest { repository.observeCategoryExpensesByTypeAndDateRange(TransactionType.EXPENSE, it.start, it.endExclusive) }.distinctUntilChanged().stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(FLOW_TIMEOUT),
             initialValue = emptyList()
@@ -132,8 +87,8 @@ class HomeViewModel @Inject constructor(
 
     val aiSuggestion: StateFlow<AiSuggestionState> = combine(
         budgetRepository.observeBudgets(),
-        repository.observeTotalExpenseByDateRange(lastMonthDateRange.first, lastMonthDateRange.second),
-        lastMonthCategoryExpenses
+        month.flatMapLatest { repository.observeTotalExpenseByDateRange(it.start, it.endExclusive) },
+        month.flatMapLatest { repository.observeCategoryExpensesByTypeAndDateRange(TransactionType.EXPENSE, it.start, it.endExclusive) }
     ) { budgets, totalExpense, categoryExpenses ->
         generateAiSuggestion(budgets, totalExpense ?: 0.0, categoryExpenses)
     }.distinctUntilChanged().stateIn(
@@ -144,14 +99,6 @@ class HomeViewModel @Inject constructor(
             aiPrompt = ""
         )
     )
-
-    private fun calculateSpendingPercentage(income: Double, expense: Double): Double {
-        return if (income > 0) (income - expense) / income else 0.0
-    }
-
-    private fun calculatePercentage(spent: Double, limit: Double): Double {
-        return if (limit > 0) (spent / limit) * 100 else 0.0
-    }
 
     private fun generateAiSuggestion(
         budgets: List<Budget>,
@@ -183,7 +130,7 @@ class HomeViewModel @Inject constructor(
         return if (totalExpense > 0) {
             AiSuggestionState(
                 messageText = "Harcamaların artıyor! Bütçe limiti oluşturmak için tıkla",
-                aiPrompt = "Bu ay toplam ${totalExpense.formatAsCurrency()} harcama yaptım. Kendime uygun bir bütçe limiti belirlememe ve tasarruf etmeme yardımcı olur musun?"
+                aiPrompt = "Bu ay toplam ${totalExpense.formatAsCurrency(session.account.value?.currencyCode ?: "XXX")} harcama yaptım. Kendime uygun bir bütçe limiti belirlememe ve tasarruf etmeme yardımcı olur musun?"
             )
         } else {
             AiSuggestionState(
@@ -198,14 +145,14 @@ class HomeViewModel @Inject constructor(
         totalExpense: Double
     ): AiSuggestionState? {
         val limit = budget.amount
-        val percentage = calculatePercentage(totalExpense, limit)
+        val percentage = calculateBudgetUsagePercentage(totalExpense, limit)
 
         return when {
             totalExpense > limit -> {
                 val overflowAmount = totalExpense - limit
                 AiSuggestionState(
-                    messageText = "Dikkat! Bütçeni ${overflowAmount.formatAsCurrency()} aştın. Tasarruf planı için tıkla",
-                    aiPrompt = "Aylık bütçem ${limit.formatAsCurrency()} idi ancak şu an ${totalExpense.formatAsCurrency()} harcadım. Bütçemi %${percentage.toInt()} oranında aştım. Durumu toparlamak için acil tasarruf önerilerin neler?"
+                    messageText = "Dikkat! Bütçeni ${overflowAmount.formatAsCurrency(session.account.value?.currencyCode ?: "XXX")} aştın. Tasarruf planı için tıkla",
+                    aiPrompt = "Aylık bütçem ${limit.formatAsCurrency(session.account.value?.currencyCode ?: "XXX")} idi ancak şu an ${totalExpense.formatAsCurrency(session.account.value?.currencyCode ?: "XXX")} harcadım. Bütçemi %${percentage.toInt()} oranında aştım. Durumu toparlamak için acil tasarruf önerilerin neler?"
                 )
             }
             percentage >= BUDGET_WARNING_THRESHOLD -> {
@@ -226,15 +173,15 @@ class HomeViewModel @Inject constructor(
         categoryBudgets.forEach { budget ->
             val categoryName = budget.category?.name
             val spent = categoryExpenses.find { it.category == categoryName }?.totalAmount ?: 0.0
-            val limit = calculateCategoryLimit(budget, generalBudget)
-            val percentage = calculatePercentage(spent, limit)
+            val limit = calculateCategoryBudgetLimit(budget, generalBudget)
+            val percentage = calculateBudgetUsagePercentage(spent, limit)
             val catName = context.getString(budget.category!!.toResId())
 
             when {
                 spent > limit -> {
                     return AiSuggestionState(
                         messageText = "$catName bütçeni aştın! Tasarruf için tıkla",
-                        aiPrompt = "$catName kategorisinde belirlediğim limiti aştım. (${limit.formatAsCurrency()} limit, ${spent.formatAsCurrency()} harcama). Bu kategoride neden bu kadar harcama yapmış olabilirim ve nasıl kısabilirim?"
+                        aiPrompt = "$catName kategorisinde belirlediğim limiti aştım. (${limit.formatAsCurrency(session.account.value?.currencyCode ?: "XXX")} limit, ${spent.formatAsCurrency(session.account.value?.currencyCode ?: "XXX")} harcama). Bu kategoride neden bu kadar harcama yapmış olabilirim ve nasıl kısabilirim?"
                     )
                 }
                 percentage >= BUDGET_WARNING_THRESHOLD -> {
@@ -246,14 +193,6 @@ class HomeViewModel @Inject constructor(
             }
         }
         return null
-    }
-
-    private fun calculateCategoryLimit(budget: Budget, generalBudget: Budget?): Double {
-        return if (budget.budgetType == BudgetType.CATEGORY_PERCENTAGE && generalBudget != null) {
-            generalBudget.amount * ((budget.limitPercentage ?: 0.0) / 100)
-        } else {
-            budget.amount
-        }
     }
 
     private fun getHealthyBudgetSuggestion(): AiSuggestionState {

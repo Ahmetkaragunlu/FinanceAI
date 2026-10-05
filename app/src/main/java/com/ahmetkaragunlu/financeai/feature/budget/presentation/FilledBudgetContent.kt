@@ -20,7 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ahmetkaragunlu.financeai.R
-import com.ahmetkaragunlu.financeai.core.format.formatAsCurrency
+import com.ahmetkaragunlu.financeai.core.ui.component.formatAsAccountCurrency
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toIconResId
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toResId
@@ -237,7 +237,7 @@ private fun GeneralBudgetCard(
                             color = subTextColor
                         )
                         Text(
-                            text = state.limitAmount.formatAsCurrency(),
+                            text = state.limitAmount.formatAsAccountCurrency(),
                             style = MaterialTheme.typography.titleLarge,
                             color = defaultTextColor,
                             fontWeight = FontWeight.SemiBold
@@ -250,7 +250,7 @@ private fun GeneralBudgetCard(
                             color = subTextColor
                         )
                         Text(
-                            text = state.remainingAmount.formatAsCurrency(),
+                            text = state.remainingAmount.formatAsAccountCurrency(),
                             style = MaterialTheme.typography.headlineMedium,
                             color = defaultTextColor,
                             fontWeight = FontWeight.Bold
@@ -274,7 +274,7 @@ private fun GeneralBudgetCard(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = stringResource(R.string.expense_format, state.expenseAmount.formatAsCurrency()),
+                        text = stringResource(R.string.expense_format, state.expenseAmount.formatAsAccountCurrency()),
                         style = MaterialTheme.typography.titleMedium,
                         color = expenseTextColor,
                         fontWeight = FontWeight.Bold
@@ -386,12 +386,12 @@ private fun CategoryBudgetCard(
         stringResource(
             R.string.limit_percent_format,
             state.limitPercentage.toInt(),
-            state.limitAmount.formatAsCurrency()
+            state.limitAmount.formatAsAccountCurrency()
         )
     } else {
         stringResource(
             R.string.limit_amount_format,
-            state.limitAmount.formatAsCurrency()
+            state.limitAmount.formatAsAccountCurrency()
         )
     }
 
@@ -494,8 +494,8 @@ private fun CategoryBudgetCard(
                     Text(
                         text = stringResource(
                             R.string.spent_vs_limit_format,
-                            state.spentAmount.formatAsCurrency(),
-                            state.limitAmount.formatAsCurrency()
+                            state.spentAmount.formatAsAccountCurrency(),
+                            state.limitAmount.formatAsAccountCurrency()
                         ),
                         style = MaterialTheme.typography.bodySmall,
                         color = Color.White.copy(alpha = 0.8f),

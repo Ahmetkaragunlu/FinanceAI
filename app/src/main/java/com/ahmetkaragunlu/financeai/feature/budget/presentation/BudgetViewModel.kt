@@ -1,58 +1,59 @@
 package com.ahmetkaragunlu.financeai.feature.budget.presentation
 
-
-
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ahmetkaragunlu.financeai.R
-import com.ahmetkaragunlu.financeai.core.format.DateFormatter
+import com.ahmetkaragunlu.financeai.core.money.MoneyAmounts
+import com.ahmetkaragunlu.financeai.core.session.AccountSession
+import com.ahmetkaragunlu.financeai.core.time.FinanceCalendar
+import com.ahmetkaragunlu.financeai.feature.budget.domain.calculation.calculateBudgetUsagePercentage
+import com.ahmetkaragunlu.financeai.feature.budget.domain.calculation.calculateCategoryBudgetLimit
 import com.ahmetkaragunlu.financeai.feature.budget.domain.model.Budget
 import com.ahmetkaragunlu.financeai.feature.budget.domain.model.BudgetType
 import com.ahmetkaragunlu.financeai.feature.budget.domain.repository.BudgetRepository
+import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryExpense
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.repository.TransactionRepository
-import com.ahmetkaragunlu.financeai.feature.budget.domain.sync.BudgetSync
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.math.BigDecimal
 import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class BudgetViewModel @Inject constructor(
+    private val calendar: FinanceCalendar,
+    private val session: AccountSession,
     private val budgetRepository: BudgetRepository,
-    private val financeRepository: TransactionRepository,
-    private val budgetSync: BudgetSync
+    private val financeRepository: TransactionRepository
 ) : ViewModel() {
 
-    private val currentMonthRange = DateFormatter.getCurrentMonthRange()
+    private var isSaving = false
+    private val month = calendar.observeMonth()
     private val _formState = MutableStateFlow(BudgetFormState())
     val formState = _formState.asStateFlow()
     private val _deleteDialogState = MutableStateFlow(DeleteDialogState())
     val deleteDialogState = _deleteDialogState.asStateFlow()
     private val budgetRulesFlow = budgetRepository.observeBudgets()
-    private val totalIncomeFlow = financeRepository.observeTotalIncomeByDateRange(
-        currentMonthRange.first, currentMonthRange.second
-    )
-    private val totalExpenseFlow = financeRepository.observeTotalExpenseByDateRange(
-        currentMonthRange.first, currentMonthRange.second
-    )
-    private val categoryExpensesFlow = financeRepository.observeCategoryExpensesByTypeAndDateRange(
-        TransactionType.EXPENSE, currentMonthRange.first, currentMonthRange.second
-    )
+    private val summaryFlow = month.flatMapLatest { financeRepository.observeFinancialSummary(it.start, it.endExclusive) }
+    private val categoryExpensesFlow = month.flatMapLatest { financeRepository.observeCategoryExpensesByTypeAndDateRange(TransactionType.EXPENSE, it.start, it.endExclusive) }
 
     @OptIn(FlowPreview::class)
     val uiState: StateFlow<BudgetUiState> = combine(
         budgetRulesFlow,
-        totalIncomeFlow,
-        totalExpenseFlow,
+        summaryFlow,
         categoryExpensesFlow
-    ) { rules, totalIncome, totalExpense, categoryExpenses ->
+    ) { rules, summary, categoryExpenses ->
         if (rules.isEmpty()) {
             BudgetUiState(isBudgetEmpty = true)
         } else {
-            calculateBudgetState(rules, totalIncome ?: 0.0, totalExpense ?: 0.0, categoryExpenses)
+            calculateBudgetState(rules, summary.income, summary.expense, categoryExpenses)
         }
     }.distinctUntilChanged().stateIn(
         scope = viewModelScope,
@@ -128,12 +129,12 @@ class BudgetViewModel @Inject constructor(
         }
 
         if (currentState.selectedType == BudgetType.CATEGORY_PERCENTAGE) {
-            if (currentState.percentageInput.isBlank()) {
+            if (currentState.percentageInput.replace(',', '.').toDoubleOrNull()?.let { it.isFinite() && it > 0 } != true) {
                 _formState.update { it.copy(amountErrorResId = R.string.error_enter_percent) }
                 hasError = true
             }
         } else {
-            if (currentState.amountInput.isBlank() || currentState.amountInput.toDoubleOrNull() == 0.0) {
+            if (MoneyAmounts.parse(currentState.amountInput, session.requireAccount().currencyCode) == null) {
                 _formState.update { it.copy(amountErrorResId = R.string.error_enter_valid_amount) }
                 hasError = true
             }
@@ -144,50 +145,56 @@ class BudgetViewModel @Inject constructor(
     }
 
     private fun saveBudgetRule() {
+        if (isSaving) return
+        val account = session.account.value ?: return
+        val currentState = _formState.value
+        isSaving = true
         viewModelScope.launch {
-            val currentState = _formState.value
-            val amount = currentState.amountInput.toDoubleOrNull() ?: 0.0
-            val percentage = currentState.percentageInput.toDoubleOrNull()
-            if (checkConflict(currentState)) {
-                val errorRes = if (currentState.selectedType == BudgetType.GENERAL_MONTHLY)
-                    R.string.error_conflict_general
-                else
-                    R.string.error_conflict_category
-                _formState.update {
-                    it.copy(
-                        isConflictDialogOpen = true,
-                        conflictErrorResId = errorRes
-                    )
-                }
-            } else {
-                var firestoreId = ""
-                if (currentState.editingId != 0) {
-                    val existingRules =
-                        budgetRepository.observeBudgets().firstOrNull() ?: emptyList()
-                    val existingRule = existingRules.find { it.id == currentState.editingId }
-                    firestoreId = existingRule?.firestoreId ?: ""
-                }
-                if (firestoreId.isEmpty()) {
-                    firestoreId = budgetSync.createBudgetId()
-                }
-                val entity = Budget(
-                    id = currentState.editingId,
-                    budgetType = currentState.selectedType,
-                    amount = amount,
-                    category = currentState.selectedCategory,
-                    limitPercentage = percentage,
-                    firestoreId = firestoreId,
-                    syncedToFirebase = false
-                )
-                budgetRepository.insertBudget(entity)
-                launch {
-                    budgetSync.syncBudget(entity).onSuccess {
-                        budgetRepository.updateBudget(entity.copy(syncedToFirebase = true))
+            try {
+                if (!session.isCurrent(account)) return@launch
+                val amount = MoneyAmounts.parse(currentState.amountInput, account.currencyCode) ?: 0.0
+                val percentage = currentState.percentageInput.replace(',', '.').toDoubleOrNull()
+                val hasConflict = checkConflict(currentState)
+                if (!session.isCurrent(account)) return@launch
+                if (hasConflict) {
+                    val errorRes = if (currentState.selectedType == BudgetType.GENERAL_MONTHLY)
+                        R.string.error_conflict_general
+                    else
+                        R.string.error_conflict_category
+                    _formState.update {
+                        it.copy(
+                            isConflictDialogOpen = true,
+                            conflictErrorResId = errorRes
+                        )
                     }
-                }
+                } else {
+                    var firestoreId = ""
+                    if (currentState.editingId != 0) {
+                        val existingRules =
+                            budgetRepository.observeBudgets().firstOrNull() ?: emptyList()
+                        val existingRule = existingRules.find { it.id == currentState.editingId }
+                        firestoreId = existingRule?.firestoreId ?: ""
+                    }
+                    if (!session.isCurrent(account)) return@launch
+                    val entity = Budget(
+                        ownerId = account.ownerId, currencyCode = account.currencyCode,
+                        id = currentState.editingId,
+                        budgetType = currentState.selectedType,
+                        amount = amount,
+                        category = currentState.selectedCategory,
+                        limitPercentage = percentage,
+                        firestoreId = firestoreId,
+                        syncedToFirebase = false
+                    )
+                    budgetRepository.insertBudget(entity)
 
-                _formState.update { it.copy(isVisible = false, isConflictDialogOpen = false) }
-            }
+                    if (session.isCurrent(account)) _formState.update { it.copy(isVisible = false, isConflictDialogOpen = false) }
+                }
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) {
+                if (session.isCurrent(account)) _formState.update { it.copy(amountErrorResId = R.string.failure) }
+                Log.w("BudgetViewModel", "Budget save failed (${e.javaClass.simpleName})")
+            } finally { isSaving = false }
         }
     }
 
@@ -215,8 +222,8 @@ class BudgetViewModel @Inject constructor(
                 isVisible = true,
                 editingId = id,
                 selectedType = type,
-                amountInput = amount.toInt().toString(),
-                percentageInput = percentage?.toInt()?.toString() ?: "",
+                amountInput = BigDecimal.valueOf(amount).stripTrailingZeros().toPlainString(),
+                percentageInput = percentage?.let { BigDecimal.valueOf(it).stripTrailingZeros().toPlainString() } ?: "",
                 selectedCategory = category,
                 amountErrorResId = null,
                 categoryErrorResId = null
@@ -236,23 +243,23 @@ class BudgetViewModel @Inject constructor(
     }
 
     private fun deleteBudgetRule() {
+        val account = session.account.value ?: return
+        val id = _deleteDialogState.value.budgetIdToDelete ?: return
         viewModelScope.launch {
-            _deleteDialogState.value.budgetIdToDelete?.let { id ->
-                val rules = budgetRepository.observeBudgets().firstOrNull() ?: emptyList()
-                val budgetToDelete = rules.find { it.id == id }
+            try {
+                if (!session.isCurrent(account)) return@launch
+                run {
+                    val rules = budgetRepository.observeBudgets().firstOrNull() ?: emptyList()
+                    val budgetToDelete = rules.find { it.id == id }
 
-                budgetToDelete?.let { budget ->
-                    val firestoreId = budget.firestoreId
-                    budgetRepository.deleteBudget(budget)
+                    budgetToDelete?.let { budget ->
+                        budgetRepository.deleteBudget(budget)
 
-                    if (firestoreId.isNotEmpty()) {
-                        launch {
-                            budgetSync.deleteBudget(firestoreId)
-                        }
                     }
                 }
-            }
-            _deleteDialogState.update { it.copy(isVisible = false, budgetIdToDelete = null) }
+                if (session.isCurrent(account)) _deleteDialogState.update { it.copy(isVisible = false, budgetIdToDelete = null) }
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) { Log.w("BudgetViewModel", "Budget delete failed (${e.javaClass.simpleName})") }
         }
     }
 
@@ -260,7 +267,7 @@ class BudgetViewModel @Inject constructor(
         rules: List<Budget>,
         totalIncome: Double,
         totalExpense: Double,
-        categoryExpenses: List<com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryExpense>
+        categoryExpenses: List<CategoryExpense>
     ): BudgetUiState {
         val generalRule = rules.find { it.budgetType == BudgetType.GENERAL_MONTHLY }
         val generalBudgetState = generalRule?.let { rule ->
@@ -282,12 +289,7 @@ class BudgetViewModel @Inject constructor(
                 val categoryName = rule.category?.name
                 val spent =
                     categoryExpenses.find { it.category == categoryName }?.totalAmount ?: 0.0
-                val limit =
-                    if (rule.budgetType == BudgetType.CATEGORY_PERCENTAGE && generalRule != null) {
-                        generalRule.amount * ((rule.limitPercentage ?: 0.0) / 100)
-                    } else {
-                        rule.amount
-                    }
+                val limit = calculateCategoryBudgetLimit(rule, generalRule)
                 val progress = if (limit > 0) (spent / limit).toFloat() else 0f
                 CategoryBudgetState(
                     id = rule.id,
@@ -298,7 +300,7 @@ class BudgetViewModel @Inject constructor(
                     spentAmount = spent,
                     progress = progress.coerceIn(0f, 1f),
                     isOverBudget = spent > limit,
-                    percentageUsed = if (limit > 0) ((spent / limit) * 100).toInt() else 0
+                    percentageUsed = calculateBudgetUsagePercentage(spent, limit).toInt()
                 )
             }.sortedByDescending { it.percentageUsed }
         val warning = generateWarning(categoryBudgetStates, generalBudgetState)

@@ -5,8 +5,6 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import androidx.room.Update
-import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryExpense
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
 import kotlinx.coroutines.flow.Flow
@@ -20,46 +18,46 @@ interface TransactionDao {
     @Delete
     suspend fun deleteTransaction(transaction: TransactionEntity)
 
-    @Update
-    suspend fun updateTransaction(transaction: TransactionEntity)
-
-    @Query("SELECT * FROM transaction_table WHERE id = :id")
+    @Query("SELECT * FROM transaction_table WHERE ownerId = (SELECT ownerId FROM active_account WHERE id = 0) AND id = :id")
     fun observeTransactionById(id: Int): Flow<TransactionEntity?>
 
-    @Query("SELECT * FROM transaction_table")
+    @Query("SELECT * FROM transaction_table WHERE ownerId = (SELECT ownerId FROM active_account WHERE id = 0)")
     suspend fun getAllTransactionsOneShot(): List<TransactionEntity>
-    @Query("SELECT * FROM transaction_table ORDER BY date DESC")
+    @Query("SELECT * FROM transaction_table WHERE ownerId = (SELECT ownerId FROM active_account WHERE id = 0) ORDER BY date DESC")
     fun observeTransactions(): Flow<List<TransactionEntity>>
-    @Query("SELECT * FROM transaction_table WHERE date BETWEEN :startDate AND :endDate ORDER BY date DESC")
+    @Query("SELECT * FROM transaction_table WHERE ownerId = (SELECT ownerId FROM active_account WHERE id = 0) AND date >= :startDate AND date < :endDate ORDER BY date DESC")
     fun observeTransactionsByDateRange(startDate: Long, endDate: Long): Flow<List<TransactionEntity>>
 
-    @Query("SELECT * FROM transaction_table WHERE category = :category AND date BETWEEN :startDate AND :endDate ORDER BY date DESC")
+    @Query("SELECT * FROM transaction_table WHERE ownerId = (SELECT ownerId FROM active_account WHERE id = 0) AND category = :category AND date >= :startDate AND date < :endDate ORDER BY date DESC")
     fun observeTransactionsByCategoryAndDate(category: CategoryType, startDate: Long, endDate: Long): Flow<List<TransactionEntity>>
 
-    @Query("SELECT SUM(amount) FROM transaction_table WHERE `transaction` = 'INCOME' AND date BETWEEN :startDate AND :endDate")
-    fun observeTotalIncomeByDateRange(startDate: Long, endDate: Long): Flow<Double?>
+    @Query("""
+        SELECT COALESCE(SUM(CASE WHEN `transaction` = 'INCOME' THEN amountMinor ELSE 0 END), 0) AS incomeMinor,
+               COALESCE(SUM(CASE WHEN `transaction` = 'EXPENSE' THEN amountMinor ELSE 0 END), 0) AS expenseMinor
+        FROM transaction_table
+        WHERE ownerId = (SELECT ownerId FROM active_account WHERE id = 0)
+          AND date >= :startDate AND date < :endDate
+    """)
+    fun observeFinancialSummary(startDate: Long, endDate: Long): Flow<FinancialSummaryRow>
 
-    @Query("SELECT SUM(amount) FROM transaction_table WHERE `transaction` = 'EXPENSE' AND date BETWEEN :startDate AND :endDate")
-    fun observeTotalExpenseByDateRange(startDate: Long, endDate: Long): Flow<Double?>
+    @Query("SELECT SUM(amountMinor) FROM transaction_table WHERE ownerId = (SELECT ownerId FROM active_account WHERE id = 0) AND `transaction` = 'EXPENSE' AND date >= :startDate AND date < :endDate")
+    fun observeTotalExpenseByDateRange(startDate: Long, endDate: Long): Flow<Long?>
 
-    @Query("SELECT * FROM transaction_table WHERE `transaction` = :transactionType AND date BETWEEN :startDate AND :endDate ORDER BY date DESC")
+    @Query("SELECT * FROM transaction_table WHERE ownerId = (SELECT ownerId FROM active_account WHERE id = 0) AND `transaction` = :transactionType AND date >= :startDate AND date < :endDate ORDER BY date DESC")
     fun observeTransactionsByTypeAndDate(transactionType: TransactionType, startDate: Long, endDate: Long): Flow<List<TransactionEntity>>
 
     @Query("""
-    SELECT category, SUM(amount) as totalAmount
-    FROM transaction_table
-    WHERE `transaction` = :transactionType AND date BETWEEN :startDate AND :endDate
+    SELECT category, SUM(amountMinor) as totalMinor
+    FROM transaction_table WHERE ownerId = (SELECT ownerId FROM active_account WHERE id = 0) AND `transaction` = :transactionType AND date >= :startDate AND date < :endDate
     GROUP BY category
 """)
     fun observeCategoryExpensesByTypeAndDateRange(
         transactionType: TransactionType,
         startDate: Long,
         endDate: Long
-    ): Flow<List<CategoryExpense>>
+    ): Flow<List<CategoryExpenseRow>>
 
-    @Query("SELECT * FROM transaction_table WHERE firestoreId = :firestoreId LIMIT 1")
+    @Query("SELECT * FROM transaction_table WHERE ownerId = (SELECT ownerId FROM active_account WHERE id = 0) AND firestoreId = :firestoreId LIMIT 1")
     suspend fun getTransactionByFirestoreId(firestoreId: String): TransactionEntity?
 
-    @Query("SELECT * FROM transaction_table WHERE syncedToFirebase = 0")
-    fun observeUnsyncedTransactions(): Flow<List<TransactionEntity>>
 }

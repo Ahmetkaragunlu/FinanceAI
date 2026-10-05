@@ -9,5 +9,7 @@ data class Budget(
     val category: CategoryType? = null,
     val amount: Double = 0.0,
     val limitPercentage: Double? = null,
+    val ownerId: String = "",
+    val currencyCode: String = "XXX",
     val syncedToFirebase: Boolean = false
 )

@@ -1,12 +1,13 @@
 package com.ahmetkaragunlu.financeai.feature.transaction.data.mapper
 
+import com.ahmetkaragunlu.financeai.core.money.MoneyAmounts
 import com.ahmetkaragunlu.financeai.feature.transaction.data.local.TransactionEntity
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.Transaction
 
 fun TransactionEntity.toDomain(): Transaction = Transaction(
     id = id,
     firestoreId = firestoreId,
-    amount = amount,
+    amount = MoneyAmounts.toMajor(amountMinor, currencyCode),
     transaction = transaction,
     note = note,
     date = date,
@@ -16,13 +17,15 @@ fun TransactionEntity.toDomain(): Transaction = Transaction(
     locationShort = locationShort,
     latitude = latitude,
     longitude = longitude,
+    ownerId = ownerId,
+    currencyCode = currencyCode,
     syncedToFirebase = syncedToFirebase
 )
 
 fun Transaction.toEntity(): TransactionEntity = TransactionEntity(
     id = id,
     firestoreId = firestoreId,
-    amount = amount,
+    amountMinor = MoneyAmounts.toMinor(amount, currencyCode),
     transaction = transaction,
     note = note,
     date = date,
@@ -32,5 +35,7 @@ fun Transaction.toEntity(): TransactionEntity = TransactionEntity(
     locationShort = locationShort,
     latitude = latitude,
     longitude = longitude,
+    ownerId = ownerId,
+    currencyCode = currencyCode,
     syncedToFirebase = syncedToFirebase
 )

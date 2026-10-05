@@ -10,7 +10,7 @@ class TransactionMapperTest {
     @Test
     fun `persisted identity financial data media and sync status survive both directions`() {
         val row = TransactionEntity(
-            id = 73, firestoreId = "remote-transaction", amount = 152.75,
+            id = 73, firestoreId = "remote-transaction", currencyCode = "USD", amountMinor = 15275L,
             transaction = TransactionType.EXPENSE, category = CategoryType.FOOD,
             note = "Yemek", date = 1_750_000_000_000,
             photoUri = "file:///receipt.jpg", locationFull = "Tam adres", locationShort = "Konum",
@@ -24,7 +24,7 @@ class TransactionMapperTest {
     @Test
     fun `new offline record does not gain an id media or synced flag during mapping`() {
         val row = TransactionEntity(
-            amount = 0.0, transaction = TransactionType.INCOME,
+            currencyCode = "USD", amountMinor = 0L, transaction = TransactionType.INCOME,
             category = CategoryType.SALARY, date = 0
         )
 

@@ -1,5 +1,6 @@
 package com.ahmetkaragunlu.financeai.photo
 
+import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -8,6 +9,7 @@ import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.core.content.ContextCompat
 import com.ahmetkaragunlu.financeai.R
 import java.io.File
+import kotlinx.coroutines.CancellationException
 
 class CameraHelper(
     private val context: Context,
@@ -18,13 +20,13 @@ class CameraHelper(
     fun launchCamera() {
         val hasPermission = ContextCompat.checkSelfPermission(
             context,
-            android.Manifest.permission.CAMERA
+            Manifest.permission.CAMERA
         ) == PackageManager.PERMISSION_GRANTED
 
         if (hasPermission) {
             openCamera()
         } else {
-            permissionLauncher.launch(android.Manifest.permission.CAMERA)
+            permissionLauncher.launch(Manifest.permission.CAMERA)
         }
     }
 
@@ -35,6 +37,7 @@ class CameraHelper(
                 cameraLauncher.launch(uri)
             }
         } catch (e: Exception) {
+            if (e is CancellationException) throw e
             Toast.makeText(
                 context,
                 context.getString(R.string.error_camera_failed, e.localizedMessage ?: ""),

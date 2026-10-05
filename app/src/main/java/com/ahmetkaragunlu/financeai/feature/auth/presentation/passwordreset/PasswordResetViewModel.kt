@@ -10,6 +10,7 @@ import com.ahmetkaragunlu.financeai.feature.auth.presentation.AuthState
 import com.ahmetkaragunlu.financeai.feature.auth.presentation.validation.AuthFormValidation
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -36,6 +37,7 @@ class PasswordResetViewModel @Inject constructor(
                 authRepository.confirmPasswordReset(oobCode, inputNewPassword)
                 _authState.value = AuthState.SUCCESS
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 _authState.value = AuthState.FAILURE
             }
         }

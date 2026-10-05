@@ -13,6 +13,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -43,6 +44,7 @@ class SignInViewModel @Inject constructor(
                     AuthState.EMAIL_NOT_VERIFIED
                 }
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 when (e) {
                     is AuthException.InvalidCredentials -> AuthState.INVALID_CREDENTIALS
                     else -> AuthState.FAILURE
@@ -78,6 +80,7 @@ class SignInViewModel @Inject constructor(
                     AuthState.USER_NOT_FOUND
                 }
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 AuthState.FAILURE
             }
         }

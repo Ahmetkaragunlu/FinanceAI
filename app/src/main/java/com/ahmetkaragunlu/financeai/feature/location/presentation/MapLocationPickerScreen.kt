@@ -55,9 +55,11 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.feature.location.data.LocationUtil
+import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.GoogleMap
@@ -79,7 +81,7 @@ fun MapLocationPickerScreen(
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
-    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    val lifecycleOwner = LocalLifecycleOwner.current
 
 
 
@@ -207,7 +209,7 @@ fun MapLocationPickerScreen(
             LaunchedEffect(uiState.selectedLocation) {
                 uiState.selectedLocation?.let { location ->
                     cameraPositionState.animate(
-                        update = com.google.android.gms.maps.CameraUpdateFactory.newLatLngZoom(
+                        update = CameraUpdateFactory.newLatLngZoom(
                             location,
                             16f
                         )

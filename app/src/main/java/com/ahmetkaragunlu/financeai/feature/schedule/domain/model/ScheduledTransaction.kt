@@ -18,5 +18,7 @@ data class ScheduledTransaction(
     val locationShort: String? = null,
     val latitude: Double? = null,
     val longitude: Double? = null,
+    val ownerId: String = "",
+    val currencyCode: String = "XXX",
     val syncedToFirebase: Boolean = false
 )

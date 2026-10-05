@@ -10,6 +10,7 @@ import com.ahmetkaragunlu.financeai.feature.aichat.domain.model.AiMessage
 import com.ahmetkaragunlu.financeai.feature.aichat.domain.repository.AiRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -20,9 +21,7 @@ class AiChatViewModel @Inject constructor(
     private val aiRepository: AiRepository
 ) : ViewModel() {
 
-    companion object {
-        var pendingAutoPrompt: String? = null
-    }
+    private var pendingAutoPrompt: String? = null
     var textState by mutableStateOf("")
     var isLoading by mutableStateOf(false)
     val suggestionResIds = listOf(
@@ -39,12 +38,13 @@ class AiChatViewModel @Inject constructor(
         )
 
     fun sendMessage(text: String) {
-        if (text.isBlank()) return
+        if (text.isBlank() || isLoading) return
+        isLoading = true
         viewModelScope.launch {
-            isLoading = true
             try {
                 aiRepository.sendMessage(text)
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
             } finally {
                 isLoading = false
             }

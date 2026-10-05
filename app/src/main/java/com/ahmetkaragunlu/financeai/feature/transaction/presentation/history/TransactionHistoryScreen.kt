@@ -28,6 +28,7 @@ import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.core.format.*
 import com.ahmetkaragunlu.financeai.core.ui.component.EditButton
 import com.ahmetkaragunlu.financeai.core.ui.component.FinanceDropdownMenu
+import com.ahmetkaragunlu.financeai.core.ui.component.formatAsAccountCurrency
 import com.ahmetkaragunlu.financeai.feature.schedule.presentation.ScheduledTransactionScreen
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.Transaction
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
@@ -269,7 +270,7 @@ private fun TransactionCard(
                 Color.Green else Color.Red
 
             Text(
-                text = transaction.amount.formatAsCurrency(),
+                text = transaction.amount.formatAsAccountCurrency(),
                 color = amountColor,
             )
             Spacer(modifier = modifier.width(8.dp))

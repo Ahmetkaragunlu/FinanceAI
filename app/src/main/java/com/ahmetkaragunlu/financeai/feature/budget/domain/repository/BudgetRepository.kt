@@ -11,7 +11,5 @@ interface BudgetRepository {
     fun observeBudgets(): Flow<List<Budget>>
     fun observeGeneralBudget(): Flow<Budget?>
     suspend fun getBudgetByCategory(category: CategoryType): Budget?
-    fun observeUnsyncedBudgets(): Flow<List<Budget>>
-    suspend fun getBudgetByFirestoreId(firestoreId: String): Budget?
     suspend fun getAllBudgetsOneShot(): List<Budget>
 }

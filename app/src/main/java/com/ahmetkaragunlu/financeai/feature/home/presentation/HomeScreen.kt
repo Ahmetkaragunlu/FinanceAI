@@ -45,7 +45,7 @@ fun HomeScreen(
     aiViewModel: AiChatViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.homeUiState.collectAsStateWithLifecycle()
-    val categoryExpenses by viewModel.lastMonthCategoryExpenses.collectAsStateWithLifecycle()
+    val categoryExpenses by viewModel.monthlyCategoryExpenses.collectAsStateWithLifecycle()
     val aiSuggestion by viewModel.aiSuggestion.collectAsStateWithLifecycle()
 
     BackHandler {}
@@ -110,7 +110,7 @@ fun HomeScreen(
                     style = MaterialTheme.typography.titleLarge,
                     modifier = modifier.padding(8.dp)
                 )
-                FinanceProgressBar(spendingPercentage = uiState.spendingPercentage)
+                FinanceProgressBar(remainingIncomeRatio = uiState.remainingIncomeRatio)
             }
         }
 
@@ -176,11 +176,11 @@ fun HomeScreen(
 @SuppressLint("DefaultLocale")
 @Composable
 fun FinanceProgressBar(
-    spendingPercentage: Double,
+    remainingIncomeRatio: Double,
     modifier: Modifier = Modifier
 ) {
-    val progressValue = if (spendingPercentage < 0) 1f else spendingPercentage.toFloat()
-    val percentageText = String.format("%.0f%%", spendingPercentage * 100)
+    val progressValue = if (remainingIncomeRatio < 0) 1f else remainingIncomeRatio.toFloat()
+    val percentageText = String.format("%.0f%%", remainingIncomeRatio * 100)
 
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -193,7 +193,7 @@ fun FinanceProgressBar(
                 .padding(end = 8.dp),
             trackColor = Color.White.copy(alpha = 0.3f),
             strokeCap = StrokeCap.Round,
-            color = if (spendingPercentage == 0.0) Color.Transparent else Color.White
+            color = if (remainingIncomeRatio == 0.0) Color.Transparent else Color.White
         )
         Text(
             text = percentageText,

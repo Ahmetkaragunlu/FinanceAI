@@ -1,5 +1,6 @@
 package com.ahmetkaragunlu.financeai.feature.home.presentation.component
 
+import android.graphics.Color as AndroidColor
 import android.graphics.Paint
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
@@ -22,12 +23,13 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.ahmetkaragunlu.financeai.core.format.formatAsCurrency
+import com.ahmetkaragunlu.financeai.core.ui.component.formatAsAccountCurrency
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryExpense
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toResId
 import kotlin.math.cos
 import kotlin.math.sin
+import kotlinx.coroutines.CancellationException
 
 @Composable
 fun ExpensePieChart(
@@ -53,6 +55,7 @@ fun ExpensePieChart(
             val categoryType = try {
                 CategoryType.valueOf(expense.category)
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 CategoryType.OTHER
             }
             Triple(categoryType, expense.totalAmount, getCategoryColor(index))
@@ -110,7 +113,6 @@ fun ExpensePieChart(
                 val labelX = centerX + (labelDistance * cos(angleInRadians)).toFloat()
                 val labelY = centerY + (labelDistance * sin(angleInRadians)).toFloat()
 
-
                 val categoryEnum = categoryData[index].first
                 val categoryName = categoryDisplayStrings[categoryEnum] ?: categoryEnum.name
 
@@ -126,7 +128,7 @@ fun ExpensePieChart(
                     val squareLeft = if (isLeftSide) labelX + 30f else labelX - 30f
                     val squareTop = labelY - 8f
 
-                    paint.color = android.graphics.Color.argb(
+                    paint.color = AndroidColor.argb(
                         (categoryColor.alpha * 255).toInt(),
                         (categoryColor.red * 255).toInt(),
                         (categoryColor.green * 255).toInt(),
@@ -141,7 +143,7 @@ fun ExpensePieChart(
                         paint
                     )
 
-                    paint.color = android.graphics.Color.WHITE
+                    paint.color = AndroidColor.WHITE
                     paint.textSize = 36f
                     paint.isFakeBoldText = false
 
@@ -172,7 +174,7 @@ fun ExpensePieChart(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = total.formatAsCurrency(),
+                text = total.formatAsAccountCurrency(),
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onPrimary
             )

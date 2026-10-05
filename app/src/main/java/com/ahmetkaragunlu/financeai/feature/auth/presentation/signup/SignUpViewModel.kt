@@ -11,6 +11,7 @@ import com.ahmetkaragunlu.financeai.feature.auth.presentation.AuthState
 import com.ahmetkaragunlu.financeai.feature.auth.presentation.validation.AuthFormValidation
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -40,6 +41,7 @@ class SignUpViewModel @Inject constructor(
                 authRepository.saveUser(email = email,password=password, firstName = firstName, lastName = lastName)
                 AuthState.VERIFICATION_EMAIL_SENT
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 when (e) {
                     is AuthException.EmailExists -> AuthState.USER_ALREADY_EXISTS
                     is AuthException.VerificationEmailFailed -> AuthState.VERIFICATION_EMAIL_FAILED

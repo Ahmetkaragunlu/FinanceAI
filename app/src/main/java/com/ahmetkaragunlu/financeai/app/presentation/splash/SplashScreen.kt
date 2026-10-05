@@ -12,21 +12,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.app.navigation.Screens
-import com.google.firebase.auth.FirebaseAuth
-import kotlinx.coroutines.delay
-
+import kotlinx.coroutines.CancellationException
 
 @Composable
 fun SplashScreen(
     modifier: Modifier = Modifier,
-    navController: NavController
+    navController: NavController,
+    viewModel: SplashViewModel = hiltViewModel()
 ) {
     LaunchedEffect(key1 = Unit) {
-        delay(3000)
-        if (FirebaseAuth.getInstance().currentUser != null) {
+        val ready = try { viewModel.canOpenFinance() }
+        catch (e: CancellationException) { throw e }
+        catch (_: Exception) { false }
+        if (ready) {
             navController.navigate(Screens.MAIN_GRAPH.route) {
                 popUpTo(Screens.SplashScreen.route) { inclusive = true }
             }
@@ -48,4 +50,3 @@ fun SplashScreen(
         )
     }
 }
-

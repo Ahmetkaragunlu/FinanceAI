@@ -3,9 +3,13 @@ package com.ahmetkaragunlu.financeai.fcm
 import android.app.NotificationManager
 import android.content.Context
 import android.util.Log
+import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.workDataOf
+import com.ahmetkaragunlu.financeai.core.coroutines.di.IoDispatcher
+import com.ahmetkaragunlu.financeai.core.session.AccountSession
+import com.ahmetkaragunlu.financeai.core.sync.SyncScheduler
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.repository.ScheduledTransactionRepository
 import com.ahmetkaragunlu.financeai.notification.NotificationWorker
 import com.google.firebase.auth.FirebaseAuth
@@ -15,9 +19,11 @@ import com.google.firebase.messaging.RemoteMessage
 import dagger.hilt.android.AndroidEntryPoint
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
@@ -34,7 +40,12 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
 
     @Inject
     lateinit var firestore: FirebaseFirestore
-    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    @Inject @IoDispatcher lateinit var io: CoroutineDispatcher
+    @Inject lateinit var session: AccountSession
+    private lateinit var scope: CoroutineScope
+
+    override fun onCreate() { super.onCreate(); scope = CoroutineScope(io + SupervisorJob()) }
+    override fun onDestroy() { scope.cancel(); super.onDestroy() }
 
     companion object {
         private const val TAG = "FCMService"
@@ -58,7 +69,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         val notificationUserId = data["userId"]
         val currentUserId = auth.currentUser?.uid
 
-        if (notificationUserId != null && notificationUserId != currentUserId) {
+        if (notificationUserId.isNullOrBlank() || notificationUserId != currentUserId || session.account.value?.ownerId != currentUserId) {
             return
         }
         when (notificationType) {
@@ -74,7 +85,9 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         val firestoreId = data["transactionId"] ?: run {
             return
         }
+        val account = session.account.value ?: return
         scope.launch {
+            if (!session.isCurrent(account)) return@launch
             try {
                 val activeReminders = firestore.collection("notification_reminders")
                     .whereEqualTo("transactionId", firestoreId)
@@ -84,26 +97,30 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
                     return@launch
                 }
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 return@launch
             }
             val localId = try {
                 scheduledTransactionRepository.getScheduledTransactionByFirestoreId(firestoreId)?.id
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 null
             }
             if (localId == null) {
                 return@launch
             }
+            if (!session.isCurrent(account)) return@launch
             val workRequest = OneTimeWorkRequestBuilder<NotificationWorker>()
                 .setInitialDelay(0, TimeUnit.MILLISECONDS)
                 .setInputData(
-                    workDataOf(NotificationWorker.TRANSACTION_ID_KEY to localId)
+                    workDataOf(NotificationWorker.TRANSACTION_ID_KEY to localId, SyncScheduler.OWNER_ID to account.ownerId)
                 )
+                .addTag("account_${account.ownerId}")
                 .addTag("scheduled_notification_$localId")
                 .build()
             WorkManager.getInstance(this@MyFirebaseMessagingService).enqueueUniqueWork(
                 "scheduled_notification_$localId",
-                androidx.work.ExistingWorkPolicy.KEEP,
+                ExistingWorkPolicy.KEEP,
                 workRequest
             )
         }
@@ -113,12 +130,16 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         val firestoreId = data["transactionId"] ?: run {
             return
         }
+        val account = session.account.value ?: return
         scope.launch {
+            if (!session.isCurrent(account)) return@launch
             val localId = try {
                 scheduledTransactionRepository.getScheduledTransactionByFirestoreId(firestoreId)?.id
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 null
             }
+            if (!session.isCurrent(account)) return@launch
             val notificationManager =
                 getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.cancel(firestoreId.hashCode())
@@ -150,18 +171,23 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         if (auth.currentUser == null) {
             return
         }
+        val account = session.account.value ?: return
         scope.launch {
+            if (!session.isCurrent(account)) return@launch
             val localId = try {
                 scheduledTransactionRepository.getScheduledTransactionByFirestoreId(firestoreId)?.id
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 null
             }
             if (localId != null) {
+                if (!session.isCurrent(account)) return@launch
                 val workRequest = OneTimeWorkRequestBuilder<NotificationWorker>()
                     .setInitialDelay(0, TimeUnit.MILLISECONDS)
                     .setInputData(
-                        workDataOf(NotificationWorker.TRANSACTION_ID_KEY to localId)
+                        workDataOf(NotificationWorker.TRANSACTION_ID_KEY to localId, SyncScheduler.OWNER_ID to account.ownerId)
                     )
+                    .addTag("account_${account.ownerId}")
                     .addTag("scheduled_notification_$localId")
                     .build()
                 WorkManager.getInstance(this@MyFirebaseMessagingService).enqueue(workRequest)

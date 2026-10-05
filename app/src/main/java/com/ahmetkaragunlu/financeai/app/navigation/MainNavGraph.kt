@@ -34,7 +34,6 @@ import com.ahmetkaragunlu.financeai.feature.transaction.presentation.add.AddTran
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.detail.TransactionDetailScreen
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.history.TransactionHistoryScreen
 
-
 fun NavGraphBuilder.mainNavGraph(navController: NavHostController) {
     composable(Screens.HomeScreen.route) {
         HomeScreen(navController = navController)
@@ -76,8 +75,6 @@ fun NavGraphBuilder.mainNavGraph(navController: NavHostController) {
     }
 }
 
-
-
 @Composable
 fun MainNavGraphScaffold(navController: NavHostController) {
 
@@ -88,7 +85,6 @@ fun MainNavGraphScaffold(navController: NavHostController) {
     val sessionViewModel: SessionViewModel = hiltViewModel()
     val homeViewModel: HomeViewModel = hiltViewModel()
     val userName by homeViewModel.userName.collectAsStateWithLifecycle()
-
 
     HandleDeepLinks(mainNavController)
 
@@ -101,7 +97,7 @@ fun MainNavGraphScaffold(navController: NavHostController) {
                 TextButton(onClick = {
                     homeViewModel.showLogoutDialog = false
                     sessionViewModel.performSignOut {
-                        navController.navigate(Screens.SignInScreen.route)
+                        navController.navigateSingleTopClear(Screens.SignInScreen.route)
                     }
                 }) {
                     Text(stringResource(R.string.yes), color = Color.Red)

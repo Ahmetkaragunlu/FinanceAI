@@ -1,6 +1,5 @@
 package com.ahmetkaragunlu.financeai.feature.transaction.presentation.history
 
-
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -8,7 +7,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ahmetkaragunlu.financeai.R
-import com.ahmetkaragunlu.financeai.core.format.DateFormatter
+import com.ahmetkaragunlu.financeai.core.time.FinanceCalendar
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.Transaction
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
@@ -19,13 +18,15 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 
 @HiltViewModel
 class TransactionHistoryViewModel @Inject constructor(
-    private val repository: TransactionRepository
+    private val repository: TransactionRepository,
+    private val calendar: FinanceCalendar
 ) : ViewModel() {
     var isHistoryPage by mutableStateOf(true)
 
@@ -65,20 +66,20 @@ class TransactionHistoryViewModel @Inject constructor(
     // Transactions flow
     @OptIn(ExperimentalCoroutinesApi::class)
     val transactions: StateFlow<List<Transaction>> =
-        _filterTrigger.flatMapLatest {
+        combine(_filterTrigger, calendar.observeFilterRange { selectedDateResId }) { _, range -> range }.flatMapLatest { range ->
             if (selectedDateResId == R.string.date) {
                 when {
                     selectedCategory != null -> repository.observeTransactionsByCategoryAndDate(
-                        selectedCategory!!, 0L, System.currentTimeMillis()
+                        selectedCategory!!, 0L, Long.MAX_VALUE
                     )
                     selectedType != null -> repository.observeTransactionsByTypeAndDate(
-                        selectedType!!, 0L, System.currentTimeMillis()
+                        selectedType!!, 0L, Long.MAX_VALUE
                     )
                     else -> repository.observeTransactions()
                 }
             }
             else {
-                val (startDate, endDate) = DateFormatter.getDateRange(selectedDateResId)
+                val (startDate, endDate) = range
                 when {
                     selectedCategory != null -> repository.observeTransactionsByCategoryAndDate(
                         selectedCategory!!, startDate, endDate

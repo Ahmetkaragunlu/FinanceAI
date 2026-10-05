@@ -1,6 +1,5 @@
 package com.ahmetkaragunlu.financeai.feature.transaction.domain.model
 
-
 data class Transaction(
     val id: Int = 0,
     val firestoreId: String = "",
@@ -14,5 +13,7 @@ data class Transaction(
     val locationShort: String? = null,
     val latitude: Double? = null,
     val longitude: Double? = null,
+    val ownerId: String = "",
+    val currencyCode: String = "XXX",
     val syncedToFirebase: Boolean = false
 )

@@ -6,7 +6,7 @@ Bu belge denetim raporundan farklıdır: rapor bulgu ve önerileri içerir; bura
 
 ## Altın Kurallar — Maddeler 33 ve 34
 
-Durum: Kullanıcı 33. maddenin ilkelerini kabul etti ve değişim listesinin başına altın kural olarak yerleştirilmesini istedi. Bu kurallar bütün maddeler ve uygulama fazları için geçerlidir. Faz 1, 5 Ekim 2026'da kullanıcı talimatıyla başladı; canlı uygulama durumu docs/refactor-phase-1-progress.md dosyasında tutulur.
+Durum: Kullanıcı 33. maddenin ilkelerini kabul etti ve değişim listesinin başına altın kural olarak yerleştirilmesini istedi. Bu kurallar bütün maddeler ve uygulama fazları için geçerlidir. Faz 1 temeli kullanıcı tarafından commit edildi. 5 Ekim 2026'da Faz 2 için açık başlatma talimatı geldi; özgün kapsam ve üç ek onay uygulandı/doğrulandı; Home takvim ayı onayı uygulandı, negatif progress çizimi kullanıcı isteğiyle korundu. Güncel uygulama durumu docs/refactor-phase-2-progress.md, önceki kaynak haritası docs/refactor-phase-1-progress.md dosyasında tutulur. Faz 2 tamamlandı; son kapsam/kanıt/kullanıcı istisnaları devam kaydında kayıtlıdır.
 
 **Zorunlu faz başlangıcı:** Her faz öncesinde Altın Kurallar ve aşağıdaki Test Kalitesi bölümlerinin tamamı kesinlikle okunacak; ilgili madde ayrıntıları ve güncel devam kaydı da okunarak somut dosya ve test planı hazırlanacak. Önceki fazda okunmuş olması yeni faz için yeterli değildir.
 
@@ -17,7 +17,7 @@ Durum: Kullanıcı 33. maddenin ilkelerini kabul etti ve değişim listesinin ba
 3. **Parçalama sorumluluğa göre yapılacak.** Satır/parametre sayısı tek başına kusur değildir. Ayrılan parçalar anlamlı isim ve açık sahiplik taşıyacak; sırf dosyayı küçültmek için anlaşılmaz parçalama yapılmayacak.
 4. **Ortaklaştırma anlam üzerinden yapılacak.** Aynı iş kuralı tek sahipte yönetilecek; yalnız görünüşü benzer ekranlar çok seçenekli dev ortak bileşene zorlanmayacak. Gerçek feature farklılıkları korunacak.
 5. **Tutarlılık bütün uygulamada sağlanacak.** Eşdeğer durumlarda isimlendirme, state, callback, hata ve coroutine yaklaşımı tutarlı olacak. Farklı sorumluluk/yaşam süresi gerektiren bilinçli farklılıklar korunacak; örnek by/value veya login referansı ile sınırlı tarama yapılmayacak.
-6. **Tasarım ve mevcut işleyiş korunacak.** Görünüm, renk, tipografi, yerleşim ve kullanıcı akışları değiştirilmeden refactor yapılacak. Kod taşıma/SDK geçişi mevcut özellikleri bozmayacak. Tasarım veya davranış etkileyen düzeltmeler somut etkileriyle ayrıca kullanıcı onayına sunulacak; önceki genel madde onayı bu sınırı aşma yetkisi değildir.
+6. **Tasarım ve mevcut işleyiş korunacak.** Görünüm, renk, tipografi, yerleşim ve kullanıcı akışları değiştirilmeden refactor yapılacak. Kod taşıma/SDK geçişi mevcut özellikleri bozmayacak. Tasarım veya davranış etkileyen düzeltmeler somut etkileriyle ayrıca kullanıcı onayına sunulacak; önceki genel madde onayı bu sınırı aşma yetkisi değildir. 5 Ekim'deki özel onay: yalnız gerçek yerel/uzak kayıt çatışmasında iki sürümü koruyup kullanıcıya seçim yaptıran diyalog eklenebilir (25.5). Bu sınırlı istisna mevcut ekranları yeniden tasarlama veya her kayıtta seçim sorma izni değildir. Son ek onay: Home “Bu ay” hesabı takvim ayına geçirilir; negatif progress çizimi değiştirilmez.
 7. **Kalite değerlendirmesi kanıta dayanacak.** Profesyonellik dosya/katman sayısıyla değil anlaşılır sahiplik, doğru bağımlılıklar, bakım kolaylığı ve gerçekten yapılmış doğrulamalarla değerlendirilecek. Yapılmamış test/build/lint/runtime kontrolü başarılı sayılmayacak; evrensel şirket standardı veya sıfır hata garantisi verilmeyecek.
 8. **Her fazda gerçek kullanılmayan kod temizlenecek.** Fazdaki değişikliklerle boşa çıkan ve gerçekten hiçbir kullanım/giriş noktası olmayan dosya, ekran, fonksiyon, sınıf, import, kullanılmayan XML kaynağı ve kod kaldırılacak. Boş eski paketler bırakılmayacak. Yalnız metinsel referans yokluğu silme kanıtı değildir: Manifest, Hilt/KSP, Room, reflection, navigation/deep link, persisted Worker kimlikleri ve dış sözleşmeler kontrol edilecek. Bilinçli bırakılmış uyumluluk parçaları veya sonraki fazın açık işi bu kapsama alınmaz; gerekçesi devam kaydında belirtilir. Kaynak dizininde boş klasörlerin varlığı çalışma zamanı paketi yaratmaz.
 9. **Her fazda geçici konsol/debug logları temizlenecek.** Yalnız geliştirme sırasında konsolda değer/akış görmek için eklenmiş println/print ve debug logları kaldırılacak. Hata teşhisi, operasyon veya güvenli davranış takibi için gerçekten gerekli loglar korunabilir; token, anahtar, parola, kullanıcı finansal verisi, e-posta veya kişisel dosya yolu gibi hassas içerik yazılmayacak. Bütün loglar körlemesine silinmez; kalanların amacı açık olacak. Bu temizlik tasarım ve mevcut işleyişi değiştirmeyecek.
@@ -60,7 +60,7 @@ Durum: Kullanıcı değişim listesinin beş refactor fazına ayrılmasını ist
 
 - Faz öncesi Altın Kurallar ve Test Kalitesi, ilgili özgün maddeler, checkpoint ve güncel Git durumu okunacak; dosya/sorumluluk/test planı ve açık kararlar sunulacak. Kullanıcı değişiklikleri korunacak.
 - Her faz küçük anlamlı uygulama adımlarına bölünebilir; bunlar yeni faz değildir. Aynı dosyanın gereksiz tekrar taşınması önlenecek, ilgili taşıma davranış sahibinin düzenlendiği fazda yapılabilecek.
-- Takip durumu kabul edildi / uygulandı / doğrulandı / karar bekliyor olarak ayrılacak. Birden fazla faza yayılan madde yalnız ilk değişiklikle tamamlandı sayılmayacak. Faz 1 uygulaması başladı; tamamlanan/kalan adımlar ve doğrulamalar canlı devam kaydında tutulur. Diğer fazlar henüz başlamadı.
+- Takip durumu kabul edildi / uygulandı / doğrulandı / karar bekliyor olarak ayrılacak. Birden fazla faza yayılan madde yalnız ilk değişiklikle tamamlandı sayılmayacak. Faz 2 tamamlandı; uygulanan adımlar, bilinçli sınırlar ve doğrulamalar docs/refactor-phase-2-progress.md içinde tutulur. Faz 3–5 henüz başlamadı.
 - Tasarım, mevcut akış, veri ve dış sözleşme korunacak; açık ürün tercihi keyfi seçilmeyecek. Davranış etkileyen öneriler ayrı onay olmadan faz uygulamasına dahil edilmeyecek. İlgisiz hazır iş ilerleyebilir, karar bekleyen alt iş açık kalır.
 - İlgili test kaynaklarının incelemesi, test yazımı/uyarlaması ve çalıştırılması beş fazın her birine dahildir; fazın riskleri ve Test Kalitesi kurallarıyla belirlenir. Kapsamlı son test taraması/genel regresyon/cihaz doğrulaması ve README kullanıcı ayrıca istediğinde ele alınır. Faz 6 yoktur. Build/statik kontrol otomatik test yerine geçmez; kapsam ve sonuçlar ayrı raporlanır.
 - Ek Console/App Check/config adımı gerekirse kullanıcıya adım adım bildirilecek; dış sistem ayarı/ücretli plan/key rotation/Git geçmişi mutasyonu için yetki kendiliğinden varsayılmayacak.
@@ -1556,6 +1556,7 @@ Durum: Kullanıcı yedi öneriyi ve bildirim kapsamını kabul etti. Üretim kod
 ### 24.2 Hesaba ait yerel veri
 
 - Finansal kayıtlar, AI mesajları, fotoğraflar ve bekleyen işler hesap sahibine bağlı olacak. Sorgular, UI state, dosyalar ve upload/download hesap sınırını koruyacak.
+- 5 Ekim kullanıcı teyidi: Tek telefon kullanılsa bile aynı cihazda farklı hesaplarla giriş yapılabileceği kabul edilecek. Yapı tek sabit kullanıcı/UID varsaymayacak; A çıkış → B giriş sırasında A'nın kaydı, pending işi, dosyası veya geç callback'i B'ye gösterilmeyecek/gönderilmeyecek. A tekrar giriş yaptığında yalnız kendi korunmuş verisi ve bekleyen işleri devam edecek. Bu onay sahibi belirsiz eski kayıtları otomatik A/B hesabına atama kararı değildir.
 - Eski hesabın verileri yeni hesapta görünmeyecek, işlenmeyecek veya yeni hesaba gönderilmeyecek. Mevcut sahibi belirsiz verilerin migration politikası uygulanmadan önce açıkça belirlenecek; keyfi kullanıcıya atanmayacak.
 
 ### 24.3 Çıkışta bekleyen veriyi koruma
@@ -1614,7 +1615,9 @@ Durum: Kullanıcı yedi öneriyi kabul etti. Üretim kodu değişmedi; kalıcı 
 ### 25.5 İlk ve devam eden uzlaştırma
 
 - Yalnız yerelde yoksa insert yerine uzak güncelleme/silme de ele alınacak; pending yerel değişiklikler kör snapshot veya upsert ile ezilmeyecek.
-- Açık sürüm/silme bilgisi ve deterministik reconciliation kullanılacak. Çatışma önceliği kullanıcıyla netleştirilecek; keyfi last-write-wins kararı verilmedi. Çok cihazlı finansal/idempotent geçiş gerektiğinde server transactional sözleşmesi ayrıca ele alınır; client Mutex yeterli sayılmaz, yeni backend kendiliğinden kurulmaz.
+- Açık sürüm/silme bilgisi ve deterministik reconciliation kullanılacak. Kullanıcı 5 Ekim'de gerçek çatışmada kullanıcı seçimini onayladı; keyfi last-write-wins veya her durumda yerel kazanır uygulanmayacak. Çok cihazlı finansal/idempotent geçiş gerektiğinde server transactional sözleşmesi ayrıca ele alınır; client Mutex yeterli sayılmaz, yeni backend kendiliğinden kurulmaz.
+- Yalnız yerel değişiklik varsa gönderilecek; yalnız uzak değişiklik varsa uygulanacak; iki taraftaki sonuç aynıysa gereksiz seçim sorulmayacak. Aynı kaydın aynı alanında bağımsız farklı değişiklik veya düzenleme/silme çatışması varsa iki sürüm ve pending niyet seçim yapılana kadar korunacak, sessizce ezme/silme veya otomatik yeniden oluşturma olmayacak.
+- Yalnız gerçek çatışma için anlaşılır seçim diyaloğu bu kullanıcı onayının sınırlı tasarım/akış istisnasıdır. Seçilen çözüm gönderilmeden güncel uzak sürüm tekrar doğrulanacak; arada yeni değişiklik varsa kör overwrite yapılmayacak. Hesap sınırı her adımda korunacak; başka hesabın verisi uzlaştırılmayacak. Karar kaydedildi, henüz uygulanıp test edilmedi.
 
 ### 25.6 Migration, schema ve veri invariant'ları
 
@@ -1634,12 +1637,13 @@ Durum: Kullanıcı yedi öneriyi kabul etti. Üretim kodu değişmedi; kesin par
 
 ### 26.1 Para biriminin açık sahipliği
 
-- Locale yalnız gösterim/ondalık biçimini belirleyecek; dil değişikliği kaydı başka para birimiymiş gibi göstermeyecek. TRY tek para birimi mi, gerçek çoklu para birimi mi ürün kararı olarak açıkça belirlenecek.
-- Çoklu para birimi seçilirse currencyCode ve dönüşüm/kur politikası ayrıca gerekir; otomatik ek kapsam veya kur servisi kararı verilmedi.
+- 5 Ekim kullanıcı kararı: sabit TRY zorunluluğu yok. Yeni hesabın ilk para birimi cihazın bölge ayarından belirlenecek ve hesaba bağlı currencyCode olarak saklanacak. Dil tek başına para birimi seçmez; aynı hesap başka cihazda mevcut tercihini kullanacak, yeniden cihazdan türetilmeyecek.
+- Sonraki dil/bölge değişiklikleri yalnız sayı/gösterim biçimini değiştirecek; mevcut tutarın para birimi değişmeyecek. 100 TL, dil değişince 100 USD sayılmayacak. Otomatik döviz dönüşümü, kur servisi veya hesap içinde çoklu para birimi özelliği bu onaya dahil değildir.
+- Son kullanıcı kararı: uygulama yayımlanmayacak; eski geliştirme kayıtlarının parasal anlamının korunması öncelik değil. Yeni kullanıcıların doğru başlangıcı esas alınacak; eski tutarların para birimini doğrulamak geçişi bloke etmeyecek. Bu karar eski verileri/DB'yi silme veya destructive migration izni değildir; gerekiyorsa somut temizlik ayrıca onaya sunulur. Yeni hesabın cihaz bölgesinden belirlenen para birimi hesapta korunur. Bölgeden geçerli para birimi belirlenemeyen durum için açık fallback/teyit davranışı uygulama planında netleştirilecek; sessiz TRY varsayımı yok.
 
 ### 26.2 Hassas para temsili ve veri geçişi
 
-- TRY seçilirse Double yerine Long kuruş önerisi kabul edildi: 125,50 TL = 12550 kuruş. BigDecimal parsing/yuvarlama gerektiği sınırda kullanılabilir; uygulama çapında gereksiz decimal framework kurulmaz.
+- Hassas temsil hedefi seçilen para birimiyle birlikte ele alınacak: Long alt birim ölçeği para biriminin ondalık basamak sayısına bağlıdır; bütün paralar kuruş veya iki basamak kabul edilmeyecek. Örneğin TRY için 125,50 TL = 12550 kuruş. Kesin migration/yuvarlama sınırları uygulamadan önce netleştirilecek. BigDecimal parsing/yuvarlama gerektiği sınırda kullanılabilir; uygulama çapında gereksiz decimal framework kurulmaz.
 - Form/Room/Firestore/mapper/rapor ve mevcut veriler birlikte dönüştürülecek; yalnız toLong ile ölçek kaybettiren dönüşüm yapılmayacak. Yuvarlama, üst sınır ve eski/yenilenmiş kayıt uyumu uygulama planında açık olacak.
 
 ### 26.3 Ortak tutar doğrulaması
@@ -1941,6 +1945,42 @@ Tüm başlıklar kararlaştırılmadan üretim refactoru yok. README tüm refact
 
 ## Sonraki görüşme
 
-Başlık görüşmeleri tamamlandı; beş fazlı ayrıntılı plan Altın Kurallar ve Test Kalitesi'nin ardından kayıtlıdır. Faz 1, 5 Ekim 2026'da kullanıcı talimatıyla başladı; devam için docs/refactor-phase-1-progress.md okunacak. Her faz öncesi iki kural bölümü ve madde ayrıntıları okunup güncel Git/dosya/test planı sunulacak. Açık ürün tercihleri ayrıca netleştirilecek; tasarım/işleyiş değiştirilmeyecek. Her fazda gerekli testler incelenecek/yazılacak/uyarlanacak ve çalıştırılacak; kullanılmayan kod ve geçici loglar da temizlenecek. Genel son tarama/cihaz kontrolü/README kullanıcı ayrıca istediğinde yapılacak. Gerekli Console adımları ayrıca bildirilecek.
+Başlık görüşmeleri tamamlandı; beş fazlı ayrıntılı plan Altın Kurallar ve Test Kalitesi'nin ardından kayıtlıdır. Faz 1 temeli commit edildi; kullanıcı 5 Ekim 2026'da Faz 2'yi başlattı. Özgün teknik kapsam ve üç ek onay uygulandı/doğrulandı; takvim ayı kararı uygulandı ve negatif progress çizimi kullanıcı isteğiyle korundu. Faz 2 tamamlandı. Eski veri arşivlenir; hesap izolasyonu, gerçek çatışmada seçim ve kalıcı hesap para birimi uygulanmıştır. Eksiksiz devam için docs/refactor-phase-2-progress.md okunacak. Her faz öncesi iki kural bölümü ve madde ayrıntıları okunup güncel Git/dosya/test planı sunulacak. Açık ürün tercihleri ayrıca netleştirilecek; tasarım/işleyiş ayrıca onaylanan sınırlı istisnalar dışında değiştirilmeyecek. Her fazda gerekli testler incelenecek/yazılacak/uyarlanacak ve çalıştırılacak; kullanılmayan kod ve geçici loglar da temizlenecek. Genel son tarama/cihaz kontrolü/README kullanıcı ayrıca istediğinde yapılacak. Gerekli Console adımları ayrıca bildirilecek.
 
 Bu belge her kabul edilen maddede mevcut durum, kesin karar, neden, kapsam, korunacak davranış, ertelenen ayrıntı ve uygulanmayan seçeneklerle güncellenecek.
+
+## En güncel devam — Faz 2 uygulaması (5 Ekim 2026)
+
+Son talimat özgün **8 veri/iş kuralları, 15–17 ve 24–26 + üç ek onay** birlikte uygulanmasıdır; üç karar önceki kalanların yerine geçmez. Ayrıntılı kaynak/karar/test/kalan iş kaydı **docs/refactor-phase-2-progress.md** içindedir. Üstteki görüşme/ilk-dilim notları tarihsel kanıttır, güncel durum değildir.
+
+Üç ek karar uygulandı: logout'ta pending/yerel veri korunması ve A→B→A izolasyonu; gerçek örtüşen local/remote conflict'te iki sürüm + kullanıcı seçimi ve güncel remote sürüm kontrolü; ilk cihaz bölgesinden hesapta kalıcı currencyCode ve currency-scale Long alt birim. Eski geliştirme verisi için silme izni çıkarılmadı: tam v13 legacy arşivi korunur, sahibi belirsiz satırlar rastgele UID'ye atanmaz. Offline-first Altın Kural 10 kullanıcı talimatıyla kaldırıldı; mevcut mimari korunur, her faza zorunlu yeni offline işi eklenmez.
+
+Özgün teknik kapsam: gerçek ApplicationScope/SupervisorJob/merkezi IO+Default; seri auth/session/startup/readiness, owner/generation guard ve work restore; atomik Room+outbox/tombstone, revision/mutation ack, server-transaction reconciliation, feature remote store ve conflict dialog; gerçek PK/ID, schema export ve veri koruyan 13→14 migration; ortak budget/FinancialSummary/completion/photo-work, currency/parsing/küsurat, java.time/Clock/exclusive periods/resume refresh. FirebaseSyncService ve boşa çıkan facade/module/type/API/import/XML/5 boş klasör kaldırıldı. PhotoMoveWorker persisted eski iş kimliği için bilinçli korunur, retirement Faz 3'tedir. Güvenli hata logları kalır; geçici debug çıktısı yok.
+
+Son gerçek doğrulama: dört task **--rerun-tasks --offline**, BUILD SUCCESSFUL (51 saniye), **93/93 görev executed**; JVM XML **63/63**, debug/test APK başarılı; lint **0 error + 141 warning + 10 hint**, UnusedResources 0. Pixel_8a Android 16'da dört hedefli instrumentation sınıfı **14/14**, BUILD SUCCESSFUL (11 saniye). Genel UI/Compose/Firebase network/Google-login/multi-device manuel kabul veya sıfır uyarı garantisi değildir.
+
+Önceki açık kararlar kapandı: Home “Bu ay” takvim ayını hesaplar; negatif bakiye progress çizimi kullanıcı kararıyla mevcut haliyle kalır. Faz 2'nin onaylı kapsamı son kapanış doğrulamasından sonra tamamlandı.
+
+Faz 2 kapandı; Faz 3–5/README/genel son kabul başlamadı. Console/Rules/anahtar/Git history/GuideMate değişmedi; commit/push yapılmadı. Yeni faz ancak kullanıcı istediğinde başlatılır.
+
+5 Ekim ek kullanıcı onayı uygulandı: tüm projede parametre/annotation/kod gövdesindeki gereksiz tam paket adları kısa ada, isim çakışmaları import alias'a çevrildi (19 Kotlin dosyası). Singleton temizliği **yalnız aynı bağımlılığın gereksiz çift scope'u** ile sınırlı: AuthRepositoryImpl sınıf scope'u kaldırıldı, AuthModule binding scope'u korundu; diğer singleton'lar değiştirilmedi. Son kaynakla 63/63 JVM, 14/14 hedefli cihaz, debug/test APK ve lint (0 error) başarılı. Ayrıntılar refactor-phase-2-progress.md içindedir; son takvim ayı onayı ve doğrulamasıyla Faz 2 kapanışı ayrıca yapılmıştır.
+
+## Faz 2 kapanışı — 5 Ekim 2026
+
+**Faz 2'nin kayıtlı uygulama kapsamı tamamlandı ve faz doğrulamaları geçti.** Özgün 8 (veri/iş kuralları), 15–17, 24–26 ile üç ek onay birlikte ele alındı; önceki kalanlar üç yeni kararla değiştirilmedi.
+
+Son kullanıcı kararları:
+- **26.5:** Home başlığı “Bu ay” kalır; gelir/gider/bakiye ve kategori grafiği takvim ayını kullanır. Yerel saatle ayın ilk günü 00.00 dahil, sonraki ayın ilk günü 00.00 hariçtir. Ekim'de 1–31 Ekim'in tamamı kapsanır; Eylül/Kasım dahil olmaz. Home/Budget/aylık AI bütçe hesabı aynı ay sınırındadır; History'nin farklı amaçlı filtreleri ve AI genel geçmiş kapsamı değişmez.
+- **26.7:** Kullanıcı negatif bakiye çubuğunu değiştirmemeyi seçti. remainingIncomeRatio/remainingBalance adları ve hesapları testlidir; negatif metin/tam dolu mevcut çizim bilinçli korunur. Görsel iyileştirme yapılmış sayılmaz ve sonraki faza otomatik uygulanacak iş olarak aktarılmaz.
+
+Kaynak değişikliği HomeViewModel month/observeMonth ve monthlyCategoryExpenses, HomeScreen forwarding adıdır. FinanceCalendar.observeRollingMonth ve artık kullanılmayan ZonedDateTime importu kaldırıldı. UI renk/layout/başlık/progress kodu değişmedi; yalnız ayrıca onaylanan dönem hesabı düzeltildi. Paket/DI/state sahipliği korunur; gereksiz yeni katman veya singleton eklenmedi.
+
+Son gerçek doğrulama:
+- Dört task testDebugUnitTest/assembleDebug/assembleDebugAndroidTest/lintDebug **--rerun-tasks --offline**: BUILD SUCCESSFUL, 49 saniye, **93 görev executed**.
+- JUnit XML **65/65 JVM**, failure/error/skipped 0. İki yeni FinanceCalendar senaryosu tam ay sınırı ve resume refresh ile yeni aya geçişi doğrular.
+- Pixel_8a Android 16'da dört hedefli instrumentation sınıfı **15/15**, BUILD SUCCESSFUL (12 saniye), failure/error/skipped 0. Yeni gerçek Room testi 30 Eylül/1 Kasım'ı dışlar, 1 Ekim ve 31 Ekim'in son milisaniyesini gelir/gider ve kategori özetinde kapsar.
+- Lint **0 error, 141 warning + 10 hint**, UnusedResources 0. git diff --check temiz; debug/test APK başarılı. Genel görsel/manual/Google login/canlı Firebase/Rules/çok cihazlı kabul yapılmadı; sınırsız güvenlik veya server exactly-once garantisi verilmez.
+
+Kapsam kapanış karşılaştırması: 8 ortak data/finans/completion; 15 coroutine/iptal/tamamlanma; 16 gerçek application/session/durable scope; 17 gerekli merkezi dispatcher; 24 seri account/readiness/koruma; 25 migration/ID/atomik outbox/tombstone/reconciliation/conflict; 26 currency/minor/parsing/budget/calendar/ratio uygulanmış ve ilgili risklerle doğrulanmıştır. FCM durable delivery/token retry, reminder politikası, tam medya pipeline ve iki cihazlı server completion sözleşmesi zaten Faz 3 sınırıdır; AI Logic/anahtar Faz 4, UI/navigation/error/theme genel tutarlılık Faz 5'tir. Bunlar Faz 2'nin unutulmuş işi diye gizlenmez; önceki faz planındaki ayrı kapsam olarak korunur.
+
+Çalışan Gradle oturumu yok. Commit/push/Console/Rules/key/history/GuideMate/README işlemi yapılmadı. **Faz 3 otomatik başlatılmaz**; kullanıcı istediğinde önce Altın Kurallar/Test Kalitesi, ilgili madde ayrıntıları, güncel Git ve bu kapanış kaydı okunur.

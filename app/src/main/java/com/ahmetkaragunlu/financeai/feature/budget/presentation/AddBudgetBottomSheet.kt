@@ -21,6 +21,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ahmetkaragunlu.financeai.R
+import com.ahmetkaragunlu.financeai.core.ui.component.getAccountCurrencySymbol
 import com.ahmetkaragunlu.financeai.core.ui.component.FinanceDropdownMenu
 import com.ahmetkaragunlu.financeai.feature.budget.domain.model.BudgetType
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
@@ -99,7 +100,7 @@ fun AddBudgetBottomSheet(
                     value = formState.amountInput,
                     onValueChange = { onEvent(BudgetEvent.OnAmountChange(it)) },
                     label = stringResource(R.string.amount_label),
-                    suffix = stringResource(R.string.currency_symbol),
+                    suffix = getAccountCurrencySymbol(),
                     borderColor = primaryColor,
                     errorResId = formState.amountErrorResId
                 )

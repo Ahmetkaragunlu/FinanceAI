@@ -33,14 +33,17 @@ import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.app.navigation.Screens
 import com.ahmetkaragunlu.financeai.app.navigation.navigateSingleTopClear
 import com.ahmetkaragunlu.financeai.core.format.*
+import com.ahmetkaragunlu.financeai.core.time.FinancePeriods
 import com.ahmetkaragunlu.financeai.core.ui.component.EditTextField
 import com.ahmetkaragunlu.financeai.core.ui.component.FinanceDropdownMenu
+import com.ahmetkaragunlu.financeai.core.ui.component.getAccountCurrencySymbol
 import com.ahmetkaragunlu.financeai.core.ui.theme.AddTransactionScreenTextFieldStyles
 import com.ahmetkaragunlu.financeai.feature.location.presentation.MapLocationPickerScreen
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.*
 import com.ahmetkaragunlu.financeai.photo.CameraHelper
 import com.ahmetkaragunlu.financeai.photo.PhotoSourceBottomSheet
+import java.time.ZoneId
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -146,7 +149,7 @@ fun AddTransactionScreen(
                 colors = AddTransactionScreenTextFieldStyles.textFieldColors(),
                 trailingIcon = {
                     Text(
-                        getCurrencySymbol(),
+                        getAccountCurrencySymbol(),
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
@@ -459,7 +462,7 @@ fun AddTransactionScreen(
                     onClick = {
                         datePickerState.selectedDateMillis?.let { timestamp ->
                             if (viewModel.isDateValid(timestamp)) {
-                                viewModel.updateSelectedDate(timestamp)
+                                viewModel.updateSelectedDate(FinancePeriods.fromPicker(timestamp, ZoneId.systemDefault()))
                                 viewModel.closeDatePicker()
                             }
                         }
