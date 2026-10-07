@@ -1,6 +1,7 @@
 package com.ahmetkaragunlu.financeai.feature.aichat.di
 
 import android.content.Context
+import com.ahmetkaragunlu.financeai.BuildConfig
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.core.security.AppCheckInstaller
 import com.ahmetkaragunlu.financeai.feature.aichat.data.remote.AiFirebaseConfig
@@ -36,9 +37,11 @@ object AiModule {
     @Singleton
     @AiFirebaseApp
     fun provideAiFirebaseApp(@ApplicationContext context: Context): FirebaseApp {
-        val options = context.resources.openRawResource(R.raw.ai_google_services).bufferedReader().use {
-            AiFirebaseConfig.read(it, context.packageName).toOptions()
-        }
+        val options = AiFirebaseConfig.of(
+            projectId = BuildConfig.AI_FIREBASE_PROJECT_ID,
+            applicationId = BuildConfig.AI_FIREBASE_APP_ID,
+            apiKey = BuildConfig.AI_FIREBASE_API_KEY
+        ).toOptions()
         val defaultApp = FirebaseApp.getInstance()
         require(options.projectId != defaultApp.options.projectId) { "AI must use its separate Firebase project." }
         val app = FirebaseApp.getApps(context).firstOrNull { it.name == AI_APP_NAME }

@@ -2,6 +2,7 @@ package com.ahmetkaragunlu.financeai.feature.aichat.di
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import com.ahmetkaragunlu.financeai.BuildConfig
 import com.ahmetkaragunlu.financeai.core.firebase.di.FirebaseModule
 import com.google.firebase.FirebaseApp
 import com.google.firebase.appcheck.FirebaseAppCheck
@@ -24,8 +25,11 @@ class AiModuleTest {
 
         val aiApp = AiModule.provideAiFirebaseApp(context)
         assertNotSame(defaultApp, aiApp)
-        assertEquals("financeai-7e7bc", FirebaseApp.getInstance().options.projectId)
-        assertEquals("financeai-ai", aiApp.options.projectId)
+        assertNotEquals(aiApp.options.projectId, defaultApp.options.projectId)
+        assertEquals(BuildConfig.AI_FIREBASE_PROJECT_ID, aiApp.options.projectId)
+        assertEquals(BuildConfig.AI_FIREBASE_APP_ID, aiApp.options.applicationId)
+        // Avoid including the API key in assertion failure output.
+        assertTrue("AI app must use the configured client key", aiApp.options.apiKey == BuildConfig.AI_FIREBASE_API_KEY)
         assertNull(aiApp.options.databaseUrl)
         assertNull(aiApp.options.storageBucket)
         assertNull(aiApp.options.gcmSenderId)

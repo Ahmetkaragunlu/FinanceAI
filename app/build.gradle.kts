@@ -17,6 +17,34 @@ val localConfiguration = Properties().apply {
 val mapsApiKey = providers.environmentVariable("MAPS_API_KEY")
     .orElse(providers.gradleProperty("MAPS_API_KEY"))
     .orElse(localConfiguration.getProperty("MAPS_API_KEY", ""))
+val aiFirebaseProjectId = providers.environmentVariable("AI_FIREBASE_PROJECT_ID")
+    .orElse(providers.gradleProperty("AI_FIREBASE_PROJECT_ID"))
+    .orElse(localConfiguration.getProperty("AI_FIREBASE_PROJECT_ID", ""))
+val aiFirebaseAppId = providers.environmentVariable("AI_FIREBASE_APP_ID")
+    .orElse(providers.gradleProperty("AI_FIREBASE_APP_ID"))
+    .orElse(localConfiguration.getProperty("AI_FIREBASE_APP_ID", ""))
+val aiFirebaseApiKey = providers.environmentVariable("AI_FIREBASE_API_KEY")
+    .orElse(providers.gradleProperty("AI_FIREBASE_API_KEY"))
+    .orElse(localConfiguration.getProperty("AI_FIREBASE_API_KEY", ""))
+
+fun buildConfigString(value: String): String =
+    "\"${value.replace("\\", "\\\\").replace("\"", "\\\"")}\""
+
+val requiredAiFirebaseProjectId = aiFirebaseProjectId.get().trim().also {
+    require(it.isNotBlank()) {
+        "Set AI_FIREBASE_PROJECT_ID in local.properties, a Gradle property or the CI environment."
+    }
+}
+val requiredAiFirebaseAppId = aiFirebaseAppId.get().trim().also {
+    require(it.isNotBlank()) {
+        "Set AI_FIREBASE_APP_ID in local.properties, a Gradle property or the CI environment."
+    }
+}
+val requiredAiFirebaseApiKey = aiFirebaseApiKey.get().trim().also {
+    require(it.isNotBlank()) {
+        "Set AI_FIREBASE_API_KEY in local.properties, a Gradle property or the CI environment."
+    }
+}
 
 android {
     namespace = "com.ahmetkaragunlu.financeai"
@@ -29,6 +57,9 @@ android {
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "com.ahmetkaragunlu.financeai.FinanceTestRunner"
+        buildConfigField("String", "AI_FIREBASE_PROJECT_ID", buildConfigString(requiredAiFirebaseProjectId))
+        buildConfigField("String", "AI_FIREBASE_APP_ID", buildConfigString(requiredAiFirebaseAppId))
+        buildConfigField("String", "AI_FIREBASE_API_KEY", buildConfigString(requiredAiFirebaseApiKey))
         manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey.get().also {
             require(it.isNotBlank()) { "Set MAPS_API_KEY in local.properties, a Gradle property or the CI environment." }
         }
