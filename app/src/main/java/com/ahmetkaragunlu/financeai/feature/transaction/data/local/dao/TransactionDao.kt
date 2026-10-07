@@ -27,6 +27,8 @@ interface TransactionDao {
 
     @Query("SELECT * FROM transaction_table WHERE ownerId = (SELECT ownerId FROM active_account WHERE id = 0)")
     suspend fun getAllTransactionsOneShot(): List<TransactionEntity>
+    @Query("SELECT * FROM transaction_table WHERE ownerId = (SELECT ownerId FROM active_account WHERE id = 0) AND date >= :startDate AND date < :endDate ORDER BY date DESC")
+    suspend fun getTransactionsByDateRangeOneShot(startDate: Long, endDate: Long): List<TransactionEntity>
     @Query("SELECT * FROM transaction_table WHERE ownerId = (SELECT ownerId FROM active_account WHERE id = 0) ORDER BY date DESC")
     fun observeTransactions(): Flow<List<TransactionEntity>>
     @Query("SELECT * FROM transaction_table WHERE ownerId = (SELECT ownerId FROM active_account WHERE id = 0) AND date >= :startDate AND date < :endDate ORDER BY date DESC")

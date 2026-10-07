@@ -1,5 +1,7 @@
 package com.ahmetkaragunlu.financeai.feature.aichat.presentation
 
+import android.widget.Toast
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -26,6 +28,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -42,6 +45,14 @@ fun AiChatScreen(
     viewModel: AiChatViewModel = hiltViewModel(),
 ) {
     val messages by viewModel.chatMessages.collectAsStateWithLifecycle()
+    val errorResId by viewModel.errorResId.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    LaunchedEffect(errorResId) {
+        errorResId?.let {
+            Toast.makeText(context, context.getString(it), Toast.LENGTH_SHORT).show()
+            viewModel.dismissError()
+        }
+    }
     val listState = rememberLazyListState()
     val suggestions = viewModel.suggestionResIds.map { stringResource(it) }
 
@@ -87,10 +98,9 @@ fun AiChatScreen(
 
         ChatInputArea(
             text = viewModel.textState,
-            onTextChanged = { viewModel.textState = it },
+            onTextChanged = viewModel::updateText,
             onSendClicked = {
                 viewModel.sendMessage(viewModel.textState)
-                viewModel.textState = ""
             }
         )
     }

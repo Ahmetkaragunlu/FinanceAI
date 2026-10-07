@@ -1,8 +1,20 @@
 # FinanceAI — Değişim Listesi
 
+**Son onaylı iki değişiklik:** AI yanıt dili hızlı XML soru metnine veya manuel soru metnine göre belirlenir; cihaz dilinden hazır ay etiketi gönderilmez, periodYear/periodMonth sayıları kullanılır. Ay/kategori/gelir/gider ifadeleri soru diline uyarlanır; para birimi ve hesaplar korunur. AiFirebaseApp KDoc ikinci Spark AI projesinin amacını ve default Firebase servis sınırını İngilizce açıklar. JVM121/121 ve cihaz36/36 (FCM test izolasyonu / default restore), debug/release derleme ve lint0error; canlı AI kontrolü kullanıcıda. Google giriş hızlandırması uygulanmadı. Kanıt `docs/refactor-ai-project-progress.md` başındadır.
+
+**Son aylık AI kararı:** Kullanıcı beş aylık analiz maddesini ve doğal sohbet davranışını onayladı. AI raporu yalnız aktif hesabın bu takvim ayındaki işlemlerini içerir; gelir/gider/bakiye/bütçe/kategori sıralaması ortak ay sınırında hesaplanır. Boş ay, yalnız gelir, bütçe yok ve eşit en yüksek kategoriler açık veridir. XML talimatı selamlama, asistan kimliği, finans dışı ve belirsiz soruları ayrı ele alır. Eski kayıtlar/sohbet silinmedi, tasarım ve mevcut Flash-Lite/LOW/timeout/retry korunur. JVM121/121, cihaz35/35 (dış FCM service test sırasında izole edilip eski default duruma geri yüklendi), build/lint başarılı. Gerçek AI yanıt kontrolü kullanıcıda; detay `docs/refactor-ai-project-progress.md`.
+
+**Son AI gecikme düzeltmesi:** Kullanıcı isteğiyle aynı modelde LOW thinking / SDK17.17.0 / 25s attempt ve en fazla bir retry / typed hata ayrımı uygulandı. Tek request/reply ve finansal veri kapsamı korundu. JVM117/117 ve debug/release/test APK/lint başarılı; güncel APK veriler korunarak emülatöre kuruldu. Yeni gerçek AI kontrolünü kullanıcı uygulamadan yapacak; agent canlı çağrı göndermedi. Ayrıntılar `docs/refactor-ai-project-progress.md` başındadır.
+
+**Token kaydı sonrası:** Kullanıcı yeni AI tokenini kaydetti; gerçek SDK App Check kontrolü başarılı. Sentetik model cevabı kontrolü zaman aşımı ve ardından sağlayıcı yoğun talep hatasıyla sonuçlandı; erişim doğrulandı, başarılı gerçek cevap henüz doğrulanmadı. Geçici probe kaldırılıp normal suite geri kuruldu. Devam ayrıntıları `docs/refactor-ai-project-progress.md` içindedir.
+
+**Son AI devamı:** Kullanıcı onaylı ayrı Spark projesi uygulandı; yalnız model erişimi `financeai-ai` named app'ine yönlendirildi, ana Auth/Firestore/Storage/FCM/Functions ve finansal/sohbet verisi korundu. Model `gemini-3.8-flash`; güncel 109 JVM ve 32 cihaz testi geçti. Yeni AI debug tokeninin kullanıcı tarafından Console'a kaydı ve ardından tek sentetik gerçek yanıt doğrulaması bekleniyor. Detaylar `docs/refactor-ai-project-progress.md` içindedir; Faz5 ve README başlamadı.
+
 Tarih: 4 Ekim 2026.
 
 Bu belge denetim raporundan farklıdır: rapor bulgu ve önerileri içerir; burada kullanıcıyla konuşulup kabul edilen kararlar tutulur. Öneriler otomatik olarak onaylanmış sayılmaz.
+
+**7 Ekim 2026 güncel uygulama:** Kullanıcı Faz 4'ü başlattı. Credential Manager, Firebase AI Logic, AI request/history/snapshot/hata ayrımı, Maps/local/CI güvenli config ve ilgili dependency/compiler düzenlemeleri uygulandı. Kullanıcının ayrıca onayıyla yalnız mevcut emülatör App Check tokeni ve Maps Mac debug sertifika eşleşmesi eklendi; önceki kayıtlar/API kısıtları korundu. Otomatik suite/build/lint sonuçları ve kapsam kapanışı `docs/refactor-phase-4-progress.md` içindedir. Gerçek AI cevabı sağlayıcının **ön ödeme kredisi yok** hatasına takıldı; ödeme/billing değişikliği yapılmadı ve bu dış adım tamamlanmış sayılmıyor. Faz 5/navigation/README başlatılmadı. Aşağıdaki eski tarihli durumlar önceki fazların tarihsel kayıtlarıdır.
 
 ## Altın Kurallar — Maddeler 33 ve 34
 

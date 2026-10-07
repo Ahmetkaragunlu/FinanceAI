@@ -6,11 +6,18 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ahmetkaragunlu.financeai.R
+import com.ahmetkaragunlu.financeai.core.session.AccountSession
+import com.ahmetkaragunlu.financeai.feature.aichat.domain.error.AiException
 import com.ahmetkaragunlu.financeai.feature.aichat.domain.model.AiMessage
+import com.ahmetkaragunlu.financeai.feature.aichat.domain.model.AiRequest
 import com.ahmetkaragunlu.financeai.feature.aichat.domain.repository.AiRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import java.util.UUID
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -18,12 +25,19 @@ import kotlinx.coroutines.launch
 
 @HiltViewModel
 class AiChatViewModel @Inject constructor(
-    private val aiRepository: AiRepository
+    private val aiRepository: AiRepository,
+    private val session: AccountSession
 ) : ViewModel() {
 
     private var pendingAutoPrompt: String? = null
     var textState by mutableStateOf("")
+        private set
     var isLoading by mutableStateOf(false)
+        private set
+    private var failedRequest: AiRequest? = null
+    private var sendJob: Job? = null
+    private val mutableError = MutableStateFlow<Int?>(null)
+    val errorResId = mutableError.asStateFlow()
     val suggestionResIds = listOf(
         R.string.ai_suggestion_summary,
         R.string.ai_suggestion_saving,
@@ -37,19 +51,61 @@ class AiChatViewModel @Inject constructor(
             initialValue = emptyList()
         )
 
-    fun sendMessage(text: String) {
-        if (text.isBlank() || isLoading) return
-        isLoading = true
+    init {
+        var previous = session.account.value
         viewModelScope.launch {
-            try {
-                aiRepository.sendMessage(text)
-            } catch (e: Exception) {
-                if (e is CancellationException) throw e
-            } finally {
-                isLoading = false
+            session.account.collect { current ->
+                if (current != previous) {
+                    sendJob?.cancel()
+                    sendJob = null
+                    isLoading = false
+                    textState = ""
+                    failedRequest = null
+                    pendingAutoPrompt = null
+                    mutableError.value = null
+                }
+                previous = current
             }
         }
     }
+
+    fun sendMessage(text: String) {
+        if (text.isBlank() || isLoading) return
+        val account = session.account.value ?: return
+        val request = failedRequest?.takeIf { it.ownerId == account.ownerId && it.text == text }
+            ?: AiRequest(account.ownerId, UUID.randomUUID().toString(), text)
+        isLoading = true
+        mutableError.value = null
+        if (textState == text) textState = ""
+        sendJob = viewModelScope.launch {
+            try {
+                aiRepository.sendMessage(request)
+                if (session.isCurrent(account)) failedRequest = null
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                if (session.isCurrent(account)) {
+                    failedRequest = request
+                    if (textState.isBlank()) textState = text
+                    mutableError.value = when (e) {
+                        is AiException.RateLimited -> R.string.error_rate_limited
+                        is AiException.ResponseRejected -> R.string.ai_request_rejected
+                        is AiException.Configuration -> R.string.ai_configuration_error
+                        is AiException.EmptyResponse -> R.string.ai_response_error_empty
+                        is AiException.AccessVerification -> R.string.ai_access_verification_failed
+                        is AiException.TimedOut -> R.string.ai_request_timed_out
+                        is AiException.NetworkUnavailable -> R.string.ai_network_unavailable
+                        is AiException.ServiceUnavailable -> R.string.ai_service_unavailable
+                        else -> R.string.ai_request_failed
+                    }
+                }
+            } finally {
+                if (session.isCurrent(account)) isLoading = false
+            }
+        }
+    }
+
+    fun updateText(text: String) { textState = text }
+    fun dismissError() { mutableError.value = null }
 
     fun setPendingPrompt(prompt: String) {
         if (prompt.isNotBlank()) {
@@ -59,6 +115,7 @@ class AiChatViewModel @Inject constructor(
 
     fun sendPendingPrompt() {
         pendingAutoPrompt?.let { prompt ->
+            if (isLoading || session.account.value == null) return
             sendMessage(prompt)
             pendingAutoPrompt = null
         }

@@ -1,4 +1,5 @@
 import java.util.Properties
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.android.application)
@@ -8,6 +9,14 @@ plugins {
     id("com.google.dagger.hilt.android")
     id("com.google.gms.google-services")
 }
+
+val localConfiguration = Properties().apply {
+    val configurationFile = rootProject.file("local.properties")
+    if (configurationFile.exists()) configurationFile.inputStream().use(::load)
+}
+val mapsApiKey = providers.environmentVariable("MAPS_API_KEY")
+    .orElse(providers.gradleProperty("MAPS_API_KEY"))
+    .orElse(localConfiguration.getProperty("MAPS_API_KEY", ""))
 
 android {
     namespace = "com.ahmetkaragunlu.financeai"
@@ -20,13 +29,9 @@ android {
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "com.ahmetkaragunlu.financeai.FinanceTestRunner"
-        val properties = Properties()
-        val localPropertiesFile = project.rootProject.file("local.properties")
-        if (localPropertiesFile.exists()) {
-            localPropertiesFile.inputStream().use { properties.load(it) }
+        manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey.get().also {
+            require(it.isNotBlank()) { "Set MAPS_API_KEY in local.properties, a Gradle property or the CI environment." }
         }
-        val geminiApiKey = properties.getProperty("GEMINI_API_KEY") ?: ""
-        buildConfigField("String", "GEMINI_API_KEY", "\"$geminiApiKey\"")
     }
 
     buildTypes {
@@ -42,13 +47,14 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    kotlinOptions {
-        jvmTarget = "11"
-    }
     buildFeatures {
         compose = true
         buildConfig = true
     }
+}
+
+kotlin {
+    compilerOptions { jvmTarget.set(JvmTarget.JVM_11) }
 }
 
 ksp { arg("room.schemaLocation", "$projectDir/schemas") }
@@ -57,14 +63,13 @@ dependencies {
     implementation("com.google.code.gson:gson:2.11.0")
 
 //Firebase
-    implementation(platform("com.google.firebase:firebase-bom:34.2.0"))
+    implementation(platform(libs.firebase.bom))
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
     implementation("com.google.firebase:firebase-storage")
-    implementation("androidx.credentials:credentials:1.5.0")
-    implementation("androidx.credentials:credentials-play-services-auth:1.5.0")
-    implementation("com.google.android.gms:play-services-auth:21.4.0")
-    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.googleid)
     implementation("com.google.firebase:firebase-messaging:23.4.0")
     implementation("com.google.firebase:firebase-functions")
     debugImplementation("com.google.firebase:firebase-appcheck-debug")
@@ -117,8 +122,7 @@ dependencies {
     // Google Places API
     implementation("com.google.android.libraries.places:places:3.5.0")
 
-    //Gemini API
-    implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
+    implementation(libs.firebase.ai)
 
 
 

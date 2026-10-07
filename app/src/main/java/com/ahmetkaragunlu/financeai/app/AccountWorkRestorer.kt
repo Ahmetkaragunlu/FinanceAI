@@ -21,8 +21,8 @@ class AccountWorkRestorer @Inject constructor(
     private val reminders: ReminderScheduler,
     private val photos: PhotoWorkScheduler,
     private val files: PhotoLocalStore,
-    private val tokens: FCMTokenManager
-) : SessionWorkRestorer {
+    private val tokens: FCMTokenManager) : SessionWorkRestorer
+{
     override suspend fun restore(account: ActiveAccount) {
         val transactions = database.transactionDao().getAllTransactionsOneShot()
         val schedules = database.scheduledTransactionDao().observeScheduledTransactions().first()
@@ -33,15 +33,23 @@ class AccountWorkRestorer @Inject constructor(
             upload(account, "scheduled", it.firestoreId, it.photoUri)
             if (session.isCurrent(account)) reminders.wake(account.ownerId, it.firestoreId)
         }
-        for (operation in database.photoOperationDao().forAccount(account.ownerId).filter { it.failure == null }) {
-            if (session.isCurrent(account)) photos.upload(account.ownerId, operation.collection, operation.remoteId, operation.path)
+        for (operation in database.photoOperationDao().forAccount(account.ownerId)
+            .filter { it.failure == null }) {
+            if (session.isCurrent(account)) photos.upload(
+                account.ownerId, operation.collection, operation.remoteId, operation.path
+            )
         }
         if (session.isCurrent(account)) {
             tokens.restore(account.ownerId)
             files.cleanUnreferenced(account.ownerId)
         }
     }
-    private suspend fun upload(account: ActiveAccount, collection: String, remoteId: String, path: String?) {
-        if (session.isCurrent(account) && path != null && File(path).isFile) photos.upload(account.ownerId, collection, remoteId, path)
+
+    private suspend fun upload(
+        account: ActiveAccount, collection: String, remoteId: String, path: String?
+    ) {
+        if (session.isCurrent(account) && path != null && File(path).isFile) photos.upload(
+            account.ownerId, collection, remoteId, path
+        )
     }
 }

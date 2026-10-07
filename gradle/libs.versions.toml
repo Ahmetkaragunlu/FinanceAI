@@ -5,6 +5,7 @@ credentialsPlayServicesAuth = "1.5.0"
 credentialsPlayServicesAuthVersion = "1.5.0"
 firebaseBom = "34.2.0"
 firebaseBomVersion = "34.2.0"
+firebaseAi = "17.17.0"
 googleid = "1.1.1"
 hiltAndroid = "2.57.1"
 hiltAndroidCompiler = "2.57.1"
@@ -65,6 +66,8 @@ androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-man
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
 firebase-functions-ktx = { group = "com.google.firebase", name = "firebase-functions-ktx", version.ref = "firebaseFunctionsKtx" }
+# AI needs Gemini 3 thinking-level support; other Firebase SDK upgrades remain a separate task.
+firebase-ai = { module = "com.google.firebase:firebase-ai", version.ref = "firebaseAi" }
 androidx-lifecycle-process = { group = "androidx.lifecycle", name = "lifecycle-process", version.ref = "lifecycleProcess" }
 room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "roomKtx" }
 

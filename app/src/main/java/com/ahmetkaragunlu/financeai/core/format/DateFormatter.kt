@@ -41,7 +41,6 @@ object DateFormatter {
         }
     }
 
-    fun getCurrentMonthRange(): Pair<Long, Long> = FinancePeriods.month(Clock.systemDefaultZone()).let { it.start to it.endExclusive }
 }
 fun Long.formatRelativeDate(context: Context): String = DateFormatter.formatRelativeDate(context, this)
 fun Long.formatScheduleDate(context: Context, zone: ZoneId = ZoneId.systemDefault()): String = DateFormatter.formatScheduleDate(context, this, zone)

@@ -26,7 +26,7 @@ import androidx.compose.ui.unit.dp
 import com.ahmetkaragunlu.financeai.core.ui.component.formatAsAccountCurrency
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryExpense
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
-import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toResId
+import com.ahmetkaragunlu.financeai.feature.transaction.format.toResId
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlinx.coroutines.CancellationException

@@ -23,7 +23,7 @@ import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.core.ui.component.formatAsAccountCurrency
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toIconResId
-import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toResId
+import com.ahmetkaragunlu.financeai.feature.transaction.format.toResId
 
 @Composable
 fun FilledBudgetContent(

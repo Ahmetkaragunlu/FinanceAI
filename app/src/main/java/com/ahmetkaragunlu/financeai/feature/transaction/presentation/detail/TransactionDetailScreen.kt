@@ -82,7 +82,7 @@ import com.ahmetkaragunlu.financeai.core.ui.component.getAccountCurrencySymbol
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toIconResId
-import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toResId
+import com.ahmetkaragunlu.financeai.feature.transaction.format.toResId
 import com.ahmetkaragunlu.financeai.photo.CameraHelper
 import com.ahmetkaragunlu.financeai.photo.PhotoStorageUtil
 import com.ahmetkaragunlu.financeai.photo.PhotoSourceBottomSheet

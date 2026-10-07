@@ -5,6 +5,7 @@ import com.ahmetkaragunlu.financeai.core.firebase.FirestoreCollections
 import com.ahmetkaragunlu.financeai.core.session.SessionCoordinator
 import com.ahmetkaragunlu.financeai.fcm.FCMTokenManager
 import com.ahmetkaragunlu.financeai.feature.auth.data.remote.User
+import com.ahmetkaragunlu.financeai.feature.auth.data.local.session.CredentialSessionCleaner
 import com.ahmetkaragunlu.financeai.feature.auth.domain.error.AuthException
 import com.ahmetkaragunlu.financeai.core.firebase.toDataAccessFailure
 import com.ahmetkaragunlu.financeai.feature.auth.domain.repository.AuthRepository
@@ -34,6 +35,7 @@ class AuthRepositoryImpl @Inject constructor(
     private val coordinator: SessionCoordinator,
     private val fcmTokenManager: FCMTokenManager,
     private val lookup: AuthLookupRemote,
+    private val credentialSessionCleaner: CredentialSessionCleaner,
 ) : AuthRepository {
     private val transitions = Mutex()
 
@@ -130,10 +132,16 @@ class AuthRepositoryImpl @Inject constructor(
     }
 
     override suspend fun signInWithGoogle(idToken: String?): Unit = transitions.withLock {
-        val credential = GoogleAuthProvider.getCredential(idToken, null)
-        completeAuth(auth.signInWithCredential(credential))
-        coordinator.prepare()
-        queueToken()
+        if (idToken.isNullOrBlank()) throw AuthException.InvalidCredentials()
+        try {
+            val credential = GoogleAuthProvider.getCredential(idToken, null)
+            completeAuth(auth.signInWithCredential(credential))
+            coordinator.prepare()
+            queueToken()
+        } catch (e: CancellationException) { throw e }
+        catch (e: FirebaseAuthUserCollisionException) { throw AuthException.EmailExists(e) }
+        catch (e: FirebaseAuthInvalidCredentialsException) { throw AuthException.InvalidCredentials(e) }
+        catch (e: Exception) { throw e.toDataAccessFailure() }
     }
 
     override suspend fun isUserRegistered(email: String): Boolean {
@@ -151,12 +159,16 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun signOut() = transitions.withLock {
+    override suspend fun signOut(): Unit = transitions.withLock {
         // Bound remote token cleanup; a network outage must not prevent local sign-out.
         try { withTimeoutOrNull(2_000) { fcmTokenManager.removeFCMToken() } }
         catch (e: CancellationException) { throw e }
         catch (e: Exception) { Log.w("AuthRepository", "Token revocation remains pending (${e.javaClass.simpleName})") }
         coordinator.signOut()
+        try { withTimeoutOrNull(2_000) { credentialSessionCleaner.clear() } }
+        catch (e: CancellationException) { throw e }
+        catch (e: Exception) { Log.w("AuthRepository", "Credential session cleanup failed (${e.javaClass.simpleName})") }
+        Unit
     }
     private suspend fun queueToken() {
         try { withTimeoutOrNull(2_000) { fcmTokenManager.updateFCMToken() } }

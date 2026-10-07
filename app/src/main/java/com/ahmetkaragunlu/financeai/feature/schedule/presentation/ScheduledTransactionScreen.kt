@@ -49,7 +49,7 @@ import com.ahmetkaragunlu.financeai.core.ui.component.formatAsAccountCurrency
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.model.ScheduledTransaction
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toIconResId
-import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toResId
+import com.ahmetkaragunlu.financeai.feature.transaction.format.toResId
 import java.time.ZoneId
 
 @Composable

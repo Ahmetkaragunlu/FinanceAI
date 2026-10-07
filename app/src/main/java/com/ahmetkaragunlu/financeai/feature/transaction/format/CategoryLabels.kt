@@ -1,4 +1,4 @@
-package com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper
+package com.ahmetkaragunlu.financeai.feature.transaction.format
 
 
 import com.ahmetkaragunlu.financeai.R

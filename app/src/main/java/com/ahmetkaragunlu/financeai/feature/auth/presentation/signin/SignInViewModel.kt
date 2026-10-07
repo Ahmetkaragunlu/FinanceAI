@@ -6,11 +6,10 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ahmetkaragunlu.financeai.feature.auth.domain.error.AuthException
-import com.ahmetkaragunlu.financeai.feature.auth.domain.repository.AuthRepository
 import com.ahmetkaragunlu.financeai.feature.auth.domain.usecase.SignInWithPassword
+import com.ahmetkaragunlu.financeai.feature.auth.domain.usecase.SignInWithGoogle
+import com.ahmetkaragunlu.financeai.feature.auth.domain.model.GoogleIdentity
 import com.ahmetkaragunlu.financeai.feature.auth.presentation.AuthState
-import com.google.android.gms.auth.api.signin.GoogleSignInAccount
-import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
@@ -18,12 +17,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 
 @HiltViewModel
 class SignInViewModel @Inject constructor(
-    private val authRepository: AuthRepository,
-    private val googleSignInClient: GoogleSignInClient,
+    private val googleSignIn: SignInWithGoogle,
     private val signInWithPassword: SignInWithPassword
 ) : ViewModel() {
     private val _authState = MutableStateFlow(AuthState.EMPTY)
@@ -33,22 +30,25 @@ class SignInViewModel @Inject constructor(
         private set
     var inputPassword by mutableStateOf("")
         private set
+    private var signingIn = false
 
     private fun signIn(email: String, password: String) {
+        if (signingIn) return
+        signingIn = true
         viewModelScope.launch {
-            _authState.value = try {
-                if (signInWithPassword(email, password)) {
+            try {
+                _authState.value = if (signInWithPassword(email, password)) {
                     AuthState.SUCCESS
                 } else {
                     AuthState.EMAIL_NOT_VERIFIED
                 }
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
-                when (e) {
+                _authState.value = when (e) {
                     is AuthException.InvalidCredentials -> AuthState.INVALID_CREDENTIALS
                     else -> AuthState.FAILURE
                 }
-            }
+            } finally { signingIn = false }
         }
     }
 
@@ -65,27 +65,18 @@ class SignInViewModel @Inject constructor(
         inputPassword = ""
     }
 
-    fun signInWithGoogle(account: GoogleSignInAccount) {
+    fun signInWithGoogle(identity: GoogleIdentity) {
+        if (signingIn) return
+        signingIn = true
         viewModelScope.launch {
-            _authState.value = try {
-                googleSignInClient.signOut().await()
-                val email = account.email ?: throw AuthException.MissingGoogleEmail()
-
-                val isRegistered = authRepository.isUserRegistered(email)
-                if (isRegistered) {
-                    authRepository.signInWithGoogle(account.idToken)
-                    AuthState.SUCCESS
-                } else {
-                    AuthState.USER_NOT_FOUND
-                }
+            try {
+                _authState.value = if (googleSignIn(identity)) AuthState.SUCCESS else AuthState.USER_NOT_FOUND
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
-                AuthState.FAILURE
-            }
+                _authState.value = AuthState.FAILURE
+            } finally { signingIn = false }
         }
     }
-
-    fun getGoogleSignInIntent() = googleSignInClient.signInIntent
 
     fun resetAuthState() {
         _authState.value = AuthState.EMPTY

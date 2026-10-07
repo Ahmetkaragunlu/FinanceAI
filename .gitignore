@@ -16,3 +16,15 @@ local.properties
 /.firebase/
 /*-debug.log
 /.pnpm-store/
+.env
+.env.*
+!.env.example
+*.jks
+*.keystore
+key.properties
+service-account*.json
+**/serviceAccount*.json
+**/*-firebase-adminsdk-*.json
+**/credentials.json
+/appcheck-debug-token.local.txt
+/appcheck-ai-debug-token.local.txt

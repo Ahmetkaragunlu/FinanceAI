@@ -15,7 +15,7 @@ import com.ahmetkaragunlu.financeai.feature.budget.domain.repository.BudgetRepos
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryExpense
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.repository.TransactionRepository
-import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toResId
+import com.ahmetkaragunlu.financeai.feature.transaction.format.toResId
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject

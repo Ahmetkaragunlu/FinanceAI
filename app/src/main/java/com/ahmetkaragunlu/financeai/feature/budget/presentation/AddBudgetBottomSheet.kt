@@ -26,7 +26,7 @@ import com.ahmetkaragunlu.financeai.core.ui.component.FinanceDropdownMenu
 import com.ahmetkaragunlu.financeai.feature.budget.domain.model.BudgetType
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
-import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toResId
+import com.ahmetkaragunlu.financeai.feature.transaction.format.toResId
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

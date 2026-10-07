@@ -41,6 +41,7 @@ import com.ahmetkaragunlu.financeai.core.ui.theme.AddTransactionScreenTextFieldS
 import com.ahmetkaragunlu.financeai.feature.location.presentation.MapLocationPickerScreen
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.*
+import com.ahmetkaragunlu.financeai.feature.transaction.format.toResId
 import com.ahmetkaragunlu.financeai.photo.CameraHelper
 import com.ahmetkaragunlu.financeai.photo.PhotoStorageUtil
 import com.ahmetkaragunlu.financeai.photo.PhotoSourceBottomSheet

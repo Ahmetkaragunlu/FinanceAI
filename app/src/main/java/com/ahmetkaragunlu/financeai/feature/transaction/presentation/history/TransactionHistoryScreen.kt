@@ -37,6 +37,7 @@ import com.ahmetkaragunlu.financeai.feature.schedule.presentation.ScheduledTrans
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.Transaction
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.*
+import com.ahmetkaragunlu.financeai.feature.transaction.format.toResId
 
 @Composable
 fun TransactionHistoryScreen(

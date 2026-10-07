@@ -16,7 +16,7 @@ import com.ahmetkaragunlu.financeai.core.sync.SyncScheduler
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.model.ScheduledTransaction
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.reminder.ReminderKind
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
-import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toResId
+import com.ahmetkaragunlu.financeai.feature.transaction.format.toResId
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import java.time.ZoneId

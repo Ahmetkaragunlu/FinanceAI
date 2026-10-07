@@ -15,7 +15,7 @@ import com.ahmetkaragunlu.financeai.core.sync.contract.FinancialFields
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 import com.ahmetkaragunlu.financeai.feature.schedule.data.remote.ScheduleFields
 import com.ahmetkaragunlu.financeai.feature.transaction.data.remote.TransactionFields
-import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toResId
+import com.ahmetkaragunlu.financeai.feature.transaction.format.toResId
 
 @Composable
 fun SyncConflictDialog(viewModel: SyncConflictViewModel = hiltViewModel()) {

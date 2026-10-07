@@ -2,8 +2,8 @@ package com.ahmetkaragunlu.financeai.feature.auth.presentation.signin
 
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
+import androidx.credentials.CredentialManager
+import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -34,6 +34,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -58,9 +60,9 @@ import com.ahmetkaragunlu.financeai.app.navigation.Screens
 import com.ahmetkaragunlu.financeai.app.navigation.navigateSingleTopClear
 import com.ahmetkaragunlu.financeai.core.ui.component.EditTextField
 import com.ahmetkaragunlu.financeai.feature.auth.presentation.AuthState
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInStatusCodes
-import com.google.android.gms.common.api.ApiException
+import com.ahmetkaragunlu.financeai.feature.auth.data.credential.GoogleCredentialSelector
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch
 
 @Composable
 fun SignInScreen(
@@ -71,28 +73,10 @@ fun SignInScreen(
     val context = LocalContext.current
     var passwordVisibility by rememberSaveable { mutableStateOf(false) }
     val uiState by viewModel.authState.collectAsStateWithLifecycle()
+    val scope = rememberCoroutineScope()
+    val credentialSelector = remember(context) { GoogleCredentialSelector(CredentialManager.create(context)) }
+    var selectingGoogleAccount by remember { mutableStateOf(false) }
     BackHandler { }
-
-    val googleSignInLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
-        try {
-            val account = task.getResult(ApiException::class.java)
-            account?.let {
-                viewModel.signInWithGoogle(it)
-            }
-        } catch (e: ApiException) {
-            if (e.statusCode != GoogleSignInStatusCodes.SIGN_IN_CANCELLED) {
-                Toast.makeText(
-                    context,
-                    context.getString(R.string.something_went_wrong),
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
-
-        }
-    }
 
     LaunchedEffect(uiState) {
         when (uiState) {
@@ -259,8 +243,20 @@ fun SignInScreen(
             }
             Button(
                 onClick = {
-                    val signInIntent = viewModel.getGoogleSignInIntent()
-                    googleSignInLauncher.launch(signInIntent)
+                    if (!selectingGoogleAccount) {
+                        selectingGoogleAccount = true
+                        scope.launch {
+                            try {
+                                val identity = credentialSelector.select(context, context.getString(R.string.default_web_client_id))
+                                viewModel.signInWithGoogle(identity)
+                            } catch (_: GetCredentialCancellationException) {
+                                // Closing the provider chooser does not create a login failure.
+                            } catch (e: CancellationException) { throw e }
+                            catch (_: Exception) {
+                                Toast.makeText(context, context.getString(R.string.something_went_wrong), Toast.LENGTH_SHORT).show()
+                            } finally { selectingGoogleAccount = false }
+                        }
+                    }
                 },
                 modifier = modifier
                     .widthIn(max = 400.dp)
