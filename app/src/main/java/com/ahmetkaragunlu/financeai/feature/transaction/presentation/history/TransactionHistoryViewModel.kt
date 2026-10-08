@@ -1,7 +1,6 @@
 package com.ahmetkaragunlu.financeai.feature.transaction.presentation.history
 
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
@@ -18,115 +17,68 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
-class TransactionHistoryViewModel @Inject constructor(
-    private val repository: TransactionRepository,
-    private val calendar: FinanceCalendar
-) : ViewModel() {
-    // Filter states
-    var selectedDateResId by mutableIntStateOf(R.string.date)
-        private set
-
-    var selectedType by mutableStateOf<TransactionType?>(null)
-        private set
-
-    var selectedCategory by mutableStateOf<CategoryType?>(null)
-        private set
-
+class TransactionHistoryViewModel
+@Inject
+constructor(private val repository: TransactionRepository, private val calendar: FinanceCalendar) :
+    ViewModel() {
+    private val mutableFilters = MutableStateFlow(HistoryFilters())
+    val filters = mutableFilters.asStateFlow()
     var showCategoryError by mutableStateOf(false)
         private set
 
-    // Static options
-    val dateOptions = listOf(
-        R.string.today,
-        R.string.yesterday,
-        R.string.last_week,
-        R.string.last_month,
-        R.string.date
-    )
-
-    // Dynamic category options
-    val categoryOptions: List<CategoryType>
-        get() = selectedType?.let { type ->
-            CategoryType.entries.filter { it.type == type }
-        } ?: emptyList()
-
-    // Internal trigger for flow refresh
-    private val _filterTrigger = MutableStateFlow(0)
-
-    // Transactions flow
-    @OptIn(ExperimentalCoroutinesApi::class)
     val transactions: StateFlow<List<Transaction>> =
-        combine(_filterTrigger, calendar.observeFilterRange { selectedDateResId }) { _, range -> range }.flatMapLatest { range ->
-            if (selectedDateResId == R.string.date) {
-                when {
-                    selectedCategory != null -> repository.observeTransactionsByCategoryAndDate(
-                        selectedCategory!!, 0L, Long.MAX_VALUE
-                    )
-                    selectedType != null -> repository.observeTransactionsByTypeAndDate(
-                        selectedType!!, 0L, Long.MAX_VALUE
-                    )
-                    else -> repository.observeTransactions()
-                }
+        filters
+            .flatMapLatest { filter ->
+                calendar
+                    .observeFilterRange { filter.dateResId }
+                    .flatMapLatest { range ->
+                        val allDates = filter.dateResId == R.string.date
+                        val start = if (allDates) 0L else range.first
+                        val end = if (allDates) Long.MAX_VALUE else range.second
+                        when {
+                            filter.category != null ->
+                                repository.observeTransactionsByCategoryAndDate(
+                                    filter.category,
+                                    start,
+                                    end,
+                                )
+                            filter.type != null ->
+                                repository.observeTransactionsByTypeAndDate(filter.type, start, end)
+                            allDates -> repository.observeTransactions()
+                            else -> repository.observeTransactionsByDateRange(start, end)
+                        }
+                    }
             }
-            else {
-                val (startDate, endDate) = range
-                when {
-                    selectedCategory != null -> repository.observeTransactionsByCategoryAndDate(
-                        selectedCategory!!, startDate, endDate
-                    )
-                    selectedType != null -> repository.observeTransactionsByTypeAndDate(
-                        selectedType!!, startDate, endDate
-                    )
-                    else -> repository.observeTransactionsByDateRange(startDate, endDate)
-                }
-            }
-        }.distinctUntilChanged().stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
-        )
+            .distinctUntilChanged()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    // Filter update functions
     fun onDateSelected(dateResId: Int) {
-        selectedDateResId = dateResId
-        triggerRefresh()
+        mutableFilters.update { it.copy(dateResId = dateResId) }
     }
 
     fun onTypeSelected(type: TransactionType) {
-        if (selectedType != type) {
-            selectedCategory = null
+        mutableFilters.update {
+            it.copy(type = type, category = it.category.takeIf { _ -> it.type == type })
         }
-        selectedType = type
         showCategoryError = false
-        triggerRefresh()
     }
 
     fun onCategorySelected(category: CategoryType?) {
-        selectedCategory = category
+        mutableFilters.update { it.copy(category = category) }
         showCategoryError = false
-        triggerRefresh()
     }
 
     fun canOpenCategoryMenu(): Boolean {
-        val canOpen = selectedType != null
+        val canOpen = filters.value.type != null
         showCategoryError = !canOpen
         return canOpen
-    }
-
-    private fun triggerRefresh() {
-        _filterTrigger.value++
-    }
-
-    // Helper: Type label resource ID
-    fun getTypeResId(type: TransactionType?): Int = when (type) {
-        TransactionType.INCOME -> R.string.income
-        TransactionType.EXPENSE -> R.string.expense
-        null -> R.string.type
     }
 }

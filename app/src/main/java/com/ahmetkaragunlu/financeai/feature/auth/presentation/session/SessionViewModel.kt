@@ -1,6 +1,9 @@
 package com.ahmetkaragunlu.financeai.feature.auth.presentation.session
 
 import android.util.Log
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ahmetkaragunlu.financeai.feature.auth.domain.repository.AuthRepository
@@ -12,11 +15,20 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 
 @HiltViewModel
-class SessionViewModel @Inject constructor(
-    private val authRepository: AuthRepository
-) : ViewModel() {
+class SessionViewModel @Inject constructor(private val authRepository: AuthRepository) :
+    ViewModel() {
+    var signOutComplete by mutableStateOf(false)
+        private set
 
-    fun performSignOut(onSignOutComplete: () -> Unit) {
+    private var signingOut = false
+
+    fun consumeSignOutResult() {
+        signOutComplete = false
+    }
+
+    fun performSignOut() {
+        if (signingOut || signOutComplete) return
+        signingOut = true
         viewModelScope.launch {
             try {
                 authRepository.signOut()
@@ -24,8 +36,9 @@ class SessionViewModel @Inject constructor(
                 if (e is CancellationException) throw e
                 Log.e("SessionViewModel", "Sign-out failed (${e.javaClass.simpleName})")
             } finally {
+                signingOut = false
                 currentCoroutineContext().ensureActive()
-                onSignOutComplete()
+                signOutComplete = true
             }
         }
     }

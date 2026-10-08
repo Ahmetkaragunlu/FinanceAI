@@ -1,0 +1,30 @@
+<resources>
+    <string name="current_location">Mevcut konum</string>
+    <string name="photo_save_failed">Fotoğraf kaydedilemedi. Lütfen tekrar deneyin.</string>
+    <string name="photo_capture_failed">Kamera açılamadı. Lütfen tekrar deneyin.</string>
+    <string name="photo_delete_failed">Fotoğraf kaldırılamadı. Lütfen tekrar deneyin.</string>
+    <string name="location_optional">Konum (İsteğe Bağlı)</string>
+    <string name="photo_optional">Fotoğraf (İsteğe Bağlı)</string>
+    <string name="selected_photo">Seçilen Fotoğraf</string>
+    <string name="remove_photo">Fotoğrafı Kaldır</string>
+    <string name="camera">Kamera</string>
+    <string name="gallery">Galeri</string>
+    <string name="error_camera_permission_denied">Kamera izni reddedildi</string>
+    <string name="select_location">Konum Seç</string>
+    <string name="search_address_hint">Adres ara</string>
+    <string name="confirm_location">Konumu Onayla</string>
+    <string name="location_services_disabled">Konum Servisleri Kapalı</string>
+    <string name="location_services_disabled_message">Konumunuzu almak için GPS\'i etkinleştirmeniz gerekir.</string>
+    <string name="open_settings">Ayarları Aç</string>
+    <string name="address_not_found">Adres bulunamadı</string>
+    <string name="location_permission_required">Konum izni gerekli</string>
+    <string name="gps_disabled">GPS kapalı. Lütfen konum servislerini etkinleştirin.</string>
+    <string name="location_not_available">Konum kullanılamıyor</string>
+    <string name="location_info_unavailable">Konum bilgisi alınamıyor</string>
+    <string name="location_label">Konum</string>
+    <string name="location_coordinates">Enl: %1$.6f, Boy: %2$.6f</string>
+    <string name="location_with_value">Konum: %1$s</string>
+    <string name="transaction_photo_desc">İşlem Fotoğrafı</string>
+    <string name="full_screen_photo_desc">Tam Ekran Fotoğraf</string>
+    <string name="add_photo">Fotoğraf Ekle</string>
+</resources>

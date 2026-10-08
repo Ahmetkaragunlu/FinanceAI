@@ -1,0 +1,14 @@
+<resources>
+    <string name="notification_channel_name">Planlanmış İşlemler</string>
+    <string name="notification_channel_description">Planlanmış işlemler için hatırlatıcılar</string>
+    <string name="notification_income_title">💰 Gelir Hatırlatıcısı</string>
+    <string name="notification_income_message">%1$s tutarındaki %2$s gelirini (%3$s) aldın mı?</string>
+    <string name="notification_expense_title">💳 Gider Hatırlatıcısı</string>
+    <string name="notification_expense_message">%1$s tutarındaki %2$s ödemesini (%3$s) yaptın mı?</string>
+    <string name="notification_income_expired_title">⏰ Gelir Hatırlatıcısı Süresi Doldu</string>
+    <string name="notification_income_expired_message">%1$s tutarındaki %2$s gelirin için planlanan tarih (%3$s) geçti. Hatırlatıcı otomatik olarak iptal edildi.</string>
+    <string name="notification_expense_expired_title">⏰ Gider Hatırlatıcısı Süresi Doldu</string>
+    <string name="notification_expense_expired_message">%1$s tutarındaki %2$s ödemen için planlanan tarih (%3$s) geçti. Hatırlatıcı otomatik olarak iptal edildi.</string>
+    <string name="notification_action_yes">EVET</string>
+    <string name="notification_action_no">HAYIR</string>
+</resources>

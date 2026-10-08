@@ -6,10 +6,17 @@ import com.google.firebase.FirebaseOptions
 internal data class AiFirebaseConfig(
     val projectId: String,
     val applicationId: String,
-    val apiKey: String
+    val apiKey: String,
 ) {
-    fun toOptions(): FirebaseOptions = FirebaseOptions.Builder()
-        .setProjectId(projectId).setApplicationId(applicationId).setApiKey(apiKey).build()
+    override fun toString(): String =
+        "AiFirebaseConfig(projectId=$projectId, applicationId=$applicationId, apiKey=[REDACTED])"
+
+    fun toOptions(): FirebaseOptions =
+        FirebaseOptions.Builder()
+            .setProjectId(projectId)
+            .setApplicationId(applicationId)
+            .setApiKey(apiKey)
+            .build()
 
     companion object {
         fun of(projectId: String, applicationId: String, apiKey: String): AiFirebaseConfig {

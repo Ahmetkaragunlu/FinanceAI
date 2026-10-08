@@ -7,11 +7,15 @@ import kotlinx.coroutines.CancellationException
 
 /** Presentation owns localisation; neither SDK diagnostics nor Throwable.message reach the UI. */
 @StringRes
-fun dataErrorMessageRes(error: Throwable): Int? = when (error) {
-    is CancellationException -> throw error
-    is DataAccessException.NetworkUnavailable -> R.string.error_network_unavailable
-    is DataAccessException.AccessDenied -> R.string.error_access_denied
-    is DataAccessException.RateLimited -> R.string.error_rate_limited
-    is DataAccessException.StaleRecord -> R.string.error_stale_record
-    else -> null
-}
+fun dataErrorMessageRes(error: Throwable): Int? =
+    when (error) {
+        is CancellationException -> throw error
+        is DataAccessException.NetworkUnavailable -> R.string.error_network_unavailable
+        is DataAccessException.AccessDenied -> R.string.error_access_denied
+        is DataAccessException.RateLimited -> R.string.error_rate_limited
+        is DataAccessException.TimedOut -> R.string.error_request_timed_out
+        is DataAccessException.ServiceUnavailable -> R.string.error_service_unavailable
+        is DataAccessException.InvalidRemoteData -> R.string.error_invalid_remote_data
+        is DataAccessException.StaleRecord -> R.string.error_stale_record
+        else -> null
+    }

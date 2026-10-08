@@ -1,5 +1,6 @@
 package com.ahmetkaragunlu.financeai.feature.location.presentation
 
+import com.ahmetkaragunlu.financeai.feature.location.domain.error.LocationFailure
 import com.google.android.gms.maps.model.LatLng
 
 data class LocationPickerUiState(
@@ -9,6 +10,6 @@ data class LocationPickerUiState(
     val selectedLocation: LatLng? = null,
     val addressText: String? = null,
     val isLoading: Boolean = false,
-    val errorMessage: String? = null,
-    val hasLocationPermission: Boolean = false
+    val error: LocationFailure? = null,
+    val hasLocationPermission: Boolean = false,
 )

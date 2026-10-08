@@ -32,7 +32,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
@@ -46,47 +45,63 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.core.format.formatScheduleDate
 import com.ahmetkaragunlu.financeai.core.ui.component.formatAsAccountCurrency
+import com.ahmetkaragunlu.financeai.core.ui.theme.FinanceColors
+import com.ahmetkaragunlu.financeai.core.ui.theme.FinanceGradients
+import com.ahmetkaragunlu.financeai.core.ui.theme.Spacing
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.model.ScheduledTransaction
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
-import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toIconResId
 import com.ahmetkaragunlu.financeai.feature.transaction.format.toResId
+import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toIconResId
 import java.time.ZoneId
 
 @Composable
-fun ScheduledTransactionScreen(
+fun ScheduledTransactionRoute(
     modifier: Modifier = Modifier,
-    viewModel: ScheduledTransactionsViewModel = hiltViewModel()
+    viewModel: ScheduledTransactionsViewModel = hiltViewModel(),
 ) {
     val scheduledTransactions by viewModel.scheduledTransactions.collectAsStateWithLifecycle()
     val timeZoneId by viewModel.timeZoneId.collectAsStateWithLifecycle()
+    ScheduledTransactionScreen(
+        scheduledTransactions,
+        timeZoneId,
+        viewModel::executeScheduledTransaction,
+        modifier,
+    )
+}
+
+@Composable
+fun ScheduledTransactionScreen(
+    scheduledTransactions: List<ScheduledTransaction>,
+    timeZoneId: String,
+    onExecuteClick: (ScheduledTransaction) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(colorResource(id = R.color.background))
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+        modifier =
+            modifier
+                .fillMaxSize()
+                .background(colorResource(id = R.color.background))
+                .padding(Spacing.screenPadding),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         if (scheduledTransactions.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
                     text = stringResource(R.string.no_scheduled_transactions),
-                    color = Color.Gray,
-                    textAlign = TextAlign.Center
+                    color = FinanceColors.mutedText,
+                    textAlign = TextAlign.Center,
                 )
             }
         } else {
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(bottom = 80.dp)
+                contentPadding = PaddingValues(bottom = 80.dp),
             ) {
-                items(
-                    items = scheduledTransactions,
-                    key = { it.id }
-                ) { transaction ->
+                items(items = scheduledTransactions, key = { it.id }) { transaction ->
                     ScheduledTransactionItem(
                         transaction = transaction,
                         zone = ZoneId.of(timeZoneId),
-                        onExecuteClick = { viewModel.executeScheduledTransaction(transaction) }
+                        onExecuteClick = { onExecuteClick(transaction) },
                     )
                 }
             }
@@ -99,45 +114,38 @@ fun ScheduledTransactionItem(
     transaction: ScheduledTransaction,
     modifier: Modifier = Modifier,
     onExecuteClick: () -> Unit,
-    zone: ZoneId = ZoneId.systemDefault()
+    zone: ZoneId = ZoneId.systemDefault(),
 ) {
     val context = LocalContext.current
     Card(
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF404349)),
+        colors = CardDefaults.cardColors(containerColor = FinanceColors.elevatedSurface),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        modifier = modifier
-            .widthIn(max = 450.dp)
-            .fillMaxWidth()
+        modifier = modifier.widthIn(max = 450.dp).fillMaxWidth(),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    brush = Brush.horizontalGradient(
-                        colors = listOf(
-                            Color(0xFF3b4351),
-                            Color(0xFF2d3139)
-                        )
-                    ),
-                    shape = RoundedCornerShape(16.dp)
-                )
-                .padding(16.dp)
+            modifier =
+                Modifier.fillMaxWidth()
+                    .background(
+                        brush = FinanceGradients.financialCard,
+                        shape = RoundedCornerShape(16.dp),
+                    )
+                    .padding(Spacing.screenPadding)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Surface(
                     shape = CircleShape,
-                    color = Color.White.copy(alpha = 0.2f),
-                    modifier = Modifier.size(48.dp)
+                    color = FinanceColors.onAccent.copy(alpha = 0.2f),
+                    modifier = Modifier.size(48.dp),
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             painter = painterResource(id = transaction.category.toIconResId()),
                             contentDescription = null,
-                            tint = Color.Unspecified
+                            tint = Color.Unspecified,
                         )
                     }
                 }
@@ -147,70 +155,70 @@ fun ScheduledTransactionItem(
                         text = stringResource(id = transaction.category.toResId()),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onPrimary,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
                     )
                     if (!transaction.note.isNullOrBlank()) {
                         Text(
                             text = transaction.note,
                             style = MaterialTheme.typography.bodySmall,
                             color = Color.LightGray,
-                            maxLines = 1
+                            maxLines = 1,
                         )
                     }
                 }
                 Text(
                     text = transaction.amount.formatAsAccountCurrency(),
                     style = MaterialTheme.typography.titleMedium,
-                    color = if (transaction.type == TransactionType.INCOME) Color(0xFF4CAF50) else Color(
-                        0xFFEF5350
-                    ),
-                    fontWeight = FontWeight.Bold
+                    color =
+                        if (transaction.type == TransactionType.INCOME) FinanceColors.success
+                        else FinanceColors.expenseMuted,
+                    fontWeight = FontWeight.Bold,
                 )
             }
             Spacer(modifier = Modifier.height(16.dp))
-            HorizontalDivider(color = Color.White.copy(alpha = 0.1f), thickness = 1.dp)
+            HorizontalDivider(color = FinanceColors.onAccent.copy(alpha = 0.1f), thickness = 1.dp)
             Spacer(modifier = Modifier.height(12.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
                     painter = painterResource(R.drawable.alarm),
                     contentDescription = null,
-                    tint = Color.Unspecified
+                    tint = Color.Unspecified,
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 val formattedDate = transaction.scheduledDate.formatScheduleDate(context, zone)
                 Text(
                     text = "${stringResource(R.string.due_date_label)} $formattedDate",
                     style = MaterialTheme.typography.labelMedium,
-                    color = Color.LightGray
+                    color = Color.LightGray,
                 )
             }
             Spacer(modifier = Modifier.height(8.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
                     text = stringResource(R.string.is_transaction_completed),
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.LightGray,
-                    modifier = Modifier.padding(end = 8.dp)
+                    modifier = Modifier.padding(end = 8.dp),
                 )
                 Spacer(modifier = modifier.width(8.dp))
                 IconButton(
                     onClick = onExecuteClick,
-                    modifier = Modifier
-                        .size(36.dp)
-                        .background(Color.White.copy(alpha = 0.1f), CircleShape)
+                    modifier =
+                        Modifier.size(36.dp)
+                            .background(FinanceColors.onAccent.copy(alpha = 0.1f), CircleShape),
                 ) {
                     Icon(
                         imageVector = Icons.Default.CheckCircle,
                         contentDescription = stringResource(R.string.confirm),
-                        tint = Color(0xFF4CAF50),
-                        modifier = Modifier.size(24.dp)
+                        tint = FinanceColors.success,
+                        modifier = Modifier.size(24.dp),
                     )
                 }
             }

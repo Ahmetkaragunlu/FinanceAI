@@ -33,7 +33,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
@@ -43,180 +42,209 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavController
+import androidx.lifecycle.withStateAtLeast
 import com.ahmetkaragunlu.financeai.R
-import com.ahmetkaragunlu.financeai.app.navigation.Screens
-import com.ahmetkaragunlu.financeai.app.navigation.navigateSingleTopClear
 import com.ahmetkaragunlu.financeai.core.ui.component.EditAlertDialog
 import com.ahmetkaragunlu.financeai.core.ui.component.EditTextField
+import com.ahmetkaragunlu.financeai.core.ui.theme.FinanceColors
 import com.ahmetkaragunlu.financeai.core.ui.theme.SignUpTextFieldStyles
+import com.ahmetkaragunlu.financeai.core.ui.theme.Spacing
 import com.ahmetkaragunlu.financeai.feature.auth.presentation.AuthState
+import com.ahmetkaragunlu.financeai.feature.auth.presentation.ResetPasswordFormState
+import com.ahmetkaragunlu.financeai.feature.auth.presentation.component.PasswordVisibilityToggle
+
+@Composable
+fun PasswordResetRoute(
+    modifier: Modifier = Modifier,
+    onSignIn: () -> Unit,
+    oobCode: String?,
+    viewModel: PasswordResetViewModel = hiltViewModel(),
+) {
+    val context = LocalContext.current
+    var showDialog by rememberSaveable { mutableStateOf(false) }
+    val uiState by viewModel.authState.collectAsStateWithLifecycle()
+    val failureMessageRes by viewModel.failureMessageRes.collectAsStateWithLifecycle()
+    BackHandler { onSignIn() }
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    LaunchedEffect(uiState, lifecycle) {
+        lifecycle.withStateAtLeast(Lifecycle.State.STARTED) {
+            when (uiState) {
+                AuthState.SUCCESS -> {
+                    showDialog = true
+                }
+
+                AuthState.FAILURE -> {
+                    Toast.makeText(
+                            context,
+                            context.getString(failureMessageRes ?: R.string.something_went_wrong),
+                            Toast.LENGTH_SHORT,
+                        )
+                        .show()
+                    viewModel.resetAuthState()
+                }
+
+                else -> {}
+            }
+            viewModel.resetAuthState()
+        }
+    }
+    val onSubmitClick: () -> Unit = {
+        if (!viewModel.submitPasswordReset(oobCode)) {
+            Toast.makeText(
+                    context,
+                    context.getString(R.string.fill_all_fields_correctly),
+                    Toast.LENGTH_SHORT,
+                )
+                .show()
+        }
+    }
+    PasswordResetScreen(
+        form =
+            ResetPasswordFormState(
+                password = viewModel.inputNewPassword,
+                confirmation = viewModel.inputConfirmPassword,
+                passwordError = viewModel.newPasswordSupportingText(),
+                confirmationError = viewModel.confirmNewPasswordSupportingText(),
+            ),
+        onPasswordChanged = viewModel::updateNewPassword,
+        onConfirmationChanged = viewModel::updateConfirmPassword,
+        onSubmitClick = onSubmitClick,
+        onSignIn = onSignIn,
+        showConfirmation = showDialog,
+        onConfirmation = {
+            showDialog = false
+            onSignIn()
+        },
+        modifier = modifier,
+    )
+}
 
 @Composable
 fun PasswordResetScreen(
+    form: ResetPasswordFormState,
+    onPasswordChanged: (String) -> Unit,
+    onConfirmationChanged: (String) -> Unit,
+    onSubmitClick: () -> Unit,
+    onSignIn: () -> Unit,
+    showConfirmation: Boolean,
+    onConfirmation: () -> Unit,
     modifier: Modifier = Modifier,
-    navController: NavController,
-    oobCode: String?,
-    viewModel: PasswordResetViewModel = hiltViewModel()
 ) {
-    val context = LocalContext.current
     var passwordVisibility by rememberSaveable { mutableStateOf(false) }
     var confirmPasswordVisibility by rememberSaveable { mutableStateOf(false) }
-    var showDialog by rememberSaveable { mutableStateOf(false) }
-    val uiState by viewModel.authState.collectAsStateWithLifecycle()
-    BackHandler {
-        navController.navigateSingleTopClear(Screens.SignInScreen.route)
-    }
-    LaunchedEffect(uiState) {
-        when (uiState) {
-            AuthState.SUCCESS -> {
-                showDialog = true
-            }
-
-            AuthState.FAILURE -> {
-                Toast.makeText(
-                    context,
-                    context.getString(R.string.something_went_wrong),
-                    Toast.LENGTH_SHORT
-                ).show()
-                viewModel.resetAuthState()
-            }
-
-            else -> {}
-        }
-        viewModel.resetAuthState()
-    }
     Box(
         modifier =
             modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .background(
-                    color = colorResource(R.color.background)
-                )
+                .background(color = colorResource(R.color.background))
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = modifier
-                .fillMaxSize()
-                .padding(top = 240.dp)
+            verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
+            modifier = modifier.fillMaxSize().padding(top = 240.dp),
         ) {
             Text(
                 text = stringResource(R.string.reset_password),
                 color = MaterialTheme.colorScheme.onPrimary,
                 style = MaterialTheme.typography.displayMedium,
-                modifier = modifier.padding(bottom = 36.dp)
+                modifier = modifier.padding(bottom = 36.dp),
             )
             EditTextField(
-                value = viewModel.inputNewPassword,
-                onValueChange = viewModel::updateNewPassword,
+                value = form.password,
+                onValueChange = onPasswordChanged,
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.Lock,
                         contentDescription = null,
-                        tint = Color.Gray
+                        tint = FinanceColors.mutedText,
                     )
                 },
                 label = R.string.new_password,
-                keyboardOptions = KeyboardOptions.Default.copy(
-                    imeAction = ImeAction.Next,
-                    keyboardType = KeyboardType.NumberPassword
-                ),
-                supportingText = if (viewModel.newPasswordSupportingText()) R.string.error_password else null,
+                keyboardOptions =
+                    KeyboardOptions.Default.copy(
+                        imeAction = ImeAction.Next,
+                        keyboardType = KeyboardType.NumberPassword,
+                    ),
+                supportingText = if (form.passwordError) R.string.error_password else null,
                 colors = SignUpTextFieldStyles.whiteTextFieldColors(),
                 trailingIcon = {
-                    Icon(
-                        imageVector = if (passwordVisibility) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                        contentDescription = null,
-                        tint = Color(0xFFcfccf0),
-                        modifier = modifier.clickable {
-                            passwordVisibility = !passwordVisibility
-                        }
+                    PasswordVisibilityToggle(
+                        visible = passwordVisibility,
+                        onToggle = { passwordVisibility = !passwordVisibility },
                     )
                 },
-                visualTransformation = if (passwordVisibility) VisualTransformation.None else PasswordVisualTransformation()
+                visualTransformation =
+                    if (passwordVisibility) VisualTransformation.None
+                    else PasswordVisualTransformation(),
             )
             EditTextField(
-                value = viewModel.inputConfirmPassword,
-                onValueChange = viewModel::updateConfirmPassword,
+                value = form.confirmation,
+                onValueChange = onConfirmationChanged,
                 label = R.string.confirm_password,
-                keyboardOptions = KeyboardOptions.Default.copy(
-                    imeAction = ImeAction.Done,
-                    keyboardType = KeyboardType.NumberPassword
-                ),
-                supportingText = if (viewModel.confirmNewPasswordSupportingText()) R.string.error_password else null,
+                keyboardOptions =
+                    KeyboardOptions.Default.copy(
+                        imeAction = ImeAction.Done,
+                        keyboardType = KeyboardType.NumberPassword,
+                    ),
+                supportingText = if (form.confirmationError) R.string.error_password else null,
                 colors = SignUpTextFieldStyles.whiteTextFieldColors(),
                 trailingIcon = {
                     Icon(
-                        imageVector = if (confirmPasswordVisibility) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                        contentDescription = null,
-                        tint = Color(0xFFcfccf0),
-                        modifier = modifier.clickable {
-                            confirmPasswordVisibility =
-                                !confirmPasswordVisibility
-                        }
+                        imageVector =
+                            if (confirmPasswordVisibility) Icons.Default.Visibility
+                            else Icons.Default.VisibilityOff,
+                        contentDescription =
+                            stringResource(
+                                if (confirmPasswordVisibility) R.string.hide_password
+                                else R.string.show_password
+                            ),
+                        tint = FinanceColors.resetIcon,
+                        modifier =
+                            modifier.clickable {
+                                confirmPasswordVisibility = !confirmPasswordVisibility
+                            },
                     )
                 },
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.Lock,
                         contentDescription = null,
-                        tint = Color.Gray
+                        tint = FinanceColors.mutedText,
                     )
                 },
-                visualTransformation = if (confirmPasswordVisibility) VisualTransformation.None else PasswordVisualTransformation()
+                visualTransformation =
+                    if (confirmPasswordVisibility) VisualTransformation.None
+                    else PasswordVisualTransformation(),
             )
             Button(
-                onClick = {
-                    if (viewModel.checkPassword() && oobCode != null && viewModel.isValidResetPassword()) {
-                        viewModel.resetPassword(oobCode)
-                    } else {
-                        Toast.makeText(
-                            context, context.getString(R.string.fill_all_fields_correctly),
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                },
+                onClick = onSubmitClick,
                 modifier =
                     modifier
                         .padding(top = 8.dp)
                         .width(280.dp)
                         .clip(shape = RoundedCornerShape(12.dp)),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF404349)),
-
-                ) {
-                Text(
-                    text = stringResource(R.string.reset_password)
-                )
+                colors = ButtonDefaults.buttonColors(containerColor = FinanceColors.elevatedSurface),
+            ) {
+                Text(text = stringResource(R.string.reset_password))
             }
-            ShowDialog(
-                visible = showDialog,
-                onConfirm = {
-                    showDialog = false
-                    navController.navigateSingleTopClear(Screens.SignInScreen.route)
-                }
-            )
+            ShowDialog(visible = showConfirmation, onConfirm = onConfirmation)
         }
     }
 }
 
-
 @Composable
-private fun ShowDialog(
-    visible: Boolean,
-    onConfirm: () -> Unit
-) {
+private fun ShowDialog(visible: Boolean, onConfirm: () -> Unit) {
     if (visible) {
         EditAlertDialog(
             title = R.string.success,
             text = R.string.your_password_has_been_changed_successfully,
             confirmButton = {
-                TextButton(onClick = onConfirm) {
-                    Text(text = stringResource(R.string.ok))
-                }
-            }
+                TextButton(onClick = onConfirm) { Text(text = stringResource(R.string.ok)) }
+            },
         )
     }
 }

@@ -8,30 +8,40 @@ import com.ahmetkaragunlu.financeai.feature.schedule.domain.model.ScheduledTrans
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.repository.ScheduledTransactionRepository
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.usecase.CompleteScheduledTransaction
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.time.ZoneId
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.flow.map
-import java.time.ZoneId
 
 @HiltViewModel
-class ScheduledTransactionsViewModel @Inject constructor(
+class ScheduledTransactionsViewModel
+@Inject
+constructor(
     private val session: AccountSession,
     private val complete: CompleteScheduledTransaction,
     private val scheduledTransactionRepository: ScheduledTransactionRepository,
 ) : ViewModel() {
-    val timeZoneId = session.account.map { it?.timeZoneId ?: ZoneId.systemDefault().id }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), session.account.value?.timeZoneId ?: ZoneId.systemDefault().id)
+    val timeZoneId =
+        session.account
+            .map { it?.timeZoneId ?: ZoneId.systemDefault().id }
+            .stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5_000),
+                session.account.value?.timeZoneId ?: ZoneId.systemDefault().id,
+            )
     val scheduledTransactions: StateFlow<List<ScheduledTransaction>> =
-        scheduledTransactionRepository.observeScheduledTransactions()
-            .distinctUntilChanged().stateIn(
+        scheduledTransactionRepository
+            .observeScheduledTransactions()
+            .distinctUntilChanged()
+            .stateIn(
                 scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5000),
-                initialValue = emptyList()
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = emptyList(),
             )
 
     fun executeScheduledTransaction(scheduledTx: ScheduledTransaction) {
@@ -40,10 +50,14 @@ class ScheduledTransactionsViewModel @Inject constructor(
             try {
                 if (!session.isCurrent(account)) return@launch
                 complete(scheduledTx)
-
-            } catch (e: CancellationException) { throw e }
-            catch (e: Exception) { Log.w("ScheduledTransactionsViewModel", "Scheduled completion failed (${e.javaClass.simpleName})") }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(
+                    "ScheduledTransactionsViewModel",
+                    "Scheduled completion failed (${e.javaClass.simpleName})",
+                )
+            }
         }
     }
-
 }

@@ -21,8 +21,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.core.ui.component.formatAsAccountCurrency
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryExpense
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
@@ -32,51 +37,64 @@ import kotlin.math.sin
 import kotlinx.coroutines.CancellationException
 
 @Composable
-fun ExpensePieChart(
-    categoryExpenses: List<CategoryExpense>,
-    modifier: Modifier = Modifier
-) {
-    val total = categoryExpenses.sumOf { it.totalAmount }
+fun ExpensePieChart(categoryExpenses: List<CategoryExpense>, modifier: Modifier = Modifier) {
+    val total = remember(categoryExpenses) { categoryExpenses.sumOf { it.totalAmount } }
     val context = LocalContext.current
 
-    val displayData = categoryExpenses.ifEmpty {
-        listOf(
-            CategoryExpense(CategoryType.FOOD.name, 0.0),
-            CategoryExpense(CategoryType.TRANSPORT.name, 0.0),
-            CategoryExpense(CategoryType.GROCERIES.name, 0.0),
-            CategoryExpense(CategoryType.ENTERTAINMENT.name, 0.0)
-        )
-    }
+    val displayData =
+        categoryExpenses.ifEmpty {
+            listOf(
+                CategoryExpense(CategoryType.FOOD.name, 0.0),
+                CategoryExpense(CategoryType.TRANSPORT.name, 0.0),
+                CategoryExpense(CategoryType.GROCERIES.name, 0.0),
+                CategoryExpense(CategoryType.ENTERTAINMENT.name, 0.0),
+            )
+        }
 
     val displayTotal = if (total <= 0) 4.0 else total
 
-    val categoryData = remember(displayData) {
-        displayData.mapIndexed { index, expense ->
-            val categoryType = try {
-                CategoryType.valueOf(expense.category)
-            } catch (e: Exception) {
-                if (e is CancellationException) throw e
-                CategoryType.OTHER
+    val categoryData =
+        remember(displayData) {
+            displayData.mapIndexed { index, expense ->
+                val categoryType =
+                    try {
+                        CategoryType.valueOf(expense.category)
+                    } catch (e: Exception) {
+                        if (e is CancellationException) throw e
+                        CategoryType.OTHER
+                    }
+                Triple(categoryType, expense.totalAmount, getCategoryColor(index))
             }
-            Triple(categoryType, expense.totalAmount, getCategoryColor(index))
         }
-    }
 
-    val categoryDisplayStrings = remember(categoryData) {
-        categoryData.associate { (categoryType, _, _) ->
-            categoryType to context.getString(categoryType.toResId())
+    val localeKey = LocalConfiguration.current.locales.toLanguageTags()
+    val categoryDisplayStrings =
+        remember(categoryData, localeKey) {
+            categoryData.associate { (categoryType, _, _) ->
+                categoryType to context.getString(categoryType.toResId())
+            }
         }
-    }
+    val description =
+        categoryData
+            .map { (category, amount, _) ->
+                stringResource(
+                    R.string.chart_category_value,
+                    categoryDisplayStrings[category].orEmpty(),
+                    amount.formatAsAccountCurrency(),
+                )
+            }
+            .joinToString("; ")
+    val labelPaint = remember { Paint(Paint.ANTI_ALIAS_FLAG) }
     Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(220.dp)
-            .padding(8.dp),
-        contentAlignment = Alignment.Center
+        modifier =
+            modifier
+                .semantics(mergeDescendants = true) { contentDescription = description }
+                .fillMaxWidth()
+                .height(220.dp)
+                .padding(8.dp),
+        contentAlignment = Alignment.Center,
     ) {
-        Canvas(
-            modifier = Modifier.fillMaxSize()
-        ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
             val canvasSize = size.minDimension
             val strokeWidth = 35f
             val radius = (canvasSize / 2.8f)
@@ -86,11 +104,12 @@ fun ExpensePieChart(
             var startAngle = -90f
 
             displayData.forEachIndexed { index, expense ->
-                val sweepAngle = if (total <= 0) {
-                    90f
-                } else {
-                    (expense.totalAmount / displayTotal * 360f).toFloat()
-                }
+                val sweepAngle =
+                    if (total <= 0) {
+                        90f
+                    } else {
+                        (expense.totalAmount / displayTotal * 360f).toFloat()
+                    }
 
                 drawArc(
                     color = categoryData[index].third,
@@ -99,14 +118,15 @@ fun ExpensePieChart(
                     useCenter = false,
                     topLeft = Offset(centerX - radius, centerY - radius),
                     size = Size(radius * 2, radius * 2),
-                    style = Stroke(width = strokeWidth, cap = StrokeCap.Butt)
+                    style = Stroke(width = strokeWidth, cap = StrokeCap.Butt),
                 )
 
-                val middleAngle = if (displayData.size == 1) {
-                    -45f
-                } else {
-                    startAngle + (sweepAngle / 2)
-                }
+                val middleAngle =
+                    if (displayData.size == 1) {
+                        -45f
+                    } else {
+                        startAngle + (sweepAngle / 2)
+                    }
                 val angleInRadians = Math.toRadians(middleAngle.toDouble())
 
                 val labelDistance = radius + strokeWidth + 45f
@@ -117,9 +137,7 @@ fun ExpensePieChart(
                 val categoryName = categoryDisplayStrings[categoryEnum] ?: categoryEnum.name
 
                 drawContext.canvas.nativeCanvas.apply {
-                    val paint = Paint().apply {
-                        isAntiAlias = true
-                    }
+                    val paint = labelPaint
 
                     val isLeftSide = labelX < centerX
                     val categoryColor = categoryData[index].third
@@ -128,19 +146,20 @@ fun ExpensePieChart(
                     val squareLeft = if (isLeftSide) labelX + 30f else labelX - 30f
                     val squareTop = labelY - 8f
 
-                    paint.color = AndroidColor.argb(
-                        (categoryColor.alpha * 255).toInt(),
-                        (categoryColor.red * 255).toInt(),
-                        (categoryColor.green * 255).toInt(),
-                        (categoryColor.blue * 255).toInt()
-                    )
+                    paint.color =
+                        AndroidColor.argb(
+                            (categoryColor.alpha * 255).toInt(),
+                            (categoryColor.red * 255).toInt(),
+                            (categoryColor.green * 255).toInt(),
+                            (categoryColor.blue * 255).toInt(),
+                        )
 
                     drawRect(
                         squareLeft,
                         squareTop,
                         squareLeft + squareSize,
                         squareTop + squareSize,
-                        paint
+                        paint,
                     )
 
                     paint.color = AndroidColor.WHITE
@@ -149,20 +168,10 @@ fun ExpensePieChart(
 
                     if (isLeftSide) {
                         paint.textAlign = Paint.Align.RIGHT
-                        drawText(
-                            categoryName,
-                            squareLeft - 8f,
-                            labelY + 6f,
-                            paint
-                        )
+                        drawText(categoryName, squareLeft - 8f, labelY + 6f, paint)
                     } else {
                         paint.textAlign = Paint.Align.LEFT
-                        drawText(
-                            categoryName,
-                            squareLeft + squareSize + 8f,
-                            labelY + 6f,
-                            paint
-                        )
+                        drawText(categoryName, squareLeft + squareSize + 8f, labelY + 6f, paint)
                     }
                 }
 
@@ -170,20 +179,18 @@ fun ExpensePieChart(
             }
         }
 
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = total.formatAsAccountCurrency(),
                 style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onPrimary
+                color = MaterialTheme.colorScheme.onPrimary,
             )
         }
     }
 }
 
-private fun getCategoryColor(index: Int): Color {
-    val colors = listOf(
+private val categoryColors =
+    listOf(
         Color(0xFF4DD0E1),
         Color(0xFFFFB74D),
         Color(0xFF9575CD),
@@ -199,5 +206,5 @@ private fun getCategoryColor(index: Int): Color {
         Color(0xFFFF7043),
         Color(0xFF5C6BC0),
     )
-    return colors[index % colors.size]
-}
+
+private fun getCategoryColor(index: Int): Color = categoryColors[index % categoryColors.size]

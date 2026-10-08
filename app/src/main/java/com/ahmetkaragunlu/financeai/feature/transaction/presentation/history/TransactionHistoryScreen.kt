@@ -17,7 +17,6 @@ import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
@@ -27,51 +26,76 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavHostController
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.core.format.*
 import com.ahmetkaragunlu.financeai.core.ui.component.EditButton
 import com.ahmetkaragunlu.financeai.core.ui.component.FinanceDropdownMenu
 import com.ahmetkaragunlu.financeai.core.ui.component.formatAsAccountCurrency
-import com.ahmetkaragunlu.financeai.feature.schedule.presentation.ScheduledTransactionScreen
+import com.ahmetkaragunlu.financeai.core.ui.theme.FinanceColors
+import com.ahmetkaragunlu.financeai.core.ui.theme.FinanceGradients
+import com.ahmetkaragunlu.financeai.core.ui.theme.Spacing
+import com.ahmetkaragunlu.financeai.feature.schedule.presentation.ScheduledTransactionRoute
+import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.Transaction
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
-import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.*
 import com.ahmetkaragunlu.financeai.feature.transaction.format.toResId
+import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.*
+
+@Composable
+fun TransactionHistoryRoute(
+    onTransactionClick: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: TransactionHistoryViewModel = hiltViewModel(),
+) {
+    val transactions by viewModel.transactions.collectAsStateWithLifecycle()
+    val filters by viewModel.filters.collectAsStateWithLifecycle()
+    TransactionHistoryScreen(
+        transactions = transactions,
+        filters = filters,
+        showCategoryError = viewModel.showCategoryError,
+        onDateSelected = viewModel::onDateSelected,
+        onTypeSelected = viewModel::onTypeSelected,
+        onCategorySelected = viewModel::onCategorySelected,
+        onCategoryMenuRequested = viewModel::canOpenCategoryMenu,
+        onTransactionClick = onTransactionClick,
+        modifier = modifier,
+    )
+}
 
 @Composable
 fun TransactionHistoryScreen(
+    transactions: List<Transaction>,
+    filters: HistoryFilters,
+    showCategoryError: Boolean,
+    onDateSelected: (Int) -> Unit,
+    onTypeSelected: (TransactionType) -> Unit,
+    onCategorySelected: (CategoryType?) -> Unit,
+    onCategoryMenuRequested: () -> Boolean,
+    onTransactionClick: (Int) -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: TransactionHistoryViewModel = hiltViewModel(),
-    navController: NavHostController
 ) {
-    val transactions by viewModel.transactions.collectAsStateWithLifecycle()
     var isHistoryPage by rememberSaveable { mutableStateOf(true) }
     val contentStateHolder = rememberSaveableStateHolder()
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(colorResource(R.color.background)),
-        horizontalAlignment = Alignment.CenterHorizontally
+        modifier = modifier.fillMaxSize().background(colorResource(R.color.background)),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Row(
-            modifier = modifier
-                .widthIn(max = 400.dp)
-                .fillMaxWidth()
-                .padding(16.dp)
+            modifier = modifier.widthIn(max = 400.dp).fillMaxWidth().padding(Spacing.screenPadding)
         ) {
             OutlinedButton(
                 onClick = { isHistoryPage = true },
                 modifier = modifier.weight(1f),
-                colors = if (isHistoryPage) {
-                    ButtonDefaults.buttonColors(containerColor = Color(0xFF353b45))
-                } else {
-                    ButtonDefaults.outlinedButtonColors()
-                }
+                colors =
+                    if (isHistoryPage) {
+                        ButtonDefaults.buttonColors(containerColor = FinanceColors.fieldSurface)
+                    } else {
+                        ButtonDefaults.outlinedButtonColors()
+                    },
             ) {
                 Text(
                     text = stringResource(R.string.history),
-                    color = MaterialTheme.colorScheme.onPrimary
+                    color = MaterialTheme.colorScheme.onPrimary,
                 )
             }
             Spacer(modifier = modifier.width(16.dp))
@@ -79,72 +103,88 @@ fun TransactionHistoryScreen(
             OutlinedButton(
                 onClick = { isHistoryPage = false },
                 modifier = modifier.weight(1f),
-                colors = if (!isHistoryPage) {
-                    ButtonDefaults.buttonColors(containerColor = Color(0xFF353b45))
-                } else {
-                    ButtonDefaults.outlinedButtonColors()
-                }
+                colors =
+                    if (!isHistoryPage) {
+                        ButtonDefaults.buttonColors(containerColor = FinanceColors.fieldSurface)
+                    } else {
+                        ButtonDefaults.outlinedButtonColors()
+                    },
             ) {
                 Text(
                     text = stringResource(R.string.scheduled),
-                    color = MaterialTheme.colorScheme.onPrimary
+                    color = MaterialTheme.colorScheme.onPrimary,
                 )
             }
         }
         if (isHistoryPage) {
             contentStateHolder.SaveableStateProvider("history") {
                 HistoryContent(
-                    viewModel = viewModel,
+                    filters = filters,
+                    showCategoryError = showCategoryError,
+                    onDateSelected = onDateSelected,
+                    onTypeSelected = onTypeSelected,
+                    onCategorySelected = onCategorySelected,
+                    onCategoryMenuRequested = onCategoryMenuRequested,
                     transactions = transactions,
-                    navController = navController,
-                    modifier = modifier
+                    onTransactionClick = onTransactionClick,
+                    modifier = modifier,
                 )
             }
         } else {
-            ScheduledTransactionScreen()
+            ScheduledTransactionRoute()
         }
     }
 }
 
 @Composable
 private fun HistoryContent(
-    viewModel: TransactionHistoryViewModel,
+    filters: HistoryFilters,
+    showCategoryError: Boolean,
+    onDateSelected: (Int) -> Unit,
+    onTypeSelected: (TransactionType) -> Unit,
+    onCategorySelected: (CategoryType?) -> Unit,
+    onCategoryMenuRequested: () -> Boolean,
     transactions: List<Transaction>,
-    navController: NavHostController,
-    modifier: Modifier
+    onTransactionClick: (Int) -> Unit,
+    modifier: Modifier,
 ) {
     var isDateMenuOpen by rememberSaveable { mutableStateOf(false) }
     var isTypeMenuOpen by rememberSaveable { mutableStateOf(false) }
     var isCategoryMenuOpen by rememberSaveable { mutableStateOf(false) }
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
+    Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
         Row(
-            modifier = modifier
-                .padding(horizontal = 16.dp)
-                .widthIn(max = 400.dp)
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.Top
+            modifier =
+                modifier
+                    .padding(horizontal = Spacing.screenPadding)
+                    .widthIn(max = 400.dp)
+                    .fillMaxWidth(),
+            verticalAlignment = Alignment.Top,
         ) {
             FinanceDropdownMenu(
                 modifier = modifier.weight(1f),
                 expanded = isDateMenuOpen,
                 onExpandedChange = { isDateMenuOpen = it },
-                options = viewModel.dateOptions,
+                options =
+                    listOf(
+                        R.string.today,
+                        R.string.yesterday,
+                        R.string.last_week,
+                        R.string.last_month,
+                        R.string.date,
+                    ),
                 onOptionSelected = { id ->
-                    viewModel.onDateSelected(id)
+                    onDateSelected(id)
                     isDateMenuOpen = false
                 },
                 itemLabel = { id -> stringResource(id) },
                 trigger = {
                     EditButton(
                         modifier = Modifier.fillMaxWidth(),
-                        label = viewModel.selectedDateResId,
+                        label = filters.dateResId,
                         icon = R.drawable.calendar,
-                        onClick = { isDateMenuOpen = true }
+                        onClick = { isDateMenuOpen = true },
                     )
-                }
+                },
             )
             Spacer(modifier = modifier.width(8.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -152,27 +192,27 @@ private fun HistoryContent(
                     modifier = Modifier.fillMaxWidth(),
                     expanded = isCategoryMenuOpen,
                     onExpandedChange = { if (!it) isCategoryMenuOpen = false },
-                    options = viewModel.categoryOptions,
+                    options = CategoryType.entries.filter { it.type == filters.type },
                     onOptionSelected = { category ->
-                        viewModel.onCategorySelected(category)
+                        onCategorySelected(category)
                         isCategoryMenuOpen = false
                     },
                     itemLabel = { category -> stringResource(category.toResId()) },
                     trigger = {
                         EditButton(
                             modifier = Modifier.fillMaxWidth(),
-                            label = viewModel.selectedCategory?.toResId() ?: R.string.category,
+                            label = filters.category?.toResId() ?: R.string.category,
                             icon = R.drawable.categories,
-                            onClick = { isCategoryMenuOpen = viewModel.canOpenCategoryMenu() }
+                            onClick = { isCategoryMenuOpen = onCategoryMenuRequested() },
                         )
-                    }
+                    },
                 )
-                if (viewModel.showCategoryError) {
+                if (showCategoryError) {
                     Text(
                         text = stringResource(R.string.error_select_type_first),
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.labelSmall,
-                        modifier = modifier.padding(top = 4.dp, start = 2.dp)
+                        modifier = modifier.padding(top = 4.dp, start = 2.dp),
                     )
                 }
             }
@@ -183,43 +223,36 @@ private fun HistoryContent(
                 onExpandedChange = { isTypeMenuOpen = it },
                 options = TransactionType.entries,
                 onOptionSelected = { type ->
-                    viewModel.onTypeSelected(type)
+                    onTypeSelected(type)
                     isTypeMenuOpen = false
                 },
-                itemLabel = { type -> stringResource(viewModel.getTypeResId(type)) },
+                itemLabel = { type -> stringResource(type.labelRes()) },
                 trigger = {
                     EditButton(
                         modifier = Modifier.fillMaxWidth(),
-                        label = viewModel.getTypeResId(viewModel.selectedType),
+                        label = filters.type?.labelRes() ?: R.string.type,
                         icon = R.drawable.type,
-                        onClick = { isTypeMenuOpen = true }
+                        onClick = { isTypeMenuOpen = true },
                     )
-                }
+                },
             )
         }
         Spacer(modifier = modifier.height(32.dp))
         LazyColumn(
-            modifier = modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(bottom = 80.dp)
+            modifier = modifier.fillMaxWidth().padding(horizontal = Spacing.screenPadding),
+            verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
+            contentPadding = PaddingValues(bottom = 80.dp),
         ) {
-            items(transactions) { transaction ->
-                TransactionCard(
-                    transaction = transaction,
-                    navController = navController
-                )
+            items(transactions, key = { it.id }) { transaction ->
+                TransactionCard(transaction = transaction, onTransactionClick = onTransactionClick)
             }
             if (transactions.isEmpty()) {
                 item {
                     Text(
                         text = stringResource(R.string.no_record_found),
-                        color = Color.Gray,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        textAlign = TextAlign.Center
+                        color = FinanceColors.mutedText,
+                        modifier = Modifier.fillMaxWidth().padding(Spacing.screenPadding),
+                        textAlign = TextAlign.Center,
                     )
                 }
             }
@@ -227,46 +260,43 @@ private fun HistoryContent(
     }
 }
 
+private fun TransactionType.labelRes(): Int =
+    when (this) {
+        TransactionType.INCOME -> R.string.income
+        TransactionType.EXPENSE -> R.string.expense
+    }
+
 @Composable
 private fun TransactionCard(
     transaction: Transaction,
     modifier: Modifier = Modifier,
-    navController: NavHostController
+    onTransactionClick: (Int) -> Unit,
 ) {
     val context = LocalContext.current
 
     Card(
-        onClick = {
-            navController.navigate("Detail_Screen/${transaction.id}")
-        },
+        onClick = { onTransactionClick(transaction.id) },
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
     ) {
         Row(
-            modifier = modifier
-                .fillMaxWidth()
-                .background(
-                    brush = Brush.horizontalGradient(
-                        colors = listOf(
-                            Color(0xFF3b4351),
-                            Color(0xFF2d3139)
-                        )
-                    ),
-                    shape = RoundedCornerShape(16.dp)
-                )
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier =
+                modifier
+                    .fillMaxWidth()
+                    .background(
+                        brush = FinanceGradients.financialCard,
+                        shape = RoundedCornerShape(16.dp),
+                    )
+                    .padding(Spacing.screenPadding),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Surface(
-                shape = CircleShape,
-                color = Color.Transparent
-            ) {
+            Surface(shape = CircleShape, color = Color.Transparent) {
                 Icon(
                     painter = painterResource(transaction.category.toIconResId()),
                     contentDescription = null,
                     tint = Color.Unspecified,
-                    modifier = modifier.padding(8.dp)
+                    modifier = modifier.padding(8.dp),
                 )
             }
 
@@ -276,30 +306,28 @@ private fun TransactionCard(
                 Text(
                     text = stringResource(transaction.category.toResId()),
                     color = MaterialTheme.colorScheme.onPrimary,
-                    style = MaterialTheme.typography.titleMedium
+                    style = MaterialTheme.typography.titleMedium,
                 )
                 Text(
                     text = transaction.date.formatRelativeDate(context),
-                    color = Color.Gray,
-                    style = MaterialTheme.typography.labelSmall
+                    color = FinanceColors.mutedText,
+                    style = MaterialTheme.typography.labelSmall,
                 )
             }
 
             Spacer(modifier = modifier.weight(1f))
 
-            val amountColor = if (transaction.transaction == TransactionType.INCOME)
-                Color.Green else Color.Red
+            val amountColor =
+                if (transaction.transaction == TransactionType.INCOME) FinanceColors.income
+                else FinanceColors.expense
 
-            Text(
-                text = transaction.amount.formatAsAccountCurrency(),
-                color = amountColor,
-            )
+            Text(text = transaction.amount.formatAsAccountCurrency(), color = amountColor)
             Spacer(modifier = modifier.width(8.dp))
 
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
                 contentDescription = null,
-                tint = Color.LightGray
+                tint = Color.LightGray,
             )
         }
     }

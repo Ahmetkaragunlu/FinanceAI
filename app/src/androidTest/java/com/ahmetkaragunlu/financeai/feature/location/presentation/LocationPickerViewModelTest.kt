@@ -14,23 +14,40 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class LocationPickerViewModelTest {
-    private val gateway = object : LocationGateway {
-        override fun hasPermission() = true
-        override fun isEnabled() = true
-        override suspend fun current(): Coordinates? = null
-    }
-    @Test fun lateAddressCannotOverwriteTheLatestManualSelection() = runBlocking {
+    private val gateway =
+        object : LocationGateway {
+            override fun hasPermission() = true
+
+            override fun isEnabled() = true
+
+            override suspend fun current(): Coordinates? = null
+        }
+
+    @Test
+    fun lateAddressCannotOverwriteTheLatestManualSelection() = runBlocking {
         val entered = CompletableDeferred<Unit>()
         val release = CompletableDeferred<Unit>()
-        val resolver = object : AddressResolver {
-            override suspend fun search(query: String): Coordinates? = null
-            override suspend fun resolve(coordinates: Coordinates): LocationData {
-                if (coordinates.latitude == 1.0) withContext(NonCancellable) { entered.complete(Unit); release.await() }
-                return LocationData(coordinates.latitude, coordinates.longitude, "${coordinates.latitude}", "address")
+        val resolver =
+            object : AddressResolver {
+                override suspend fun search(query: String): Coordinates? = null
+
+                override suspend fun resolve(coordinates: Coordinates): LocationData {
+                    if (coordinates.latitude == 1.0)
+                        withContext(NonCancellable) {
+                            entered.complete(Unit)
+                            release.await()
+                        }
+                    return LocationData(
+                        coordinates.latitude,
+                        coordinates.longitude,
+                        "${coordinates.latitude}",
+                        "address",
+                    )
+                }
             }
-        }
         val context = ApplicationProvider.getApplicationContext<Context>()
-        val viewModel = withContext(Dispatchers.Main) { LocationPickerViewModel(context, gateway, resolver) }
+        val viewModel =
+            withContext(Dispatchers.Main) { LocationPickerViewModel(context, gateway, resolver) }
         val holder = ViewModelStore().apply { put("location", viewModel) }
         try {
             withContext(Dispatchers.Main) { viewModel.selectLocation(LatLng(1.0, 1.0)) }
@@ -41,49 +58,75 @@ class LocationPickerViewModelTest {
             withContext(Dispatchers.Main) { yield() }
             assertEquals(LatLng(2.0, 2.0), viewModel.uiState.value.selectedLocation)
             assertEquals("2.0", viewModel.uiState.value.addressText)
-        } finally { release.complete(Unit); withContext(Dispatchers.Main) { holder.clear() } }
-    }
-    @Test fun anEmptySearchResultEndsLoadingAndProducesAnExistingXmlError() = runBlocking {
-        val resolver = object : AddressResolver {
-            override suspend fun search(query: String): Coordinates? = null
-            override suspend fun resolve(coordinates: Coordinates): LocationData? = null
+        } finally {
+            release.complete(Unit)
+            withContext(Dispatchers.Main) { holder.clear() }
         }
-        val context = ApplicationProvider.getApplicationContext<Context>()
-        val viewModel = withContext(Dispatchers.Main) { LocationPickerViewModel(context, gateway, resolver) }
-        val holder = ViewModelStore().apply { put("location", viewModel) }
-        try {
-            withContext(Dispatchers.Main) { viewModel.updateSearchQuery("unknown"); viewModel.search() }
-            withTimeout(5_000) { viewModel.uiState.first { it.errorMessage != null } }
-            assertFalse(viewModel.uiState.value.isSearching)
-            assertFalse(viewModel.uiState.value.isLoading)
-        } finally { withContext(Dispatchers.Main) { holder.clear() } }
     }
 
-    @Test fun cancelledSearchCannotClearTheLatestSearchStatusOrReplaceItsResult() = runBlocking {
+    @Test
+    fun anEmptySearchResultEndsLoadingAndProducesAnExistingXmlError() = runBlocking {
+        val resolver =
+            object : AddressResolver {
+                override suspend fun search(query: String): Coordinates? = null
+
+                override suspend fun resolve(coordinates: Coordinates): LocationData? = null
+            }
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val viewModel =
+            withContext(Dispatchers.Main) { LocationPickerViewModel(context, gateway, resolver) }
+        val holder = ViewModelStore().apply { put("location", viewModel) }
+        try {
+            withContext(Dispatchers.Main) {
+                viewModel.updateSearchQuery("unknown")
+                viewModel.search()
+            }
+            withTimeout(5_000) { viewModel.uiState.first { it.error != null } }
+            assertFalse(viewModel.uiState.value.isSearching)
+            assertFalse(viewModel.uiState.value.isLoading)
+        } finally {
+            withContext(Dispatchers.Main) { holder.clear() }
+        }
+    }
+
+    @Test
+    fun cancelledSearchCannotClearTheLatestSearchStatusOrReplaceItsResult() = runBlocking {
         val firstEntered = CompletableDeferred<Unit>()
         val releaseFirst = CompletableDeferred<Unit>()
         val secondEntered = CompletableDeferred<Unit>()
         val releaseSecond = CompletableDeferred<Unit>()
-        val resolver = object : AddressResolver {
-            override suspend fun search(query: String): Coordinates {
-                if (query == "first") {
-                    withContext(NonCancellable) { firstEntered.complete(Unit); releaseFirst.await() }
-                    return Coordinates(1.0, 1.0)
+        val resolver =
+            object : AddressResolver {
+                override suspend fun search(query: String): Coordinates {
+                    if (query == "first") {
+                        withContext(NonCancellable) {
+                            firstEntered.complete(Unit)
+                            releaseFirst.await()
+                        }
+                        return Coordinates(1.0, 1.0)
+                    }
+                    secondEntered.complete(Unit)
+                    releaseSecond.await()
+                    return Coordinates(2.0, 2.0)
                 }
-                secondEntered.complete(Unit)
-                releaseSecond.await()
-                return Coordinates(2.0, 2.0)
+
+                override suspend fun resolve(coordinates: Coordinates) =
+                    LocationData(coordinates.latitude, coordinates.longitude, "latest", "address")
             }
-            override suspend fun resolve(coordinates: Coordinates) =
-                LocationData(coordinates.latitude, coordinates.longitude, "latest", "address")
-        }
         val context = ApplicationProvider.getApplicationContext<Context>()
-        val viewModel = withContext(Dispatchers.Main) { LocationPickerViewModel(context, gateway, resolver) }
+        val viewModel =
+            withContext(Dispatchers.Main) { LocationPickerViewModel(context, gateway, resolver) }
         val holder = ViewModelStore().apply { put("location", viewModel) }
         try {
-            withContext(Dispatchers.Main) { viewModel.updateSearchQuery("first"); viewModel.search() }
+            withContext(Dispatchers.Main) {
+                viewModel.updateSearchQuery("first")
+                viewModel.search()
+            }
             withTimeout(5_000) { firstEntered.await() }
-            withContext(Dispatchers.Main) { viewModel.updateSearchQuery("second"); viewModel.search() }
+            withContext(Dispatchers.Main) {
+                viewModel.updateSearchQuery("second")
+                viewModel.search()
+            }
             withTimeout(5_000) { secondEntered.await() }
             releaseFirst.complete(Unit)
             withContext(Dispatchers.Main) { yield() }
@@ -92,7 +135,11 @@ class LocationPickerViewModelTest {
             assertNull(viewModel.uiState.value.selectedLocation)
 
             releaseSecond.complete(Unit)
-            withTimeout(5_000) { viewModel.uiState.first { it.selectedLocation == LatLng(2.0, 2.0) && !it.isSearching } }
+            withTimeout(5_000) {
+                viewModel.uiState.first {
+                    it.selectedLocation == LatLng(2.0, 2.0) && !it.isSearching
+                }
+            }
             assertEquals("latest", viewModel.uiState.value.addressText)
         } finally {
             releaseFirst.complete(Unit)

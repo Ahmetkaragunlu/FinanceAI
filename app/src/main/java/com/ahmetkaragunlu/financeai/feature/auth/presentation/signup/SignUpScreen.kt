@@ -3,7 +3,6 @@ package com.ahmetkaragunlu.financeai.feature.auth.presentation.signup
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,9 +16,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -35,7 +31,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
@@ -47,66 +42,72 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavController
+import androidx.lifecycle.withStateAtLeast
 import com.ahmetkaragunlu.financeai.R
-import com.ahmetkaragunlu.financeai.app.navigation.Screens
-import com.ahmetkaragunlu.financeai.app.navigation.navigateSingleTopClear
 import com.ahmetkaragunlu.financeai.core.ui.component.EditAlertDialog
 import com.ahmetkaragunlu.financeai.core.ui.component.EditTextField
+import com.ahmetkaragunlu.financeai.core.ui.theme.FinanceGradients
 import com.ahmetkaragunlu.financeai.core.ui.theme.SignUpTextFieldStyles
 import com.ahmetkaragunlu.financeai.feature.auth.presentation.AuthState
+import com.ahmetkaragunlu.financeai.feature.auth.presentation.RegistrationFormState
+import com.ahmetkaragunlu.financeai.feature.auth.presentation.component.PasswordVisibilityToggle
 
 @Composable
-fun SignUpScreen(
+fun SignUpRoute(
     modifier: Modifier = Modifier,
     viewModel: SignUpViewModel = hiltViewModel(),
-    navController: NavController
+    onSignIn: () -> Unit,
 ) {
 
     val uiState by viewModel.authState.collectAsStateWithLifecycle()
+    val failureMessageRes by viewModel.failureMessageRes.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    var passwordVisibility by rememberSaveable { mutableStateOf(false) }
     var showDialog by rememberSaveable { mutableStateOf(false) }
 
-    BackHandler {
-        navController.navigateSingleTopClear(Screens.SignInScreen.route)
-    }
+    BackHandler { onSignIn() }
 
-    LaunchedEffect(uiState) {
-        when (uiState) {
-            AuthState.FAILURE -> {
-                Toast.makeText(
-                    context,
-                    context.getString(R.string.something_went_wrong),
-                    Toast.LENGTH_SHORT
-                ).show()
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    LaunchedEffect(uiState, lifecycle) {
+        lifecycle.withStateAtLeast(Lifecycle.State.STARTED) {
+            when (uiState) {
+                AuthState.FAILURE -> {
+                    Toast.makeText(
+                            context,
+                            context.getString(failureMessageRes ?: R.string.something_went_wrong),
+                            Toast.LENGTH_SHORT,
+                        )
+                        .show()
+                }
+
+                AuthState.VERIFICATION_EMAIL_SENT -> {
+                    showDialog = true
+                }
+
+                AuthState.VERIFICATION_EMAIL_FAILED -> {
+                    Toast.makeText(
+                            context,
+                            context.getString(R.string.email_verification_could_not_be_sent),
+                            Toast.LENGTH_SHORT,
+                        )
+                        .show()
+                }
+
+                AuthState.USER_ALREADY_EXISTS -> {
+                    Toast.makeText(
+                            context,
+                            context.getString(R.string.this_email_is_already_exists),
+                            Toast.LENGTH_SHORT,
+                        )
+                        .show()
+                }
+
+                else -> {}
             }
-
-            AuthState.VERIFICATION_EMAIL_SENT -> {
-                showDialog = true
-            }
-
-            AuthState.VERIFICATION_EMAIL_FAILED -> {
-                Toast.makeText(
-                    context,
-                    context.getString(R.string.email_verification_could_not_be_sent),
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
-
-            AuthState.USER_ALREADY_EXISTS -> {
-                Toast.makeText(
-                    context,
-                    context.getString(R.string.this_email_is_already_exists),
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
-
-            else -> {}
-
+            viewModel.resetAuthState()
         }
-        viewModel.resetAuthState()
     }
 
     ShowDialog(
@@ -114,115 +115,146 @@ fun SignUpScreen(
         onConfirm = {
             showDialog = false
             viewModel.resetAuthState()
-            navController.navigateSingleTopClear(Screens.SignInScreen.route)
-        }
+            onSignIn()
+        },
     )
 
+    val onSubmitClick: () -> Unit = {
+        if (!viewModel.submitRegistration()) {
+            Toast.makeText(
+                    context,
+                    context.getString(R.string.fill_all_fields_correctly),
+                    Toast.LENGTH_SHORT,
+                )
+                .show()
+        }
+    }
+    SignUpScreen(
+        form =
+            RegistrationFormState(
+                email = viewModel.inputEmail,
+                password = viewModel.inputPassword,
+                firstName = viewModel.inputFirstName,
+                lastName = viewModel.inputLastName,
+                emailError = viewModel.emailSupportingText(),
+                passwordError = viewModel.passwordSupportingText(),
+                firstNameError = viewModel.firstNameSupportingText(),
+                lastNameError = viewModel.lastNameSupportingText(),
+            ),
+        onEmailChanged = viewModel::updateEmail,
+        onPasswordChanged = viewModel::updatePassword,
+        onFirstNameChanged = viewModel::updateFirstName,
+        onLastNameChanged = viewModel::updateLastName,
+        onSubmitClick = onSubmitClick,
+        onSignIn = onSignIn,
+        modifier = modifier,
+    )
+}
+
+@Composable
+fun SignUpScreen(
+    form: RegistrationFormState,
+    onEmailChanged: (String) -> Unit,
+    onPasswordChanged: (String) -> Unit,
+    onFirstNameChanged: (String) -> Unit,
+    onLastNameChanged: (String) -> Unit,
+    onSubmitClick: () -> Unit,
+    onSignIn: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var passwordVisibility by rememberSaveable { mutableStateOf(false) }
     Box(
         modifier =
             modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .background(
-                    color = colorResource(R.color.background)
-                )
+                .background(color = colorResource(R.color.background))
     ) {
         Column(
-            modifier = modifier
-                .fillMaxWidth()
-                .padding(top = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = modifier.fillMaxWidth().padding(top = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Icon(
                 painter = painterResource(R.drawable.ai2),
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onPrimary
+                tint = MaterialTheme.colorScheme.onPrimary,
             )
             Text(
                 text = stringResource(R.string.finance_ai),
                 style = MaterialTheme.typography.displayMedium,
-                color = MaterialTheme.colorScheme.onPrimary
-
+                color = MaterialTheme.colorScheme.onPrimary,
             )
             Text(
                 text = stringResource(R.string.create_an_account),
                 style = MaterialTheme.typography.displaySmall,
                 color = MaterialTheme.colorScheme.onPrimary,
-                modifier = modifier.padding(top = 16.dp)
+                modifier = modifier.padding(top = 16.dp),
             )
             Spacer(modifier = modifier.height(16.dp))
             Column(
                 modifier = modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 EditTextField(
-                    value = viewModel.inputEmail,
-                    onValueChange = viewModel::updateEmail,
+                    value = form.email,
+                    onValueChange = onEmailChanged,
                     label = R.string.email,
-                    keyboardOptions = KeyboardOptions.Default.copy(
-                        imeAction = ImeAction.Next,
-                        keyboardType = KeyboardType.Email
-                    ),
+                    keyboardOptions =
+                        KeyboardOptions.Default.copy(
+                            imeAction = ImeAction.Next,
+                            keyboardType = KeyboardType.Email,
+                        ),
                     colors = SignUpTextFieldStyles.whiteTextFieldColors(),
-                    supportingText = if (viewModel.emailSupportingText()) R.string.error_email else null
+                    supportingText = if (form.emailError) R.string.error_email else null,
                 )
                 EditTextField(
-                    value = viewModel.inputPassword,
-                    onValueChange = viewModel::updatePassword,
+                    value = form.password,
+                    onValueChange = onPasswordChanged,
                     label = R.string.password,
-                    keyboardOptions = KeyboardOptions.Default.copy(
-                        imeAction = ImeAction.Next,
-                        keyboardType = KeyboardType.NumberPassword
-                    ),
+                    keyboardOptions =
+                        KeyboardOptions.Default.copy(
+                            imeAction = ImeAction.Next,
+                            keyboardType = KeyboardType.NumberPassword,
+                        ),
                     trailingIcon = {
-                        Icon(
-                            imageVector = if (passwordVisibility) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSecondary,
-                            modifier = modifier.clickable {
-                                passwordVisibility = !passwordVisibility
-                            }
+                        PasswordVisibilityToggle(
+                            visible = passwordVisibility,
+                            onToggle = { passwordVisibility = !passwordVisibility },
                         )
                     },
                     colors = SignUpTextFieldStyles.whiteTextFieldColors(),
-                    supportingText = if (viewModel.passwordSupportingText()) R.string.error_password else null,
-                    visualTransformation = if (passwordVisibility) VisualTransformation.None else PasswordVisualTransformation()
+                    supportingText = if (form.passwordError) R.string.error_password else null,
+                    visualTransformation =
+                        if (passwordVisibility) VisualTransformation.None
+                        else PasswordVisualTransformation(),
                 )
                 EditTextField(
-                    value = viewModel.inputFirstName,
-                    onValueChange = viewModel::updateFirstName,
+                    value = form.firstName,
+                    onValueChange = onFirstNameChanged,
                     label = R.string.first_name,
-                    keyboardOptions = KeyboardOptions.Default.copy(
-                        imeAction = ImeAction.Next,
-                        keyboardType = KeyboardType.Text
-                    ),
+                    keyboardOptions =
+                        KeyboardOptions.Default.copy(
+                            imeAction = ImeAction.Next,
+                            keyboardType = KeyboardType.Text,
+                        ),
                     colors = SignUpTextFieldStyles.whiteTextFieldColors(),
-                    supportingText = if (viewModel.firstNameSupportingText()) R.string.error_firstName else null
+                    supportingText = if (form.firstNameError) R.string.error_first_name else null,
                 )
                 EditTextField(
-                    value = viewModel.inputLastName,
-                    onValueChange = viewModel::updateLastName,
+                    value = form.lastName,
+                    onValueChange = onLastNameChanged,
                     label = R.string.last_name,
-                    keyboardOptions = KeyboardOptions.Default.copy(
-                        imeAction = ImeAction.Done,
-                        keyboardType = KeyboardType.Text
-                    ),
+                    keyboardOptions =
+                        KeyboardOptions.Default.copy(
+                            imeAction = ImeAction.Done,
+                            keyboardType = KeyboardType.Text,
+                        ),
                     colors = SignUpTextFieldStyles.whiteTextFieldColors(),
-                    supportingText = if (viewModel.lastNameSupportingText()) R.string.error_lastName else null
+                    supportingText = if (form.lastNameError) R.string.error_last_name else null,
                 )
                 Button(
-                    onClick = {
-                        if (
-                            viewModel.isValidUser()) {
-                            viewModel.saveUser()
-                        } else {
-                            Toast.makeText(
-                                context, context.getString(R.string.fill_all_fields_correctly),
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
-                    },
+                    onClick = onSubmitClick,
                     modifier =
                         modifier
                             .padding(top = 8.dp)
@@ -230,54 +262,31 @@ fun SignUpScreen(
                             .fillMaxWidth()
                             .padding(horizontal = 48.dp)
                             .clip(shape = RoundedCornerShape(12.dp))
-                            .background(
-                                brush = Brush.linearGradient(
-                                    colors = listOf(
-                                        Color(0xFF6A11CB),
-                                        Color(0xFF2575FC)
-                                    )
-                                )
-                            ),
+                            .background(brush = FinanceGradients.authentication),
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-
-                    ) {
-                    Text(
-                        text = stringResource(R.string.sign_up)
-                    )
-                }
-                TextButton(
-                    onClick = {
-                        navController.navigateSingleTopClear(Screens.SignInScreen.route)
-
-                    }
                 ) {
+                    Text(text = stringResource(R.string.sign_up))
+                }
+                TextButton(onClick = { onSignIn() }) {
                     Text(
                         text = stringResource(R.string.already_have_an_account),
-                        color = MaterialTheme.colorScheme.onPrimary
+                        color = MaterialTheme.colorScheme.onPrimary,
                     )
                 }
             }
-
         }
-
     }
 }
 
-
 @Composable
-private fun ShowDialog(
-    visible: Boolean,
-    onConfirm: () -> Unit
-) {
+private fun ShowDialog(visible: Boolean, onConfirm: () -> Unit) {
     if (visible) {
         EditAlertDialog(
             title = R.string.email_verification_sent,
             text = R.string.email_diaolog,
             confirmButton = {
-                TextButton(onClick = onConfirm) {
-                    Text(text = stringResource(R.string.ok))
-                }
-            }
+                TextButton(onClick = onConfirm) { Text(text = stringResource(R.string.ok)) }
+            },
         )
     }
 }

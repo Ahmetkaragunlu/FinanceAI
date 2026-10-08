@@ -3,7 +3,6 @@ package com.ahmetkaragunlu.financeai.feature.location.presentation
 import android.Manifest
 import android.content.Intent
 import android.provider.Settings
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -44,12 +43,11 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
@@ -61,25 +59,28 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ahmetkaragunlu.financeai.R
+import com.ahmetkaragunlu.financeai.core.ui.effect.ToastMessageEffect
+import com.ahmetkaragunlu.financeai.core.ui.theme.FinanceColors
+import com.ahmetkaragunlu.financeai.core.ui.theme.Spacing
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
+import com.google.maps.android.compose.DragState
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
-import com.google.maps.android.compose.DragState
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.rememberMarkerState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MapLocationPickerScreen(
+fun MapLocationPickerRoute(
     onLocationSelected: (latitude: Double, longitude: Double) -> Unit,
     onDismiss: () -> Unit,
     viewModel: LocationPickerViewModel = hiltViewModel(),
 ) {
-    BackHandler {onDismiss()}
+    BackHandler { onDismiss() }
     val context = LocalContext.current
     var showLocationSettingsDialog by rememberSaveable { mutableStateOf(false) }
     val requestCurrentLocation: () -> Unit = {
@@ -89,19 +90,19 @@ fun MapLocationPickerScreen(
     val latestSelection by rememberUpdatedState(uiState.selectedLocation)
     val lifecycleOwner = LocalLifecycleOwner.current
 
-
-
-    val locationPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        val fineLocationGranted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] ?: false
-        val coarseLocationGranted = permissions[Manifest.permission.ACCESS_COARSE_LOCATION] ?: false
-        val hasPermission = fineLocationGranted || coarseLocationGranted
-        viewModel.updatePermissionState(hasPermission)
-        if (hasPermission) {
-            requestCurrentLocation()
+    val locationPermissionLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.RequestMultiplePermissions()
+        ) { permissions ->
+            val fineLocationGranted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] ?: false
+            val coarseLocationGranted =
+                permissions[Manifest.permission.ACCESS_COARSE_LOCATION] ?: false
+            val hasPermission = fineLocationGranted || coarseLocationGranted
+            viewModel.updatePermissionState(hasPermission)
+            if (hasPermission) {
+                requestCurrentLocation()
+            }
         }
-    }
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -112,9 +113,7 @@ fun MapLocationPickerScreen(
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
     LaunchedEffect(Unit) {
         val hasPermission = viewModel.refreshPermission()
@@ -124,150 +123,166 @@ fun MapLocationPickerScreen(
             locationPermissionLauncher.launch(
                 arrayOf(
                     Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION
+                    Manifest.permission.ACCESS_COARSE_LOCATION,
                 )
             )
         }
     }
 
-    LaunchedEffect(uiState.errorMessage) {
-        uiState.errorMessage?.let { Toast.makeText(context, it, Toast.LENGTH_SHORT).show() }
-    }
+    ToastMessageEffect(uiState.error?.messageRes())
 
+    MapLocationPickerScreen(
+        uiState = uiState,
+        showLocationSettingsDialog = showLocationSettingsDialog,
+        onSettingsDismissed = { showLocationSettingsDialog = false },
+        requestCurrentLocation = requestCurrentLocation,
+        onQueryChanged = viewModel::updateSearchQuery,
+        onSearch = viewModel::search,
+        onPositionSelected = viewModel::selectLocation,
+        onLocationSelected = onLocationSelected,
+        onDismiss = onDismiss,
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MapLocationPickerScreen(
+    uiState: LocationPickerUiState,
+    showLocationSettingsDialog: Boolean,
+    onSettingsDismissed: () -> Unit,
+    requestCurrentLocation: () -> Unit,
+    onQueryChanged: (String) -> Unit,
+    onSearch: () -> Unit,
+    onPositionSelected: (LatLng) -> Unit,
+    onLocationSelected: (Double, Double) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val context = LocalContext.current
     Scaffold(
         topBar = {
             Column {
                 TopAppBar(
-                    title = { Text(text = stringResource(R.string.select_location), style = MaterialTheme.typography.bodyLarge) },
+                    title = {
+                        Text(
+                            text = stringResource(R.string.select_location),
+                            style = MaterialTheme.typography.bodyLarge,
+                        )
+                    },
                     navigationIcon = {
                         IconButton(onClick = onDismiss) {
-                            Icon(Icons.Default.Close, null)
+                            Icon(Icons.Default.Close, stringResource(R.string.close))
                         }
                     },
                     actions = {
-                        IconButton(
-                            onClick = requestCurrentLocation,
-                            enabled = !uiState.isLoading
-                        ) {
-                            Icon(Icons.Default.MyLocation, contentDescription = null)
+                        IconButton(onClick = requestCurrentLocation, enabled = !uiState.isLoading) {
+                            Icon(
+                                Icons.Default.MyLocation,
+                                contentDescription = stringResource(R.string.current_location),
+                            )
                         }
                     },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = colorResource(R.color.background),
-                        titleContentColor = Color.White,
-                        navigationIconContentColor = Color.White
-
-                    )
+                    colors =
+                        TopAppBarDefaults.topAppBarColors(
+                            containerColor = colorResource(R.color.background),
+                            titleContentColor = FinanceColors.onAccent,
+                            navigationIconContentColor = FinanceColors.onAccent,
+                        ),
                 )
                 OutlinedTextField(
                     value = uiState.searchQuery,
-                    onValueChange = viewModel::updateSearchQuery,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    placeholder ={ Text(stringResource(R.string.search_address_hint)) },
+                    onValueChange = onQueryChanged,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                    placeholder = { Text(stringResource(R.string.search_address_hint)) },
                     leadingIcon = { Icon(Icons.Default.Search, null) },
                     trailingIcon = {
                         if (uiState.searchQuery.isNotEmpty()) {
-                            IconButton(onClick = { viewModel.updateSearchQuery("") }) {
-                                Icon(Icons.Default.Clear, null)
+                            IconButton(onClick = { onQueryChanged("") }) {
+                                Icon(Icons.Default.Clear, stringResource(R.string.clear_search))
                             }
                         }
                     },
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                    keyboardActions = KeyboardActions(
-                        onSearch = { viewModel.search() }
-                    ),
+                    keyboardActions = KeyboardActions(onSearch = { onSearch() }),
                     singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = Color.White,
-                        unfocusedContainerColor = Color.White,
-
+                    colors =
+                        OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = FinanceColors.onAccent,
+                            unfocusedContainerColor = FinanceColors.onAccent,
                         ),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
                 )
             }
-        },
-
-        ) { padding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
+        }
+    ) { padding ->
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             val cameraPositionState = rememberCameraPositionState {
-                position = CameraPosition.fromLatLngZoom(
-                    uiState.currentLocation ?: LatLng(41.0082, 28.9784),
-                    15f
-                )
+                position =
+                    CameraPosition.fromLatLngZoom(
+                        uiState.currentLocation ?: LatLng(41.0082, 28.9784),
+                        15f,
+                    )
             }
 
             LaunchedEffect(uiState.selectedLocation) {
                 uiState.selectedLocation?.let { location ->
                     cameraPositionState.animate(
-                        update = CameraUpdateFactory.newLatLngZoom(
-                            location,
-                            16f
-                        )
+                        update = CameraUpdateFactory.newLatLngZoom(location, 16f)
                     )
                 }
             }
             GoogleMap(
                 modifier = Modifier.fillMaxSize(),
                 cameraPositionState = cameraPositionState,
-                properties = MapProperties(
-                    isMyLocationEnabled = uiState.hasLocationPermission
-                ),
-                uiSettings = MapUiSettings(
-                    zoomControlsEnabled = true,
-                    myLocationButtonEnabled = false
-                ),
-                onMapClick = { latLng ->
-                    viewModel.selectLocation(latLng)
-                }
+                properties = MapProperties(isMyLocationEnabled = uiState.hasLocationPermission),
+                uiSettings =
+                    MapUiSettings(zoomControlsEnabled = true, myLocationButtonEnabled = false),
+                onMapClick = { latLng -> onPositionSelected(latLng) },
             ) {
                 uiState.selectedLocation?.let { location ->
                     val markerState = rememberMarkerState(position = location)
 
                     LaunchedEffect(location) {
-                        if (markerState.dragState == DragState.END && markerState.position != location) markerState.position = location
+                        if (
+                            markerState.dragState == DragState.END &&
+                                markerState.position != location
+                        )
+                            markerState.position = location
                     }
 
                     LaunchedEffect(markerState.dragState) {
-                        if (markerState.dragState == DragState.END && markerState.position != uiState.selectedLocation) {
-                            viewModel.selectLocation(markerState.position)
+                        if (
+                            markerState.dragState == DragState.END &&
+                                markerState.position != uiState.selectedLocation
+                        ) {
+                            onPositionSelected(markerState.position)
                         }
                     }
 
                     Marker(
                         state = markerState,
                         title = stringResource(R.string.select_location),
-                        draggable = true
+                        draggable = true,
                     )
                 }
             }
 
             if (uiState.isLoading || uiState.isSearching) {
-                CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center)
-                )
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             }
 
             uiState.addressText?.let { address ->
                 Card(
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFF2B2D31)
-                    )
+                    modifier =
+                        Modifier.align(Alignment.TopCenter)
+                            .fillMaxWidth()
+                            .padding(Spacing.screenPadding),
+                    colors = CardDefaults.cardColors(containerColor = FinanceColors.dialogSurface),
                 ) {
                     Text(
                         text = address,
-                        modifier = Modifier.padding(16.dp),
+                        modifier = Modifier.padding(Spacing.screenPadding),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White
+                        color = FinanceColors.onAccent,
                     )
                 }
                 Button(
@@ -277,14 +292,16 @@ fun MapLocationPickerScreen(
                             onDismiss()
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = colorResource(R.color.background)),
-                    modifier = Modifier.align(Alignment.BottomCenter)
-
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor = colorResource(R.color.background)
+                        ),
+                    modifier = Modifier.align(Alignment.BottomCenter),
                 ) {
                     Icon(
                         imageVector = Icons.Default.Check,
                         contentDescription = null,
-                        modifier = Modifier.padding(end = 8.dp)
+                        modifier = Modifier.padding(end = 8.dp),
                     )
                     Text(stringResource(R.string.confirm_location))
                 }
@@ -293,23 +310,25 @@ fun MapLocationPickerScreen(
     }
     if (showLocationSettingsDialog) {
         AlertDialog(
-            onDismissRequest = { showLocationSettingsDialog = false },
+            onDismissRequest = { onSettingsDismissed() },
             icon = { Icon(Icons.Default.LocationOff, null) },
             title = { Text(stringResource(R.string.location_services_disabled)) },
             text = { Text(stringResource(R.string.location_services_disabled_message)) },
             confirmButton = {
-                TextButton(onClick = {
-                    context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
-                    showLocationSettingsDialog = false
-                }) {
+                TextButton(
+                    onClick = {
+                        context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+                        onSettingsDismissed()
+                    }
+                ) {
                     Text(stringResource(R.string.open_settings))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showLocationSettingsDialog = false }) {
+                TextButton(onClick = { onSettingsDismissed() }) {
                     Text(stringResource(R.string.cancel))
                 }
-            }
+            },
         )
     }
 }

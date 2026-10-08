@@ -19,37 +19,35 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ahmetkaragunlu.financeai.R
+import com.ahmetkaragunlu.financeai.core.ui.theme.FinanceColors
 
 @Composable
 fun EditButton(
     modifier: Modifier = Modifier,
-    @StringRes label : Int,
-    @DrawableRes icon : Int,
-    onClick: () -> Unit
+    @StringRes label: Int,
+    @DrawableRes icon: Int,
+    onClick: () -> Unit,
 ) {
     Button(
         onClick = onClick,
         modifier = modifier,
         contentPadding = PaddingValues(horizontal = 2.dp),
         shape = RoundedCornerShape(16.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3b4351))
+        colors = ButtonDefaults.buttonColors(containerColor = FinanceColors.cardStart),
     ) {
-        Icon(
-            painter = painterResource(icon),
-            contentDescription = null,
-            tint = Color.Unspecified
-        )
+        Icon(painter = painterResource(icon), contentDescription = null, tint = Color.Unspecified)
         Spacer(modifier = Modifier.width(6.dp))
         Text(
             text = stringResource(label),
             color = MaterialTheme.colorScheme.onPrimary,
             style = MaterialTheme.typography.labelLarge,
             maxLines = 1,
-            modifier = if (label == R.string.date) {
-                Modifier.padding(top = 3.dp)
-            } else {
-                Modifier
-            }
+            modifier =
+                if (label == R.string.date) {
+                    Modifier.padding(top = 3.dp)
+                } else {
+                    Modifier
+                },
         )
     }
 }

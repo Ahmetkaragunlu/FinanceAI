@@ -1,0 +1,37 @@
+<resources>
+    <string name="show_password">Şifreyi göster</string>
+    <string name="hide_password">Şifreyi gizle</string>
+    <string name="password_reset_link_expired">Şifre sıfırlama bağlantısının süresi dolmuş. Lütfen yeni bağlantı isteyin.</string>
+    <string name="password_reset_link_invalid">Şifre sıfırlama bağlantısı geçersiz. Lütfen yeni bağlantı isteyin.</string>
+    <string name="create_an_account">Hesap Oluştur</string>
+    <string name="password">Şifre</string>
+    <string name="new_password">Yeni Şifre</string>
+    <string name="confirm_password">Şifreyi Onayla</string>
+    <string name="email">E-posta</string>
+    <string name="error_last_name">En az 2 karakter olmalı</string>
+    <string name="error_email">Geçerli bir e-posta adresi girin</string>
+    <string name="error_password">Şifre en az 6 haneli olmalı</string>
+    <string name="sign_up">Kayıt Ol</string>
+    <string name="send_reset_request">Sıfırlama isteği gönder</string>
+    <string name="reset_request_sent">Şifre sıfırlama isteği gönderildi. Lütfen e-postanızı kontrol edin.</string>
+    <string name="login">Giriş Yap</string>
+    <string name="user_not_found">Kullanıcı bulunamadı</string>
+    <string name="invalid_email_or_password">Geçersiz e-posta veya şifre</string>
+    <string name="forgot_password">Şifremi Unuttum?</string>
+    <string name="reset_password">Şifreyi Sıfırla</string>
+    <string name="this_email_is_already_exists">Bu e-posta zaten kayıtlı</string>
+    <string name="email_verification_could_not_be_sent">E-posta doğrulaması gönderilemedi</string>
+    <string name="your_password_has_been_changed_successfully">Şifreniz başarıyla değiştirildi</string>
+    <string name="have_an_account_sign_up">Hesabınız yok mu? Kayıt olun</string>
+    <string name="fill_all_fields_correctly">Lütfen tüm alanları doğru doldurun</string>
+    <string name="please_verify_your_email">Lütfen e-postanızı doğrulayın</string>
+    <string name="sign_in_with_google">Google ile Giriş Yap</string>
+    <string name="error_first_name">En az 3 karakter olmalı</string>
+    <string name="already_have_an_account">Zaten hesabınız var mı?</string>
+    <string name="first_name">Ad</string>
+    <string name="last_name">Soyad</string>
+    <string name="email_verification_sent">E-posta Doğrulaması Gönderildi</string>
+    <string name="email_diaolog">E-posta adresinize bir doğrulama bağlantısı gönderildi. Lütfen e-postanızı kontrol edin ve doğrulama bağlantısına tıklayın.</string>
+    <string name="sign_out_title">Çıkış Yap</string>
+    <string name="sign_out_message">Çıkış yapmak istediğinize emin misiniz?</string>
+</resources>

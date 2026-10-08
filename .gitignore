@@ -16,6 +16,8 @@ local.properties
 /.firebase/
 /*-debug.log
 /.pnpm-store/
+node_modules/
+*.log
 .env
 .env.*
 !.env.example

@@ -7,7 +7,6 @@ import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.lifecycle.ViewModelStore
-import androidx.navigation.compose.rememberNavController
 import androidx.test.core.app.ApplicationProvider
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.feature.auth.domain.repository.AuthRepository
@@ -29,9 +28,7 @@ class SignUpScreenTest {
 
         try {
             restoration.setContent {
-                MaterialTheme {
-                    SignUpScreen(viewModel = viewModel, navController = rememberNavController())
-                }
+                MaterialTheme { SignUpRoute(viewModel = viewModel, onSignIn = {}) }
             }
             composeRule.runOnIdle { viewModel.saveUser() }
             composeRule.waitForIdle()
@@ -48,15 +45,34 @@ class SignUpScreenTest {
     }
 
     private class RegistrationRepository : AuthRepository {
-        override suspend fun saveUser(email: String, password: String, firstName: String, lastName: String) = Unit
+        override suspend fun saveUser(
+            email: String,
+            password: String,
+            firstName: String,
+            lastName: String,
+        ) = Unit
+
         override suspend fun signIn(email: String, password: String): Unit = unexpected()
+
         override suspend fun refreshEmailVerification(): Boolean = unexpected()
-        override suspend fun verifyUserAndSendResetEmail(email: String, firstName: String, lastName: String): Boolean = unexpected()
-        override suspend fun confirmPasswordReset(oobCode: String, newPassword: String): Unit = unexpected()
+
+        override suspend fun verifyUserAndSendResetEmail(
+            email: String,
+            firstName: String,
+            lastName: String,
+        ): Boolean = unexpected()
+
+        override suspend fun confirmPasswordReset(oobCode: String, newPassword: String): Unit =
+            unexpected()
+
         override suspend fun signInWithGoogle(idToken: String?): Unit = unexpected()
+
         override suspend fun isUserRegistered(email: String): Boolean = unexpected()
+
         override suspend fun signOut(): Unit = unexpected()
+
         override suspend fun getUserName(): String? = unexpected()
+
         private fun unexpected(): Nothing = error("Unexpected auth repository call")
     }
 }

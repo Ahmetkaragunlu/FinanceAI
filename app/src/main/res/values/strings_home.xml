@@ -1,0 +1,26 @@
+<resources>
+    <string name="chart_category_value">%1$s: %2$s</string>
+    <string name="home_ai_analyze">Finansal durumunu analiz etmek için tıkla</string>
+    <string name="home_ai_no_budget">Harcamaların artıyor! Bütçe limiti oluşturmak için tıkla</string>
+    <string name="home_ai_no_budget_prompt">Bu ay toplam %1$s harcama yaptım. Kendime uygun bir bütçe limiti belirlememe ve tasarruf etmeme yardımcı olur musun?</string>
+    <string name="home_ai_planning">Finansal hedeflerine ulaşmak ve planlama yapmak için tıkla</string>
+    <string name="home_ai_planning_prompt">Henüz harcama yapmadım ama finansal planlama yapmak istiyorum. Bana nasıl bir yol haritası önerirsin?</string>
+    <string name="home_ai_general_exceeded">Dikkat! Bütçeni %1$s aştın. Tasarruf planı için tıkla</string>
+    <string name="home_ai_general_exceeded_prompt">Aylık bütçem %1$s idi ancak şu an %2$s harcadım. Bütçemi %%%3$d oranında aştım. Durumu toparlamak için acil tasarruf önerilerin neler?</string>
+    <string name="home_ai_general_near">Genel bütçenin %%%1$d\'ine ulaştın. Ay sonunu getirmek için tıkla</string>
+    <string name="home_ai_general_near_prompt">Aylık bütçemin %%%1$d\'ini şimdiden harcadım. Ayın geri kalanında bakiyemi korumak için nelere dikkat etmeliyim?</string>
+    <string name="home_ai_category_exceeded">%1$s bütçeni aştın! Tasarruf için tıkla</string>
+    <string name="home_ai_category_exceeded_prompt">%1$s kategorisinde belirlediğim limiti aştım. (%2$s limit, %3$s harcama). Bu kategoride neden bu kadar harcama yapmış olabilirim ve nasıl kısabilirim?</string>
+    <string name="home_ai_category_near">%1$s harcamaların sınıra yaklaştı (%%%2$d). Önlem almak için tıkla</string>
+    <string name="home_ai_category_near_prompt">%1$s kategorisinde harcama limitimin %%%2$d\'ine ulaştım. Bu kategoride daha fazla harcama yapmamak için önerilerin var mı?</string>
+    <string name="home_ai_healthy">Bütçen gayet sağlıklı görünüyor! Detaylı analiz için tıkla</string>
+    <string name="home_ai_healthy_prompt">Şu ana kadar harcamalarım bütçe planıma uygun gidiyor. Finansal durumumu daha da iyileştirmek için yatırım veya birikim tavsiyesi verebilir misin?</string>
+    <string name="welcome">Hoş geldin, %s</string>
+    <string name="home">Anasayfa</string>
+    <string name="this_month_budget">Bu Ayın Bütçesi</string>
+    <string name="this_months_summary">Bu Ayın Özeti</string>
+    <string name="expense_categories">Gider Kategorileri</string>
+    <string name="remaining_budget">Kalan Bütçe</string>
+    <string name="ai_suggestion">AI Önerisi</string>
+    <string name="ai_welcome_message">Bütçe kuralları oluşturduğunda, harcamalarını analiz edip sana özel tavsiyeler vereceğim.</string>
+</resources>

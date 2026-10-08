@@ -1,0 +1,12 @@
+<resources>
+    <string name="sync_conflict_title">Kayıt değişiklikleri çakıştı</string>
+    <string name="sync_conflict_description">Bu kayıt burada ve başka bir cihazda farklı değiştirildi. Kullanılacak sürümü seçin; seçim yapana kadar iki sürüm de korunur.</string>
+    <string name="sync_conflict_local">Bu cihazdaki sürüm</string>
+    <string name="sync_conflict_remote">Uzak sürüm</string>
+    <string name="sync_keep_local">Bu cihazdakini kullan</string>
+    <string name="sync_keep_remote">Uzak sürümü kullan</string>
+    <string name="sync_deleted_record">Kayıt silinmiş</string>
+    <string name="sync_conflict_error">Seçim uygulanamadı. Bağlantınızı kontrol edip tekrar deneyin.</string>
+    <string name="sync_photo_removed">Fotoğraf kaldırılmış</string>
+    <string name="sync_photo_attached">Fotoğraf mevcut</string>
+</resources>

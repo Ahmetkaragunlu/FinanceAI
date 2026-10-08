@@ -18,69 +18,68 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ahmetkaragunlu.financeai.R
+import com.ahmetkaragunlu.financeai.core.ui.theme.FinanceColors
+import com.ahmetkaragunlu.financeai.core.ui.theme.FinanceGradients
+import com.ahmetkaragunlu.financeai.core.ui.theme.Spacing
 
 @Composable
 fun EmptyBudgetContent(
     onCreateGeneralClick: () -> Unit,
     onAddLimitClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally
+        modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         // --- Monthly Budget Card ---
         Card(
-            modifier = modifier
-                .fillMaxWidth()
-                .padding(8.dp),
+            modifier = modifier.fillMaxWidth().padding(8.dp),
             shape = RoundedCornerShape(12.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+            colors = CardDefaults.cardColors(containerColor = Color.Transparent),
         ) {
             Box(
-                modifier = modifier
-                    .fillMaxWidth()
-                    .background(
-                        brush = Brush.linearGradient(
-                            colors = listOf(Color(0xFFb55ebf), Color(0xFF36a2cc))
-                        ),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    .padding(16.dp)
+                modifier =
+                    modifier
+                        .fillMaxWidth()
+                        .background(
+                            brush = FinanceGradients.summary,
+                            shape = RoundedCornerShape(12.dp),
+                        )
+                        .padding(Spacing.screenPadding)
             ) {
                 Column(modifier = modifier.fillMaxWidth()) {
                     Row(
                         modifier = modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
                             text = stringResource(R.string.monthly_budget),
                             color = MaterialTheme.colorScheme.onPrimary,
-                            style = MaterialTheme.typography.titleLarge
+                            style = MaterialTheme.typography.titleLarge,
                         )
                         Button(
                             onClick = onCreateGeneralClick,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color.White.copy(alpha = 0.2f)
-                            ),
+                            colors =
+                                ButtonDefaults.buttonColors(
+                                    containerColor = FinanceColors.onAccent.copy(alpha = 0.2f)
+                                ),
                             shape = RoundedCornerShape(10.dp),
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                            modifier = modifier.height(32.dp)
+                            modifier = modifier.height(32.dp),
                         ) {
                             Icon(
                                 painter = painterResource(R.drawable.edit),
                                 contentDescription = null,
                                 tint = Color.Unspecified,
-                                modifier = modifier.size(14.dp)
+                                modifier = modifier.size(14.dp),
                             )
                             Spacer(modifier = modifier.width(4.dp))
                             Text(
                                 text = stringResource(R.string.create),
                                 color = MaterialTheme.colorScheme.onPrimary,
-                                style = MaterialTheme.typography.bodySmall
+                                style = MaterialTheme.typography.bodySmall,
                             )
                         }
                     }
@@ -90,12 +89,12 @@ fun EmptyBudgetContent(
                         color = MaterialTheme.colorScheme.onPrimary,
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        modifier = modifier.padding(vertical = 8.dp)
+                        modifier = modifier.padding(vertical = 8.dp),
                     )
                     Text(
                         text = stringResource(R.string.set_monthly_budget_to_start),
                         color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
-                        style = MaterialTheme.typography.titleSmall
+                        style = MaterialTheme.typography.titleSmall,
                     )
                 }
             }
@@ -103,40 +102,41 @@ fun EmptyBudgetContent(
 
         // --- AI Assistant Card ---
         Card(
-            modifier = modifier
-                .fillMaxWidth()
-                .padding(8.dp),
+            modifier = modifier.fillMaxWidth().padding(8.dp),
             shape = RoundedCornerShape(12.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+            colors = CardDefaults.cardColors(containerColor = Color.Transparent),
         ) {
             Box(
-                modifier = modifier
-                    .fillMaxWidth()
-                    .background(
-                        brush = Brush.linearGradient(
-                            colors = listOf(Color(0xFFF6D365), Color(0xFFFDA085))
-                        ),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    .padding(8.dp)
+                modifier =
+                    modifier
+                        .fillMaxWidth()
+                        .background(
+                            brush =
+                                Brush.linearGradient(
+                                    colors =
+                                        listOf(FinanceColors.adviceStart, FinanceColors.adviceEnd)
+                                ),
+                            shape = RoundedCornerShape(12.dp),
+                        )
+                        .padding(8.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         painter = painterResource(R.drawable.ai_suggestion),
                         contentDescription = null,
-                        tint = Color(0xFF5D4037)
+                        tint = FinanceColors.onAdvice,
                     )
                     Column(modifier = modifier.padding(8.dp)) {
                         Text(
                             text = stringResource(R.string.ai_assistant),
                             style = MaterialTheme.typography.titleMedium,
-                            color = Color(0xFF5D4037),
-                            fontWeight = FontWeight.Bold
+                            color = FinanceColors.onAdvice,
+                            fontWeight = FontWeight.Bold,
                         )
                         Text(
                             text = stringResource(R.string.ai_welcome_message),
-                            color = Color(0xFF5D4037).copy(alpha = 0.9f),
-                            style = MaterialTheme.typography.titleSmall
+                            color = FinanceColors.onAdvice.copy(alpha = 0.9f),
+                            style = MaterialTheme.typography.titleSmall,
                         )
                     }
                 }
@@ -148,47 +148,39 @@ fun EmptyBudgetContent(
             text = stringResource(R.string.category_budgets),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onPrimary,
-            modifier = modifier
-                .fillMaxWidth()
-                .padding(16.dp)
+            modifier = modifier.fillMaxWidth().padding(Spacing.screenPadding),
         )
 
         // --- Empty State Message ---
         Column(
-            modifier = modifier
-                .fillMaxWidth()
-                .widthIn(max = 450.dp)
-                .padding(top = 12.dp, bottom = 20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier =
+                modifier.fillMaxWidth().widthIn(max = 450.dp).padding(top = 12.dp, bottom = 20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
-                text = "💰",
+                text = stringResource(R.string.budget_money_symbol),
                 fontSize = 80.sp,
-                modifier = modifier.padding(bottom = 20.dp)
+                modifier = modifier.padding(bottom = 20.dp),
             )
             Text(
                 text = stringResource(R.string.no_budget_rules_yet),
                 style = MaterialTheme.typography.titleMedium,
-                color = Color.White.copy(alpha = 0.9f),
+                color = FinanceColors.onAccent.copy(alpha = 0.9f),
                 fontWeight = FontWeight.SemiBold,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
             )
             Spacer(modifier = modifier.height(12.dp))
             Text(
                 text = stringResource(R.string.create_first_budget_rule_description),
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.Gray,
+                color = FinanceColors.mutedText,
                 textAlign = TextAlign.Center,
                 lineHeight = 20.sp,
-                modifier = modifier.widthIn(max = 280.dp)
+                modifier = modifier.widthIn(max = 280.dp),
             )
         }
 
         // --- Add Limit Button ---
-        AddLimitButton(
-            onClick = onAddLimitClick,
-            modifier = Modifier
-                .padding(horizontal = 24.dp)
-        )
+        AddLimitButton(onClick = onAddLimitClick, modifier = Modifier.padding(horizontal = 24.dp))
     }
 }

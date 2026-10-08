@@ -1,7 +1,5 @@
 package com.ahmetkaragunlu.financeai.feature.aichat.presentation
 
-import android.widget.Toast
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -28,7 +26,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.colorResource
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -37,117 +34,114 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ahmetkaragunlu.financeai.R
+import com.ahmetkaragunlu.financeai.core.ui.effect.ToastMessageEffect
+import com.ahmetkaragunlu.financeai.core.ui.theme.FinanceColors
+import com.ahmetkaragunlu.financeai.core.ui.theme.Spacing
 import com.ahmetkaragunlu.financeai.feature.aichat.domain.model.AiMessage
 
 @Composable
-fun AiChatScreen(
+fun AiChatRoute(
     modifier: Modifier = Modifier,
     viewModel: AiChatViewModel = hiltViewModel(),
+    initialPrompt: String? = null,
+    onPromptConsumed: () -> Unit = {},
 ) {
     val messages by viewModel.chatMessages.collectAsStateWithLifecycle()
     val errorResId by viewModel.errorResId.collectAsStateWithLifecycle()
-    val context = LocalContext.current
-    LaunchedEffect(errorResId) {
-        errorResId?.let {
-            Toast.makeText(context, context.getString(it), Toast.LENGTH_SHORT).show()
-            viewModel.dismissError()
+    ToastMessageEffect(errorResId, viewModel::dismissError)
+    LaunchedEffect(initialPrompt, viewModel.isLoading) {
+        initialPrompt?.let { prompt ->
+            viewModel.setPendingPrompt(prompt)
+            onPromptConsumed()
         }
-    }
-    val listState = rememberLazyListState()
-    val suggestions = viewModel.suggestionResIds.map { stringResource(it) }
-
-    LaunchedEffect(Unit) {
         viewModel.sendPendingPrompt()
     }
-    val initialMessageText = stringResource(R.string.ai_chat_initial_message)
-    val displayMessages = remember(messages) {
-        messages.ifEmpty {
-            listOf(
-                AiMessage(
-                    id = -1,
-                    text = initialMessageText,
-                    isAi = true,
-                    isSynced = false
-                )
+    AiChatScreen(
+        messages = messages,
+        isLoading = viewModel.isLoading,
+        text = viewModel.textState,
+        onTextChanged = viewModel::updateText,
+        onSuggestionClick = viewModel::sendMessage,
+        onSendClicked = viewModel::sendCurrentMessage,
+        modifier = modifier,
+    )
+}
+
+@Composable
+fun AiChatScreen(
+    messages: List<AiMessage>,
+    isLoading: Boolean,
+    text: String,
+    onTextChanged: (String) -> Unit,
+    onSuggestionClick: (String) -> Unit,
+    onSendClicked: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val listState = rememberLazyListState()
+    val suggestions =
+        listOf(
+                R.string.ai_suggestion_summary,
+                R.string.ai_suggestion_saving,
+                R.string.ai_suggestion_risk,
+                R.string.ai_suggestion_top_expense,
             )
+            .map { stringResource(it) }
+
+    val initialMessageText = stringResource(R.string.ai_chat_initial_message)
+    val displayMessages =
+        remember(messages, initialMessageText) {
+            messages.ifEmpty {
+                listOf(AiMessage(id = -1, text = initialMessageText, isAi = true, isSynced = false))
+            }
         }
-    }
-    LaunchedEffect(displayMessages.size, viewModel.isLoading) {
+    LaunchedEffect(displayMessages.size, isLoading) {
         if (displayMessages.isNotEmpty()) {
             listState.animateScrollToItem(displayMessages.size)
         }
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(colorResource(id = R.color.background))
-    ) {
+    Column(modifier = modifier.fillMaxSize().background(colorResource(id = R.color.background))) {
         MessageList(
             messages = displayMessages,
-            isLoading = viewModel.isLoading,
+            isLoading = isLoading,
             listState = listState,
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
+            modifier = Modifier.weight(1f).fillMaxWidth(),
         )
-        SuggestionRow(
-            suggestions = suggestions,
-            onSuggestionClick = { viewModel.sendMessage(it) }
-        )
+        SuggestionRow(suggestions = suggestions, onSuggestionClick = onSuggestionClick)
 
-        ChatInputArea(
-            text = viewModel.textState,
-            onTextChanged = viewModel::updateText,
-            onSendClicked = {
-                viewModel.sendMessage(viewModel.textState)
-            }
-        )
+        ChatInputArea(text = text, onTextChanged = onTextChanged, onSendClicked = onSendClicked)
     }
 }
-
 
 @Composable
 private fun MessageList(
     messages: List<AiMessage>,
     isLoading: Boolean,
     listState: LazyListState,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     LazyColumn(
         state = listState,
-        modifier = modifier.padding(horizontal = 16.dp),
+        modifier = modifier.padding(horizontal = Spacing.screenPadding),
         contentPadding = PaddingValues(top = 16.dp, bottom = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        items(messages) { message ->
-            ChatBubble(message = message)
-        }
+        items(messages, key = { it.id }) { message -> ChatBubble(message = message) }
         if (isLoading) {
-            item {
-                AiTypingIndicator()
-            }
+            item { AiTypingIndicator() }
         }
     }
 }
 
 @Composable
-private fun SuggestionRow(
-    suggestions: List<String>,
-    onSuggestionClick: (String) -> Unit
-) {
+private fun SuggestionRow(suggestions: List<String>, onSuggestionClick: (String) -> Unit) {
     LazyRow(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
         contentPadding = PaddingValues(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(Spacing.itemGap),
     ) {
         items(suggestions) { text ->
-            SuggestionChip(
-                text = text,
-                onClick = { onSuggestionClick(text) }
-            )
+            SuggestionChip(text = text, onClick = { onSuggestionClick(text) })
         }
     }
 }
@@ -157,42 +151,42 @@ fun ChatBubble(message: AiMessage) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = if (message.isAi) Arrangement.Start else Arrangement.End,
-        verticalAlignment = Alignment.Top
+        verticalAlignment = Alignment.Top,
     ) {
         if (message.isAi) {
             AiAvatarIcon()
             Spacer(modifier = Modifier.width(8.dp))
         }
         Box(
-            modifier = Modifier
-                .widthIn(max = 280.dp)
-                .clip(
-                    RoundedCornerShape(
-                        topStart = 16.dp,
-                        topEnd = 16.dp,
-                        bottomStart = if (message.isAi) 0.dp else 16.dp,
-                        bottomEnd = if (message.isAi) 16.dp else 0.dp
-                    )
-                )
-                .background(
-                    if (message.isAi)
-                        Brush.linearGradient(
-                            colors = listOf(
-                                Color(0xFF3b4351),
-                                Color(0xFF2d3139),
-                                Color(0xFF2d3139)
-                            )
+            modifier =
+                Modifier.widthIn(max = 280.dp)
+                    .clip(
+                        RoundedCornerShape(
+                            topStart = 16.dp,
+                            topEnd = 16.dp,
+                            bottomStart = if (message.isAi) 0.dp else 16.dp,
+                            bottomEnd = if (message.isAi) 16.dp else 0.dp,
                         )
-                    else
-                        SolidColor(Color(0xFF414853))
-                )
-                .padding(12.dp)
+                    )
+                    .background(
+                        if (message.isAi)
+                            Brush.linearGradient(
+                                colors =
+                                    listOf(
+                                        FinanceColors.cardStart,
+                                        FinanceColors.cardEnd,
+                                        FinanceColors.cardEnd,
+                                    )
+                            )
+                        else SolidColor(FinanceColors.chatSurface)
+                    )
+                    .padding(12.dp)
         ) {
             Text(
                 text = message.text,
                 color = MaterialTheme.colorScheme.onPrimary,
                 style = MaterialTheme.typography.titleSmall,
-                lineHeight = 20.sp
+                lineHeight = 20.sp,
             )
         }
     }
@@ -203,35 +197,31 @@ fun AiTypingIndicator() {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.Start,
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         AiAvatarIcon()
         Spacer(modifier = Modifier.width(8.dp))
 
         Text(
             text = stringResource(R.string.ai_chat_loading),
-            color = Color.Gray,
+            color = FinanceColors.mutedText,
             style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.padding(top = 8.dp)
+            modifier = Modifier.padding(top = 8.dp),
         )
     }
 }
 
-
 @Composable
 fun AiAvatarIcon() {
     Box(
-        modifier = Modifier
-            .size(32.dp)
-            .clip(CircleShape)
-            .background(Color(0xFF414853)),
-        contentAlignment = Alignment.Center
+        modifier = Modifier.size(32.dp).clip(CircleShape).background(FinanceColors.chatSurface),
+        contentAlignment = Alignment.Center,
     ) {
         Icon(
             imageVector = Icons.Default.AutoAwesome,
             contentDescription = null,
-            tint = Color(0xFF26C6DA),
-            modifier = Modifier.size(18.dp)
+            tint = FinanceColors.aiAccent,
+            modifier = Modifier.size(18.dp),
         )
     }
 }
@@ -239,79 +229,68 @@ fun AiAvatarIcon() {
 @Composable
 fun SuggestionChip(text: String, onClick: () -> Unit) {
     Box(
-        modifier = Modifier
-            .clickable { onClick() }
-            .border(1.dp, Color(0xFF414853), RoundedCornerShape(20.dp))
-            .clip(RoundedCornerShape(20.dp))
-            .background(Color(0xFF414853))
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+        modifier =
+            Modifier.clickable { onClick() }
+                .border(1.dp, FinanceColors.chatSurface, RoundedCornerShape(20.dp))
+                .clip(RoundedCornerShape(20.dp))
+                .background(FinanceColors.chatSurface)
+                .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
         Text(
             text = text,
             color = MaterialTheme.colorScheme.onPrimary,
             style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Medium
+            fontWeight = FontWeight.Medium,
         )
     }
 }
 
 @Composable
-fun ChatInputArea(
-    text: String,
-    onTextChanged: (String) -> Unit,
-    onSendClicked: () -> Unit
-) {
+fun ChatInputArea(text: String, onTextChanged: (String) -> Unit, onSendClicked: () -> Unit) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp)
-            .padding(bottom = 16.dp),
-        verticalAlignment = Alignment.CenterVertically
+        modifier = Modifier.fillMaxWidth().padding(Spacing.screenPadding).padding(bottom = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
-            modifier = Modifier
-                .weight(1f)
-                .height(50.dp)
-                .clip(RoundedCornerShape(25.dp))
-                .background(Color(0xFF414853))
-                .padding(horizontal = 16.dp),
-            contentAlignment = Alignment.CenterStart
+            modifier =
+                Modifier.weight(1f)
+                    .height(50.dp)
+                    .clip(RoundedCornerShape(25.dp))
+                    .background(FinanceColors.chatSurface)
+                    .padding(horizontal = Spacing.screenPadding),
+            contentAlignment = Alignment.CenterStart,
         ) {
             if (text.isEmpty()) {
                 Text(
                     stringResource(R.string.ai_chat_placeholder),
                     color = Color.LightGray,
-                    style = MaterialTheme.typography.titleSmall
+                    style = MaterialTheme.typography.titleSmall,
                 )
             }
             BasicTextField(
                 value = text,
                 onValueChange = onTextChanged,
-                textStyle = TextStyle(
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    fontSize = 14.sp
-                ),
+                textStyle =
+                    TextStyle(color = MaterialTheme.colorScheme.onPrimary, fontSize = 14.sp),
                 cursorBrush = SolidColor(MaterialTheme.colorScheme.onPrimary),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             )
         }
         Spacer(modifier = Modifier.width(12.dp))
 
         Box(
-            modifier = Modifier
-                .size(50.dp)
-                .clip(CircleShape)
-                .background(color = Color(0xFF414853))
-                .clickable { onSendClicked() },
-            contentAlignment = Alignment.Center
+            modifier =
+                Modifier.size(50.dp)
+                    .clip(CircleShape)
+                    .background(color = FinanceColors.chatSurface)
+                    .clickable { onSendClicked() },
+            contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.Send,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier
-                    .size(20.dp)
-                    .offset(x = (-2).dp)
+                modifier = Modifier.size(20.dp).offset(x = (-2).dp),
             )
         }
     }

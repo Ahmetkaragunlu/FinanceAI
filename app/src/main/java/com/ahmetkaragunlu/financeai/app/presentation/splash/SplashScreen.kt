@@ -7,46 +7,53 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.navigation.NavController
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.withStateAtLeast
 import com.ahmetkaragunlu.financeai.R
-import com.ahmetkaragunlu.financeai.app.navigation.Screens
+import com.ahmetkaragunlu.financeai.core.ui.theme.FinanceColors
 import kotlinx.coroutines.CancellationException
 
 @Composable
-fun SplashScreen(
+fun SplashRoute(
     modifier: Modifier = Modifier,
-    navController: NavController,
-    viewModel: SplashViewModel = hiltViewModel()
+    onReady: (Boolean) -> Unit,
+    viewModel: SplashViewModel = hiltViewModel(),
 ) {
-    LaunchedEffect(key1 = Unit) {
-        val ready = try { viewModel.canOpenFinance() }
-        catch (e: CancellationException) { throw e }
-        catch (_: Exception) { false }
-        if (ready) {
-            navController.navigate(Screens.MAIN_GRAPH.route) {
-                popUpTo(Screens.SplashScreen.route) { inclusive = true }
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    val readyCallback by rememberUpdatedState(onReady)
+    LaunchedEffect(viewModel, lifecycle) {
+        val ready =
+            try {
+                viewModel.canOpenFinance()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                false
             }
-        } else {
-           navController.navigate(Screens.SignInScreen.route)
-        }
+        lifecycle.withStateAtLeast(Lifecycle.State.STARTED) { readyCallback(ready) }
     }
+    SplashScreen(modifier)
+}
+
+@Composable
+fun SplashScreen(modifier: Modifier = Modifier) {
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(color = colorResource(R.color.background)),
+        modifier = modifier.fillMaxSize().background(color = colorResource(R.color.background)),
         verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Icon(
             painter = painterResource(R.drawable.ai),
             contentDescription = null,
-            tint = Color.White
+            tint = FinanceColors.onAccent,
         )
     }
 }

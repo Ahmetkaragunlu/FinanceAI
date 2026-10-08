@@ -1,0 +1,71 @@
+<resources>
+    <!-- Transactions and history -->
+    <string name="transaction_loading">İşlem yükleniyor</string>
+    <string name="transaction_not_found">İşlem bulunamadı</string>
+    <string name="transaction_load_failed">İşlem yüklenemedi. Lütfen tekrar deneyin.</string>
+    <string name="income">Gelir</string>
+    <string name="expense">Gider</string>
+    <string name="enter_your_note">Notunuzu girin (İsteğe Bağlı)</string>
+    <string name="enter_amount">Tutar Girin</string>
+    <string name="select_category">Kategori Seç</string>
+    <string name="date">Tarih</string>
+    <string name="no_record_found">Kayıt bulunamadı</string>
+    <string name="today">Bugün</string>
+    <string name="tomorrow">Yarın</string>
+    <string name="yesterday">Dün</string>
+    <string name="last_week">Geçen Hafta</string>
+    <string name="last_month">Geçen Ay</string>
+    <string name="type">Tür</string>
+    <string name="scheduled">Planlanan</string>
+    <string name="add">İşlem Ekle</string>
+    <string name="detail_screen">Detaylar</string>
+    <string name="scheduled_screen">Planlananlar</string>
+    <string name="history">Geçmiş</string>
+    <string name="history_and_scheduled">Geçmiş ve Planlanan</string>
+    <string name="error_select_type_first">Lütfen önce işlem türünü seçin</string>
+    <string name="due_date_label">Son Gün:</string>
+    <string name="is_transaction_completed">İşlem tamamlandı mı?</string>
+    <!-- Shared transaction categories -->
+    <string name="category">Kategori</string>
+    <string name="category_food">Yiyecek</string>
+    <string name="category_groceries">Market</string>
+    <string name="category_coffee_tea">Kahve &amp; Çay</string>
+    <string name="category_dessert_sweets">Tatlı &amp; Şekerleme</string>
+    <string name="category_transport">Ulaşım</string>
+    <string name="category_rent">Kira</string>
+    <string name="category_entertainment">Eğlence</string>
+    <string name="category_health">Sağlık</string>
+    <string name="category_bills">Faturalar</string>
+    <string name="category_clothing">Giyim</string>
+    <string name="category_education">Eğitim</string>
+    <string name="category_home_decoration">Ev Dekorasyonu</string>
+    <string name="category_gifts_donation">Hediye &amp; Bağış</string>
+    <string name="category_other">Diğer</string>
+    <string name="category_salary">Maaş</string>
+    <string name="category_scholarship">Burs</string>
+    <string name="category_freelance">Freelance</string>
+    <string name="category_investment_income">Yatırım Geliri</string>
+    <string name="category_rental_income">Kira Geliri</string>
+    <string name="category_gifts">Hediyeler</string>
+    <string name="category_sales_income">Satış Geliri</string>
+    <string name="category_other_income">Diğer Gelir</string>
+    <!-- Scheduled transaction form -->
+    <string name="reminder_switch_title">Hatırlatıcı olarak kaydet</string>
+    <string name="reminder_enabled_desc">Bildirim ileri bir tarihte gönderilecek</string>
+    <string name="reminder_disabled_desc">İşlem hemen kaydedilecek</string>
+    <string name="create_reminder_button">Hatırlatıcı Oluştur</string>
+    <!-- Validation and transaction actions -->
+    <string name="error_invalid_amount">Lütfen geçerli bir tutar girin</string>
+    <string name="error_select_category">Lütfen bir kategori seçin</string>
+    <string name="error_transaction_save_failed">İşlem kaydedilemedi: %1$s</string>
+    <string name="updated_successfully">Başarıyla güncellendi</string>
+    <string name="invalid_amount">Geçersiz tutar</string>
+    <string name="select_category_error">Lütfen bir kategori seçin</string>
+    <string name="update_failed">Güncelleme başarısız: %1$s</string>
+    <string name="delete_failed">Silme başarısız: %1$s</string>
+    <string name="no_scheduled_transactions">Planlanmış işlem bulunamadı</string>
+    <string name="note_with_value">Not: %1$s</string>
+    <string name="edit_transaction_title">İşlemi Düzenle</string>
+    <string name="delete_transaction_title">İşlemi Sil</string>
+    <string name="delete_transaction_message">Bu işlemi silmek istediğinizden emin misiniz?</string>
+</resources>

@@ -46,21 +46,21 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -68,250 +68,213 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import com.ahmetkaragunlu.financeai.R
-import com.ahmetkaragunlu.financeai.app.navigation.Screens
-import com.ahmetkaragunlu.financeai.app.navigation.navigateSingleTopClear
 import com.ahmetkaragunlu.financeai.core.format.formatRelativeDate
 import com.ahmetkaragunlu.financeai.core.ui.component.EditAlertDialog
 import com.ahmetkaragunlu.financeai.core.ui.component.EditTextField
 import com.ahmetkaragunlu.financeai.core.ui.component.FinanceDropdownMenu
 import com.ahmetkaragunlu.financeai.core.ui.component.formatAsAccountCurrency
 import com.ahmetkaragunlu.financeai.core.ui.component.getAccountCurrencySymbol
-import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
+import com.ahmetkaragunlu.financeai.core.ui.effect.ToastMessageEffect
+import com.ahmetkaragunlu.financeai.core.ui.theme.FinanceColors
+import com.ahmetkaragunlu.financeai.core.ui.theme.FinanceGradients
+import com.ahmetkaragunlu.financeai.core.ui.theme.Spacing
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
-import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toIconResId
+import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.Transaction
+import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
 import com.ahmetkaragunlu.financeai.feature.transaction.format.toResId
+import com.ahmetkaragunlu.financeai.feature.transaction.presentation.TransactionActionResult
+import com.ahmetkaragunlu.financeai.feature.transaction.presentation.TransactionResultEffect
+import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toIconResId
 import com.ahmetkaragunlu.financeai.photo.CameraHelper
-import com.ahmetkaragunlu.financeai.photo.PhotoStorageUtil
 import com.ahmetkaragunlu.financeai.photo.PhotoSourceBottomSheet
+import com.ahmetkaragunlu.financeai.photo.PhotoStorageUtil
 import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TransactionDetailScreen(
-    navController: NavHostController,
+fun TransactionDetailRoute(
+    onDeleted: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: TransactionDetailViewModel = hiltViewModel()
+    viewModel: TransactionDetailViewModel = hiltViewModel(),
 ) {
-    val transaction by viewModel.transaction.collectAsStateWithLifecycle()
+    val detailState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    var cameraHelperRef by remember { mutableStateOf<CameraHelper?>(null) }
+    ToastMessageEffect(viewModel.photoErrorResId, viewModel::consumePhotoError)
+    val cameraLauncher =
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.TakePicture()) {
+            success ->
+            if (success) {
+                viewModel.onCameraPhotoTaken()
+            } else viewModel.clearCameraDraft()
+        }
+    val permissionLauncher =
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.RequestPermission()) {
+            isGranted ->
+            cameraHelperRef?.onPermissionResult(isGranted)
+        }
+
+    val galleryLauncher =
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
+            uri?.let { viewModel.onPhotoSelected(it) }
+        }
+
+    val cameraHelper =
+        remember(context, cameraLauncher, permissionLauncher) {
+            CameraHelper(
+                    context = context,
+                    cameraLauncher = cameraLauncher,
+                    permissionLauncher = permissionLauncher,
+                    onPreparePhoto = {
+                        viewModel.cameraOwnerId()?.let { owner ->
+                            PhotoStorageUtil.createTempPhotoFile(context, owner)?.also { (file, _)
+                                ->
+                                viewModel.registerCameraDraft(file.absolutePath)
+                            }
+                        }
+                    },
+                )
+                .also { cameraHelperRef = it }
+        }
+
+    TransactionDetailScreen(
+        state = detailState,
+        editState =
+            TransactionEditState(
+                viewModel.editAmount,
+                viewModel.editNote,
+                viewModel.editCategory,
+                viewModel.availableCategories,
+            ),
+        onEditRequested = viewModel::prepareEdit,
+        onAmountChanged = viewModel::updateEditAmount,
+        onNoteChanged = viewModel::updateEditNote,
+        onCategoryChanged = viewModel::updateEditCategory,
+        onUpdateRequested = viewModel::updateTransaction,
+        onDeleteRequested = viewModel::deleteTransaction,
+        actionResult = viewModel.actionResult,
+        onResultConsumed = viewModel::consumeActionResult,
+        onDeleted = onDeleted,
+        onDeletePhoto = viewModel::deletePhoto,
+        onCameraClick = cameraHelper::launchCamera,
+        onGalleryClick = { galleryLauncher.launch("image/*") },
+        modifier = modifier,
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TransactionDetailScreen(
+    state: TransactionDetailUiState,
+    editState: TransactionEditState,
+    onEditRequested: () -> Boolean,
+    onAmountChanged: (String) -> Unit,
+    onNoteChanged: (String) -> Unit,
+    onCategoryChanged: (CategoryType) -> Unit,
+    onUpdateRequested: () -> Unit,
+    onDeleteRequested: () -> Unit,
+    actionResult: TransactionActionResult?,
+    onResultConsumed: () -> Unit,
+    onDeleted: () -> Unit,
+    onDeletePhoto: () -> Unit,
+    onCameraClick: () -> Unit,
+    onGalleryClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val context = LocalContext.current
     var showEditBottomSheet by rememberSaveable { mutableStateOf(false) }
     var showDeleteDialog by rememberSaveable { mutableStateOf(false) }
     var showPhotoZoomDialog by rememberSaveable { mutableStateOf(false) }
     var showPhotoSourceSheet by rememberSaveable { mutableStateOf(false) }
     var isCategoryDropdownExpanded by rememberSaveable { mutableStateOf(false) }
-    var cameraHelperRef by remember { mutableStateOf<CameraHelper?>(null) }
-    LaunchedEffect(viewModel.photoErrorResId) {
-        viewModel.photoErrorResId?.let {
-            Toast.makeText(context, context.getString(it), Toast.LENGTH_SHORT).show()
-            viewModel.consumePhotoError()
+    TransactionResultEffect(actionResult, onResultConsumed) { result ->
+        when (result) {
+            TransactionActionResult.Updated -> {
+                showEditBottomSheet = false
+                Toast.makeText(
+                        context,
+                        context.getString(R.string.updated_successfully),
+                        Toast.LENGTH_SHORT,
+                    )
+                    .show()
+            }
+            TransactionActionResult.Deleted -> {
+                showDeleteDialog = false
+                Toast.makeText(context, context.getString(R.string.success), Toast.LENGTH_SHORT)
+                    .show()
+                onDeleted()
+            }
+            TransactionActionResult.PhotoDeleted -> showPhotoZoomDialog = false
+            else -> Unit
         }
     }
-    val cameraLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicture()
-    ) { success ->
-        if (success) {
-            viewModel.onCameraPhotoTaken()
-        } else viewModel.clearCameraDraft()
-    }
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        cameraHelperRef?.onPermissionResult(isGranted)
-    }
-
-    val galleryLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri ->
-        uri?.let { viewModel.onPhotoSelected(it) }
-    }
-
-    val cameraHelper = remember(context, cameraLauncher, permissionLauncher) {
-        CameraHelper(
-            context = context,
-            cameraLauncher = cameraLauncher,
-            permissionLauncher = permissionLauncher,
-            onPreparePhoto = {
-                viewModel.cameraOwnerId()?.let { owner ->
-                    PhotoStorageUtil.createTempPhotoFile(context, owner)?.also { (file, _) ->
-                        viewModel.registerCameraDraft(file.absolutePath)
-                    }
-                }
+    val transaction = state.transaction
+    if (transaction == null) {
+        val description =
+            when (state) {
+                TransactionDetailUiState.Loading -> stringResource(R.string.transaction_loading)
+                TransactionDetailUiState.NotFound -> stringResource(R.string.transaction_not_found)
+                is TransactionDetailUiState.Error -> stringResource(state.messageRes)
+                is TransactionDetailUiState.Content -> ""
             }
-        ).also { cameraHelperRef = it }
+        // Keep the existing empty visual layout while exposing an explicit accessible state.
+        Box(
+            modifier.fillMaxSize().background(colorResource(R.color.background)).semantics {
+                stateDescription = description
+            }
+        )
+        return
     }
-
     transaction?.let { tx ->
         Column(
-            modifier = modifier
-                .fillMaxSize()
-                .background(color = colorResource(R.color.background))
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier =
+                modifier
+                    .fillMaxSize()
+                    .background(color = colorResource(R.color.background))
+                    .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             // Main Card with Gradient
-            Card(
-                modifier = modifier
-                    .widthIn(max = 450.dp)
-                    .fillMaxWidth()
-                    .padding(8.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.Transparent)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(
-                            brush = Brush.horizontalGradient(
-                                colors = listOf(
-                                    Color(0xFF3b4351),
-                                    Color(0xFF2d3139)
-                                )
-                            ),
-                            shape = RoundedCornerShape(16.dp)
-                        )
-                ) {
-                    Row(
-                        modifier = modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = Color.White.copy(alpha = 0.2f)
-                        ) {
-                            Icon(
-                                painter = painterResource(tx.category.toIconResId()),
-                                contentDescription = null,
-                                tint = Color.Unspecified,
-                            )
-                        }
-                        Spacer(modifier = modifier.width(16.dp))
-                        Column {
-                            Text(
-                                text = stringResource(tx.category.toResId()),
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                            Text(
-                                text = tx.date.formatRelativeDate(context),
-                                color = Color.Gray,
-                                style = MaterialTheme.typography.labelSmall
-                            )
-                        }
-
-                        Spacer(modifier = modifier.weight(1f))
-
-                        Text(
-                            text = tx.amount.formatAsAccountCurrency(),
-                            color = if (tx.transaction == TransactionType.INCOME) Color.Green else Color.Red
-                        )
-                    }
-
-                    // Optional Info Section
-                    Column(
-                        modifier = modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        if (tx.note.isNotBlank()) {
-                            Text(
-                                text = stringResource(R.string.note_with_value, tx.note),
-                                color = MaterialTheme.colorScheme.onPrimary
-                            )
-                        }
-
-                        if (tx.locationShort != null) {
-                            Text(
-                                text = stringResource(R.string.location_with_value, tx.locationShort),
-                                color = MaterialTheme.colorScheme.onPrimary
-                            )
-                        }
-
-                        // Photo Section
-                        if (tx.photoUri != null && (tx.photoUri.startsWith("https://") || File(tx.photoUri).exists())) {
-                            Spacer(modifier = modifier.height(8.dp))
-                            Card(
-                                modifier = modifier
-                                    .fillMaxWidth()
-                                    .height(180.dp)
-                                    .clickable { showPhotoZoomDialog = true },
-                                shape = RoundedCornerShape(12.dp),
-                                colors = CardDefaults.cardColors(containerColor = Color(0xFF2D3748))
-                            ) {
-                                Box(modifier = Modifier.fillMaxSize()) {
-                                    Image(
-                                        painter = rememberAsyncImagePainter(tx.photoUri),
-                                        contentDescription = stringResource(R.string.transaction_photo_desc),
-                                        modifier = modifier
-                                            .fillMaxSize()
-                                            .clip(RoundedCornerShape(12.dp)),
-                                        contentScale = ContentScale.Crop
-                                    )
-                                    Icon(
-                                        imageVector = Icons.Default.ZoomIn,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onPrimary,
-                                        modifier = Modifier
-                                            .align(Alignment.TopEnd)
-                                            .padding(8.dp)
-                                            .background(Color.Black.copy(alpha = 0.5f), CircleShape)
-                                            .padding(4.dp)
-                                    )
-                                }
-                            }
-                        } else {
-                            OutlinedButton(
-                                onClick = { showPhotoSourceSheet = true },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
-                            ) {
-                                Icon(Icons.Default.AddAPhoto, contentDescription = null)
-                                Spacer(Modifier.width(8.dp))
-                                Text(stringResource(R.string.add_photo))
-                            }
-                        }
-                    }
-                }
-            }
+            TransactionSummaryCard(
+                tx,
+                onPhotoClick = { showPhotoZoomDialog = true },
+                onAddPhotoClick = { showPhotoSourceSheet = true },
+            )
 
             // Action Buttons
             Row(
-                modifier = modifier
-                    .widthIn(max = 400.dp)
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                modifier =
+                    modifier
+                        .widthIn(max = 400.dp)
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.itemGap),
             ) {
                 Button(
-                    onClick = { if (viewModel.prepareEdit()) showEditBottomSheet = true },
-                    modifier = modifier
-                        .weight(1f)
-                        .height(50.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor =Color(0xFF353b45)),
-                    shape = RoundedCornerShape(12.dp)
+                    onClick = { if (onEditRequested()) showEditBottomSheet = true },
+                    modifier = modifier.weight(1f).height(50.dp),
+                    colors =
+                        ButtonDefaults.buttonColors(containerColor = FinanceColors.fieldSurface),
+                    shape = RoundedCornerShape(12.dp),
                 ) {
                     Text(
                         text = stringResource(R.string.edit),
-                        color = MaterialTheme.colorScheme.onPrimary
+                        color = MaterialTheme.colorScheme.onPrimary,
                     )
                 }
 
                 Button(
                     onClick = { showDeleteDialog = true },
-                    modifier = modifier
-                        .weight(1f)
-                        .height(50.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor =Color(0xFF353b45)),
-                    shape = RoundedCornerShape(12.dp)
+                    modifier = modifier.weight(1f).height(50.dp),
+                    colors =
+                        ButtonDefaults.buttonColors(containerColor = FinanceColors.fieldSurface),
+                    shape = RoundedCornerShape(12.dp),
                 ) {
                     Text(
                         text = stringResource(R.string.delete),
-                        color = MaterialTheme.colorScheme.onPrimary
+                        color = MaterialTheme.colorScheme.onPrimary,
                     )
                 }
             }
@@ -321,55 +284,53 @@ fun TransactionDetailScreen(
         if (showPhotoZoomDialog && tx.photoUri != null) {
             Dialog(
                 onDismissRequest = { showPhotoZoomDialog = false },
-                properties = DialogProperties(usePlatformDefaultWidth = false)
+                properties = DialogProperties(usePlatformDefaultWidth = false),
             ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black)
-                ) {
+                Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
                     Image(
                         painter = rememberAsyncImagePainter(tx.photoUri),
                         contentDescription = stringResource(R.string.full_screen_photo_desc),
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clickable { showPhotoZoomDialog = false },
-                        contentScale = ContentScale.Fit
+                        modifier = Modifier.fillMaxSize().clickable { showPhotoZoomDialog = false },
+                        contentScale = ContentScale.Fit,
                     )
 
                     IconButton(
                         onClick = { showPhotoZoomDialog = false },
-                        modifier = Modifier
-                            .align(Alignment.TopStart)
-                            .padding(16.dp)
-                            .background(Color.Black.copy(0.5f), CircleShape)
+                        modifier =
+                            Modifier.align(Alignment.TopStart)
+                                .padding(Spacing.screenPadding)
+                                .background(Color.Black.copy(0.5f), CircleShape),
                     ) {
-                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close), tint = MaterialTheme.colorScheme.onPrimary)
+                        Icon(
+                            Icons.Default.Close,
+                            contentDescription = stringResource(R.string.close),
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                        )
                     }
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .align(Alignment.BottomCenter)
-                            .padding(24.dp),
-                        horizontalArrangement = Arrangement.SpaceEvenly
+                        modifier =
+                            Modifier.fillMaxWidth().align(Alignment.BottomCenter).padding(24.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
                     ) {
                         Button(
                             onClick = { showPhotoSourceSheet = true },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color.Gray,
-                                contentColor = MaterialTheme.colorScheme.onPrimary
-                            )
+                            colors =
+                                ButtonDefaults.buttonColors(
+                                    containerColor = FinanceColors.mutedText,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                                ),
                         ) {
                             Icon(Icons.Default.Edit, contentDescription = null)
                             Spacer(Modifier.width(8.dp))
                             Text(stringResource(R.string.change))
                         }
                         Button(
-                            onClick = { viewModel.deletePhoto(onSuccess = { showPhotoZoomDialog = false }) },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color.Red,
-                                contentColor = MaterialTheme.colorScheme.onPrimary
-                            )
+                            onClick = onDeletePhoto,
+                            colors =
+                                ButtonDefaults.buttonColors(
+                                    containerColor = FinanceColors.expense,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                                ),
                         ) {
                             Icon(Icons.Default.Delete, contentDescription = null)
                             Spacer(Modifier.width(8.dp))
@@ -383,35 +344,26 @@ fun TransactionDetailScreen(
         if (showPhotoSourceSheet) {
             PhotoSourceBottomSheet(
                 onDismiss = { showPhotoSourceSheet = false },
-                onCameraClick = { cameraHelper.launchCamera() },
-                onGalleryClick = { galleryLauncher.launch("image/*") }
+                onCameraClick = onCameraClick,
+                onGalleryClick = onGalleryClick,
             )
         }
         // Edit Bottom Sheet
-        // A restored UI flag must not reopen a form whose ViewModel draft was lost with the process.
-        if (showEditBottomSheet && viewModel.editCategory != null) {
+        // A restored UI flag must not reopen a form whose ViewModel draft was lost with the
+        // process.
+        if (showEditBottomSheet && editState.category != null) {
             EditBottomSheet(
-                amount = viewModel.editAmount,
-                note = viewModel.editNote,
-                category = viewModel.editCategory,
-                categories = viewModel.availableCategories,
-                onAmountChange = viewModel::updateEditAmount,
-                onNoteChange = viewModel::updateEditNote,
-                onCategoryChange = viewModel::updateEditCategory,
+                amount = editState.amount,
+                note = editState.note,
+                category = editState.category,
+                categories = editState.categories,
+                onAmountChange = onAmountChanged,
+                onNoteChange = onNoteChanged,
+                onCategoryChange = onCategoryChanged,
                 categoryDropdownExpanded = isCategoryDropdownExpanded,
                 onCategoryDropdownExpandedChange = { isCategoryDropdownExpanded = it },
                 onDismiss = { showEditBottomSheet = false },
-                onSave = {
-                    viewModel.updateTransaction(
-                        onSuccess = {
-                            showEditBottomSheet = false
-                            Toast.makeText(context, context.getString(R.string.updated_successfully), Toast.LENGTH_SHORT).show()
-                        },
-                        onError = { error ->
-                            Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
-                        }
-                    )
-                }
+                onSave = onUpdateRequested,
             )
         }
         if (showDeleteDialog) {
@@ -420,23 +372,143 @@ fun TransactionDetailScreen(
                 text = R.string.delete_transaction_message,
                 onDismissRequest = { showDeleteDialog = false },
                 confirmButton = {
-                    TextButton(onClick = {
-                        viewModel.deleteTransaction(
-                            onSuccess = {
-                                showDeleteDialog = false
-                                Toast.makeText(context, context.getString(R.string.success), Toast.LENGTH_SHORT).show()
-                                navController.navigateSingleTopClear(Screens.TRANSACTION_HISTORY_SCREEN.route)
-                            },
-                            onError = { error -> Toast.makeText(context, error, Toast.LENGTH_SHORT).show() }
-                        )
-                    }) { Text(stringResource(R.string.delete), color = Color.Red) }
+                    TextButton(onClick = onDeleteRequested) {
+                        Text(stringResource(R.string.delete), color = FinanceColors.expense)
+                    }
                 },
                 dismissButton = {
                     TextButton(onClick = { showDeleteDialog = false }) {
                         Text(stringResource(R.string.cancel))
                     }
-                }
+                },
             )
+        }
+    }
+}
+
+@Composable
+private fun TransactionSummaryCard(
+    tx: Transaction,
+    onPhotoClick: () -> Unit,
+    onAddPhotoClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    Card(
+        modifier = modifier.widthIn(max = 450.dp).fillMaxWidth().padding(8.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+    ) {
+        Column(
+            modifier =
+                Modifier.fillMaxWidth()
+                    .background(
+                        brush = FinanceGradients.financialCard,
+                        shape = RoundedCornerShape(16.dp),
+                    )
+        ) {
+            Row(
+                modifier = modifier.fillMaxWidth().padding(Spacing.screenPadding),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Surface(shape = CircleShape, color = FinanceColors.onAccent.copy(alpha = 0.2f)) {
+                    Icon(
+                        painter = painterResource(tx.category.toIconResId()),
+                        contentDescription = null,
+                        tint = Color.Unspecified,
+                    )
+                }
+                Spacer(modifier = modifier.width(16.dp))
+                Column {
+                    Text(
+                        text = stringResource(tx.category.toResId()),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Text(
+                        text = tx.date.formatRelativeDate(context),
+                        color = FinanceColors.mutedText,
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                }
+
+                Spacer(modifier = modifier.weight(1f))
+
+                Text(
+                    text = tx.amount.formatAsAccountCurrency(),
+                    color =
+                        if (tx.transaction == TransactionType.INCOME) FinanceColors.income
+                        else FinanceColors.expense,
+                )
+            }
+
+            // Optional Info Section
+            Column(
+                modifier = modifier.fillMaxWidth().padding(Spacing.screenPadding),
+                verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
+            ) {
+                if (tx.note.isNotBlank()) {
+                    Text(
+                        text = stringResource(R.string.note_with_value, tx.note),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                }
+
+                if (tx.locationShort != null) {
+                    Text(
+                        text = stringResource(R.string.location_with_value, tx.locationShort),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                }
+
+                // Photo Section
+                if (
+                    tx.photoUri != null &&
+                        (tx.photoUri.startsWith("https://") || File(tx.photoUri).exists())
+                ) {
+                    Spacer(modifier = modifier.height(8.dp))
+                    Card(
+                        modifier =
+                            modifier.fillMaxWidth().height(180.dp).clickable { onPhotoClick() },
+                        shape = RoundedCornerShape(12.dp),
+                        colors =
+                            CardDefaults.cardColors(containerColor = FinanceColors.photoSurface),
+                    ) {
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            Image(
+                                painter = rememberAsyncImagePainter(tx.photoUri),
+                                contentDescription =
+                                    stringResource(R.string.transaction_photo_desc),
+                                modifier = modifier.fillMaxSize().clip(RoundedCornerShape(12.dp)),
+                                contentScale = ContentScale.Crop,
+                            )
+                            Icon(
+                                imageVector = Icons.Default.ZoomIn,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier =
+                                    Modifier.align(Alignment.TopEnd)
+                                        .padding(8.dp)
+                                        .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                                        .padding(4.dp),
+                            )
+                        }
+                    }
+                } else {
+                    OutlinedButton(
+                        onClick = { onAddPhotoClick() },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors =
+                            ButtonDefaults.outlinedButtonColors(
+                                contentColor = FinanceColors.onAccent
+                            ),
+                    ) {
+                        Icon(Icons.Default.AddAPhoto, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text(stringResource(R.string.add_photo))
+                    }
+                }
+            }
         }
     }
 }
@@ -454,45 +526,39 @@ private fun EditBottomSheet(
     categoryDropdownExpanded: Boolean,
     onCategoryDropdownExpandedChange: (Boolean) -> Unit,
     onDismiss: () -> Unit,
-    onSave: () -> Unit
+    onSave: () -> Unit,
 ) {
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        containerColor = Color(0xFF2B2D31)
-    ) {
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = FinanceColors.dialogSurface) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier.fillMaxWidth().padding(Spacing.screenPadding),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
                 text = stringResource(R.string.edit_transaction_title),
                 style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onPrimary
+                color = MaterialTheme.colorScheme.onPrimary,
             )
             // Amount
             EditTextField(
                 value = amount,
                 onValueChange = onAmountChange,
                 modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions.Default.copy(
-                    imeAction = ImeAction.Next,
-                    keyboardType = KeyboardType.Number
-                ),
+                keyboardOptions =
+                    KeyboardOptions.Default.copy(
+                        imeAction = ImeAction.Next,
+                        keyboardType = KeyboardType.Number,
+                    ),
                 placeholder = R.string.enter_amount,
-                colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedContainerColor =Color(0xFF404349),
-                    focusedContainerColor =Color(0xFF404349),
-                    focusedTextColor = MaterialTheme.colorScheme.onPrimary,
-                    unfocusedTextColor = MaterialTheme.colorScheme.onPrimary,
-                ),
+                colors =
+                    OutlinedTextFieldDefaults.colors(
+                        unfocusedContainerColor = FinanceColors.elevatedSurface,
+                        focusedContainerColor = FinanceColors.elevatedSurface,
+                        focusedTextColor = MaterialTheme.colorScheme.onPrimary,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onPrimary,
+                    ),
                 trailingIcon = {
-                    Text(
-                        getAccountCurrencySymbol(),
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                }
+                    Text(getAccountCurrencySymbol(), color = MaterialTheme.colorScheme.onPrimary)
+                },
             )
             // Category Dropdown
             FinanceDropdownMenu(
@@ -513,7 +579,7 @@ private fun EditBottomSheet(
                         placeholder = {
                             Text(
                                 text = stringResource(R.string.select_category),
-                                color = Color.Gray
+                                color = FinanceColors.mutedText,
                             )
                         },
                         trailingIcon = {
@@ -521,54 +587,56 @@ private fun EditBottomSheet(
                                 imageVector = Icons.Default.ArrowDropDown,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.clickable {
-                                    onCategoryDropdownExpandedChange(true)
-                                }
+                                modifier =
+                                    Modifier.clickable { onCategoryDropdownExpandedChange(true) },
                             )
                         },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onCategoryDropdownExpandedChange(true) },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            disabledContainerColor = Color(0xFF404349),
-                            disabledTextColor = MaterialTheme.colorScheme.onPrimary
-                        ),
+                        modifier =
+                            Modifier.fillMaxWidth().clickable {
+                                onCategoryDropdownExpandedChange(true)
+                            },
+                        colors =
+                            OutlinedTextFieldDefaults.colors(
+                                disabledContainerColor = FinanceColors.elevatedSurface,
+                                disabledTextColor = MaterialTheme.colorScheme.onPrimary,
+                            ),
                         enabled = false,
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(12.dp),
                     )
-                }
+                },
             )
-            //Note
+            // Note
             EditTextField(
                 value = note,
                 onValueChange = onNoteChange,
-                keyboardOptions = KeyboardOptions.Default.copy(
-                    imeAction = ImeAction.Done,
-                    keyboardType = KeyboardType.Text
-                ),
+                keyboardOptions =
+                    KeyboardOptions.Default.copy(
+                        imeAction = ImeAction.Done,
+                        keyboardType = KeyboardType.Text,
+                    ),
                 placeholder = R.string.enter_your_note,
                 modifier = Modifier.fillMaxWidth(),
-                colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedContainerColor =Color(0xFF404349),
-                    focusedContainerColor =Color(0xFF404349),
-                    focusedTextColor = MaterialTheme.colorScheme.onPrimary,
-                    unfocusedTextColor = MaterialTheme.colorScheme.onPrimary,
-                )
+                colors =
+                    OutlinedTextFieldDefaults.colors(
+                        unfocusedContainerColor = FinanceColors.elevatedSurface,
+                        focusedContainerColor = FinanceColors.elevatedSurface,
+                        focusedTextColor = MaterialTheme.colorScheme.onPrimary,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onPrimary,
+                    ),
             )
 
             // Save Button
             Button(
                 onClick = onSave,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF404349)),
-                shape = RoundedCornerShape(12.dp)
+                modifier = Modifier.fillMaxWidth().height(50.dp),
+                colors =
+                    ButtonDefaults.buttonColors(containerColor = FinanceColors.elevatedSurface),
+                shape = RoundedCornerShape(12.dp),
             ) {
                 Text(
                     stringResource(R.string.save),
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onPrimary
+                    color = MaterialTheme.colorScheme.onPrimary,
                 )
             }
             Spacer(modifier = Modifier.height(16.dp))

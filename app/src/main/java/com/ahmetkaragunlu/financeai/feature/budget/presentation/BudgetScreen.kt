@@ -8,75 +8,76 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.core.ui.component.EditAlertDialog
+import com.ahmetkaragunlu.financeai.core.ui.theme.FinanceColors
 
 @Composable
-fun BudgetScreen(
-    viewModel: BudgetViewModel = hiltViewModel(),
-    modifier: Modifier = Modifier
-) {
+fun BudgetRoute(modifier: Modifier = Modifier, viewModel: BudgetViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val formState by viewModel.formState.collectAsStateWithLifecycle()
     val deleteState by viewModel.deleteDialogState.collectAsStateWithLifecycle()
 
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(colorResource(R.color.background))
-    ) {
+    BudgetScreen(uiState, formState, deleteState, viewModel::onEvent, modifier)
+}
+
+@Composable
+fun BudgetScreen(
+    uiState: BudgetUiState,
+    formState: BudgetFormState,
+    deleteState: DeleteDialogState,
+    onEvent: (BudgetEvent) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(modifier = modifier.fillMaxSize().background(colorResource(R.color.background))) {
         if (uiState.isBudgetEmpty) {
             EmptyBudgetContent(
-                onCreateGeneralClick = { viewModel.onEvent(BudgetEvent.OnCreateGeneralBudgetClick) },
-                onAddLimitClick = { viewModel.onEvent(BudgetEvent.OnAddBudgetClick) }
+                onCreateGeneralClick = { onEvent(BudgetEvent.OnCreateGeneralBudgetClick) },
+                onAddLimitClick = { onEvent(BudgetEvent.OnAddBudgetClick) },
             )
         } else {
-            FilledBudgetContent(
-                uiState = uiState,
-                onEvent = viewModel::onEvent
-            )
+            FilledBudgetContent(uiState = uiState, onEvent = onEvent)
         }
         if (formState.isVisible) {
             val isGeneralBudgetSet = (uiState.generalBudgetState?.limitAmount ?: 0.0) > 0
             AddBudgetBottomSheet(
                 formState = formState,
                 isGeneralBudgetSet = isGeneralBudgetSet,
-                onEvent = viewModel::onEvent
+                onEvent = onEvent,
             )
         }
 
         if (deleteState.isVisible) {
             EditAlertDialog(
                 title = R.string.delete,
-                text = R.string.delete_transaction_message,
+                text = R.string.delete_budget_message,
                 confirmButton = {
-                    TextButton(onClick = { viewModel.onEvent(BudgetEvent.OnConfirmDelete) }) {
-                        Text(stringResource(R.string.delete), color = Color.Red)
+                    TextButton(onClick = { onEvent(BudgetEvent.OnConfirmDelete) }) {
+                        Text(stringResource(R.string.delete), color = FinanceColors.expense)
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { viewModel.onEvent(BudgetEvent.OnDismissDeleteDialog) }) {
-                        Text(stringResource(R.string.cancel), color = Color.Gray)
+                    TextButton(onClick = { onEvent(BudgetEvent.OnDismissDeleteDialog) }) {
+                        Text(stringResource(R.string.cancel), color = FinanceColors.mutedText)
                     }
                 },
-                onDismissRequest = { viewModel.onEvent(BudgetEvent.OnDismissDeleteDialog) }
+                onDismissRequest = { onEvent(BudgetEvent.OnDismissDeleteDialog) },
             )
         }
         if (formState.isConflictDialogOpen) {
             EditAlertDialog(
-                onDismissRequest = { viewModel.onEvent(BudgetEvent.OnDismissConflictDialog) },
+                onDismissRequest = { onEvent(BudgetEvent.OnDismissConflictDialog) },
                 title = R.string.warning,
                 text = formState.conflictErrorResId ?: R.string.budget_rule_exists_error,
                 confirmButton = {
-                    TextButton(onClick = { viewModel.onEvent(BudgetEvent.OnDismissConflictDialog) }) {
-                        Text(stringResource(R.string.ok), color = Color.Gray)
+                    TextButton(onClick = { onEvent(BudgetEvent.OnDismissConflictDialog) }) {
+                        Text(stringResource(R.string.ok), color = FinanceColors.mutedText)
                     }
-                }
+                },
             )
         }
     }
