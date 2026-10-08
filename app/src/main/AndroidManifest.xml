@@ -26,7 +26,7 @@
         android:theme="@style/Theme.FinanceAI"
         tools:targetApi="31">
         <service
-            android:name=".fcm.MyFirebaseMessagingService"
+            android:name=".fcm.service.FinanceMessagingService"
             android:exported="false">
             <intent-filter>
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />

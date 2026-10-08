@@ -1,10 +1,11 @@
-package com.ahmetkaragunlu.financeai.fcm
+package com.ahmetkaragunlu.financeai.fcm.work
 
 import android.content.Context
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.ahmetkaragunlu.financeai.core.sync.SyncScheduler
+import com.ahmetkaragunlu.financeai.fcm.FCMTokenManager
 import com.google.firebase.auth.FirebaseAuth
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject

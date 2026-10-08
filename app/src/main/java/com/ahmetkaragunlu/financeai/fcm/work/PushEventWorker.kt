@@ -1,4 +1,4 @@
-package com.ahmetkaragunlu.financeai.fcm
+package com.ahmetkaragunlu.financeai.fcm.work
 
 import android.content.Context
 import androidx.hilt.work.HiltWorker

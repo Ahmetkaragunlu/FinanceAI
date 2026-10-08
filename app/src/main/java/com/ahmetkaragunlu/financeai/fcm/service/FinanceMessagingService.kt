@@ -1,4 +1,4 @@
-package com.ahmetkaragunlu.financeai.fcm
+package com.ahmetkaragunlu.financeai.fcm.service
 
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
@@ -7,6 +7,9 @@ import androidx.work.workDataOf
 import androidx.work.Constraints
 import androidx.work.NetworkType
 import com.ahmetkaragunlu.financeai.core.sync.SyncScheduler
+import com.ahmetkaragunlu.financeai.fcm.PushPayload
+import com.ahmetkaragunlu.financeai.fcm.work.PushEventWorker
+import com.ahmetkaragunlu.financeai.fcm.work.TokenRegistrationWorker
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import dagger.hilt.android.AndroidEntryPoint
@@ -14,7 +17,7 @@ import javax.inject.Inject
 
 /** Callbacks hand off durable work; no network coroutine is tied to the service lifetime. */
 @AndroidEntryPoint
-class MyFirebaseMessagingService : FirebaseMessagingService() {
+class FinanceMessagingService : FirebaseMessagingService() {
     @Inject lateinit var workManager: WorkManager
     override fun onNewToken(token: String) {
         if (token.isBlank()) return
