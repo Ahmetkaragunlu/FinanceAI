@@ -4,7 +4,7 @@ import android.content.Context
 import com.ahmetkaragunlu.financeai.core.coroutines.di.IoDispatcher
 import com.ahmetkaragunlu.financeai.core.session.AccountSession
 import com.ahmetkaragunlu.financeai.core.session.ActiveAccount
-import com.ahmetkaragunlu.financeai.photo.PhotoStorageUtil
+import com.ahmetkaragunlu.financeai.core.media.local.PhotoFiles
 import com.google.firebase.storage.FirebaseStorage
 import dagger.Lazy
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -30,7 +30,7 @@ class PhotoRemoteCache @Inject constructor(
         if (!session.isCurrent(account) || url.isNullOrBlank()) return@withContext null
         if (photo == previous && existingPath != null && File(existingPath).isFile) return@withContext existingPath
         val hash = MessageDigest.getInstance("SHA-256").digest("$url|${photo.version}".toByteArray()).take(12).joinToString("") { "%02x".format(it) }
-        val folder = File(context.filesDir, "${PhotoStorageUtil.PHOTO_DIRECTORY}/${account.ownerId}")
+        val folder = File(context.filesDir, "${PhotoFiles.DIRECTORY}/${account.ownerId}")
         val file = File(folder, "SYNC_${remoteId.hashCode()}_$hash.jpg")
         try {
             if (!file.isFile) {

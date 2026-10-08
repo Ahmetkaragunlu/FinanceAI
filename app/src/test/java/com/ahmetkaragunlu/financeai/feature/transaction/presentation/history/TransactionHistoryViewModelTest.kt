@@ -1,9 +1,9 @@
 package com.ahmetkaragunlu.financeai.feature.transaction.presentation.history
 
 import androidx.lifecycle.ViewModelStore
-import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.core.coroutines.testing.MainDispatcherRule
-import com.ahmetkaragunlu.financeai.core.format.DateFormatter
+import com.ahmetkaragunlu.financeai.core.time.DateFilter
+import com.ahmetkaragunlu.financeai.core.time.FinancePeriods
 import com.ahmetkaragunlu.financeai.core.time.FinanceCalendar
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryExpense
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
@@ -75,13 +75,13 @@ class TransactionHistoryViewModelTest {
             }
         try {
             runCurrent()
-            viewModel.onDateSelected(R.string.today)
+            viewModel.onDateSelected(DateFilter.TODAY)
             runCurrent()
             val range =
-                DateFormatter.getDateRange(R.string.today, clock.withZone(ZoneId.systemDefault()))
-            assertEquals(range.first, repository.last.start)
-            assertEquals(range.second, repository.last.end)
-            viewModel.onDateSelected(R.string.date)
+                FinancePeriods.filter(DateFilter.TODAY, clock.withZone(ZoneId.systemDefault()))
+            assertEquals(range.start, repository.last.start)
+            assertEquals(range.endExclusive, repository.last.end)
+            viewModel.onDateSelected(DateFilter.ALL)
             runCurrent()
             assertEquals(Query(), repository.last)
         } finally {
@@ -138,7 +138,8 @@ class TransactionHistoryViewModelTest {
 
         override suspend fun insertTransaction(transaction: Transaction) = error("Not a query")
 
-        override suspend fun updateTransaction(transaction: Transaction) = error("Not a query")
+        override suspend fun updateDetails(target: Transaction, amount: Double, note: String, category: CategoryType) = error("Not a query")
+        override suspend fun updatePhoto(target: Transaction, photoUri: String?): String? = error("Not a query")
 
         override suspend fun deleteTransaction(transaction: Transaction) = error("Not a query")
     }

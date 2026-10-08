@@ -1,6 +1,5 @@
 package com.ahmetkaragunlu.financeai.core.time
 
-import com.ahmetkaragunlu.financeai.core.format.DateFormatter
 import java.time.Clock
 import java.time.ZoneId
 import javax.inject.Inject
@@ -22,8 +21,8 @@ class FinanceCalendar @Inject constructor(private val clock: Clock) {
             delay(minOf(60_000L, (range.endExclusive - clock.millis()).coerceAtLeast(1L)))
         }
     }
-    fun observeFilterRange(resourceId: () -> Int) = combine(ticks(), refreshes) { _, _ ->
-        DateFormatter.getDateRange(resourceId(), clock.withZone(ZoneId.systemDefault()))
+    fun observeFilterRange(filter: DateFilter) = combine(ticks(), refreshes) { _, _ ->
+        FinancePeriods.filter(filter, clock.withZone(ZoneId.systemDefault()))
     }.distinctUntilChanged()
     fun observeMonth() = combine(ticks(), refreshes) { _, _ ->
         FinancePeriods.month(clock.withZone(ZoneId.systemDefault()))

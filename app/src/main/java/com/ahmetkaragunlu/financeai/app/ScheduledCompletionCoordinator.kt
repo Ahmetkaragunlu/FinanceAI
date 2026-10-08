@@ -9,7 +9,7 @@ import com.ahmetkaragunlu.financeai.feature.schedule.data.RoomScheduledCompletio
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.model.ScheduledTransaction
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.usecase.CompleteScheduledTransaction
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.Transaction
-import com.ahmetkaragunlu.financeai.photo.PhotoWorkScheduler
+import com.ahmetkaragunlu.financeai.core.media.work.PhotoWorkScheduler
 import javax.inject.Inject
 
 /** Screen and notification actions share local completion and the same disposable work handoff. */

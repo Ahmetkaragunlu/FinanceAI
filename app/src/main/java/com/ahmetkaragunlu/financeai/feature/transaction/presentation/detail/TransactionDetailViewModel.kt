@@ -19,7 +19,7 @@ import com.ahmetkaragunlu.financeai.feature.transaction.domain.repository.Transa
 import com.ahmetkaragunlu.financeai.feature.transaction.navigation.TransactionDetailDestination
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.TransactionActionResult
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.transactionFailure
-import com.ahmetkaragunlu.financeai.photo.PhotoWorkScheduler
+import com.ahmetkaragunlu.financeai.core.media.work.PhotoWorkScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.io.File
 import javax.inject.Inject
@@ -142,17 +142,14 @@ constructor(
                         return@withLock
                     }
                     if (request != photoRequest || !session.isCurrent(account)) return@withLock
-                    val latest =
-                        repository.observeTransactionById(transactionId).first() ?: return@withLock
-                    val updated = latest.copy(photoUri = saved, syncedToFirebase = false)
-                    repository.updateTransaction(updated)
+                    val previousPhoto = repository.updatePhoto(currentTx, saved)
                     committed = true
-                    photoStore.delete(latest.photoUri)
+                    photoStore.delete(previousPhoto)
                     photoWork.upload(
-                        updated.ownerId,
+                        currentTx.ownerId,
                         "transactions",
-                        updated.firestoreId,
-                        updated.photoUri,
+                        currentTx.firestoreId,
+                        saved,
                     )
                 } catch (e: CancellationException) {
                     throw e
@@ -174,12 +171,8 @@ constructor(
             photoUpdates.withLock {
                 try {
                     if (!session.isCurrent(account)) return@withLock
-                    val latest =
-                        repository.observeTransactionById(transactionId).first() ?: return@withLock
-                    repository.updateTransaction(
-                        latest.copy(photoUri = null, syncedToFirebase = false)
-                    )
-                    photoStore.delete(latest.photoUri)
+                    val previousPhoto = repository.updatePhoto(currentTx, null)
+                    photoStore.delete(previousPhoto)
                     if (session.isCurrent(account))
                         actionResult = TransactionActionResult.PhotoDeleted
                 } catch (e: CancellationException) {
@@ -229,14 +222,7 @@ constructor(
         viewModelScope.launch {
             try {
                 if (!session.isCurrent(account)) return@launch
-                val updatedTransaction =
-                    currentTransaction.copy(
-                        amount = amount,
-                        note = note,
-                        category = category,
-                        syncedToFirebase = false,
-                    )
-                repository.updateTransaction(updatedTransaction)
+                repository.updateDetails(currentTransaction, amount, note, category)
 
                 if (session.isCurrent(account)) actionResult = TransactionActionResult.Updated
             } catch (e: Exception) {

@@ -7,7 +7,7 @@ import android.net.Uri
 import android.util.Log
 import com.ahmetkaragunlu.financeai.core.coroutines.di.IoDispatcher
 import com.ahmetkaragunlu.financeai.core.database.FinanceDatabase
-import com.ahmetkaragunlu.financeai.photo.PhotoStorageUtil
+import com.ahmetkaragunlu.financeai.core.media.local.PhotoFiles
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import java.util.UUID
@@ -30,7 +30,7 @@ class PhotoLocalStore @Inject constructor(
     /** ImageDecoder performs orientation-aware bounded decoding on every supported device (minSdk 30). */
     suspend fun save(uri: Uri, cameraPath: String?, ownerId: String): String? = withContext(io) {
         require(ownerId.isNotBlank() && '/' !in ownerId && ownerId != "." && ownerId != "..")
-        val folder = File(context.filesDir, "${PhotoStorageUtil.PHOTO_DIRECTORY}/$ownerId").canonicalFile
+        val folder = File(context.filesDir, "${PhotoFiles.DIRECTORY}/$ownerId").canonicalFile
         check(folder.isDirectory || folder.mkdirs())
         val target = File(folder, "IMG_${UUID.randomUUID()}.jpg")
         var part: File? = null
@@ -72,7 +72,7 @@ class PhotoLocalStore @Inject constructor(
         val file = ownedFile(path) ?: return@withContext false
         database.withTransaction {
             // Android exposes /data/user/0 and /data/data aliases for the same application file.
-            val root = File(context.filesDir, PhotoStorageUtil.PHOTO_DIRECTORY)
+            val root = File(context.filesDir, PhotoFiles.DIRECTORY)
             val appPath = File(root, file.relativeTo(root.canonicalFile).path).absolutePath
             val aliases = setOf(checkNotNull(path), appPath, file.absolutePath)
             if (aliases.any { database.photoOperationDao().isReferenced(it) }) false else file.delete()
@@ -81,14 +81,14 @@ class PhotoLocalStore @Inject constructor(
     /** Sweep only known permanent/cache shapes, never unknown/active camera drafts. */
     suspend fun cleanUnreferenced(ownerId: String) = withContext(io) {
         require(ownerId.isNotBlank() && '/' !in ownerId && ownerId != "." && ownerId != "..")
-        val folder = File(context.filesDir, "${PhotoStorageUtil.PHOTO_DIRECTORY}/$ownerId")
+        val folder = File(context.filesDir, "${PhotoFiles.DIRECTORY}/$ownerId")
         val cutoff = clock.millis() - Duration.ofDays(1).toMillis()
         folder.listFiles()?.filter { it.isFile && it.lastModified() < cutoff && (it.name.startsWith("IMG_") || it.name.startsWith("SYNC_")) }
             ?.forEach { delete(it.absolutePath) }
     }
     private fun ownedFile(path: String?): File? {
         if (path.isNullOrBlank() || path.startsWith("http")) return null
-        val root = File(context.filesDir, PhotoStorageUtil.PHOTO_DIRECTORY).canonicalFile
+        val root = File(context.filesDir, PhotoFiles.DIRECTORY).canonicalFile
         val file = File(path).canonicalFile
         return file.takeIf { it.parentFile?.parentFile == root && it.isFile }
     }

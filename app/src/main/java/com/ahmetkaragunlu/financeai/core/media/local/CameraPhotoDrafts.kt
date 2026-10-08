@@ -1,4 +1,4 @@
-package com.ahmetkaragunlu.financeai.photo
+package com.ahmetkaragunlu.financeai.core.media.local
 
 import android.content.Context
 import android.net.Uri
@@ -8,12 +8,10 @@ import java.io.File
 import java.util.UUID
 
 /** Only the narrow route-owned camera draft/file-provider bridge lives here. */
-object PhotoStorageUtil {
-    const val PHOTO_DIRECTORY = "transaction_photos"
-
+object CameraPhotoDrafts {
     fun createTempPhotoFile(context: Context, ownerId: String): Pair<File, Uri>? = try {
         require(ownerId.isNotBlank() && '/' !in ownerId && ownerId != "." && ownerId != "..")
-        val folder = File(context.filesDir, "$PHOTO_DIRECTORY/$ownerId")
+        val folder = File(context.filesDir, "${PhotoFiles.DIRECTORY}/$ownerId")
         check(folder.isDirectory || folder.mkdirs())
         val file = File(folder, "TEMP_${UUID.randomUUID()}.jpg")
         check(file.createNewFile())

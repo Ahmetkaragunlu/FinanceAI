@@ -79,10 +79,7 @@ fun MainNavigation(
 
     Scaffold(
         topBar = {
-            val title =
-                if (screen == MainScreen.HOME && userName.isNotBlank()) {
-                    stringResource(R.string.welcome, userName)
-                } else stringResource(screen.title)
+            val title = screen.localizedTitle(userName)
             EditTopBar(
                 title = title,
                 showBack = screen != MainScreen.HOME,

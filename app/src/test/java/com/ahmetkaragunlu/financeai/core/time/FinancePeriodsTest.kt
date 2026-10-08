@@ -5,6 +5,30 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class FinancePeriodsTest {
+    @Test fun `history today ends just after now and yesterday ends at local midnight`() {
+        val zone = ZoneId.of("Europe/Istanbul")
+        val now = Instant.parse("2026-10-08T12:00:00Z")
+        val clock = Clock.fixed(now, zone)
+        assertEquals(DateRange(Instant.parse("2026-10-07T21:00:00Z").toEpochMilli(), now.toEpochMilli() + 1),
+            FinancePeriods.filter(DateFilter.TODAY, clock))
+        assertEquals(DateRange(Instant.parse("2026-10-06T21:00:00Z").toEpochMilli(), Instant.parse("2026-10-07T21:00:00Z").toEpochMilli()),
+            FinancePeriods.filter(DateFilter.YESTERDAY, clock))
+        assertEquals(DateRange(0, Long.MAX_VALUE), FinancePeriods.filter(DateFilter.ALL, clock))
+    }
+
+    @Test fun `history last month remains rolling and clamps to previous month last day`() {
+        val clock = Clock.fixed(Instant.parse("2026-03-31T12:30:00Z"), ZoneOffset.UTC)
+        assertEquals(DateRange(Instant.parse("2026-02-28T12:30:00Z").toEpochMilli(), clock.millis() + 1),
+            FinancePeriods.filter(DateFilter.LAST_MONTH, clock))
+    }
+
+    @Test fun `history last week follows calendar days across daylight saving change`() {
+        val zone = ZoneId.of("Europe/Berlin")
+        val clock = Clock.fixed(ZonedDateTime.of(2026, 3, 31, 12, 0, 0, 0, zone).toInstant(), zone)
+        val range = FinancePeriods.filter(DateFilter.LAST_WEEK, clock)
+        assertEquals(ZonedDateTime.of(2026, 3, 24, 12, 0, 0, 0, zone).toInstant().toEpochMilli(), range.start)
+        assertEquals(clock.millis() + 1, range.endExclusive)
+    }
     @Test fun `picker roundtrip keeps account day across east and west time zones`() {
         val picker = Instant.parse("2026-10-05T00:00:00Z").toEpochMilli()
         for (name in listOf("Europe/Istanbul", "Asia/Tokyo", "America/Los_Angeles")) {

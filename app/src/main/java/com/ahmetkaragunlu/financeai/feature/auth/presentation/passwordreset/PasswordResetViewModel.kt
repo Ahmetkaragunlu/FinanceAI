@@ -20,7 +20,10 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class PasswordResetViewModel @Inject constructor(private val authRepository: AuthRepository) :
     ViewModel() {
+    private var resettingPassword = false
+
     fun submitPasswordReset(oobCode: String?): Boolean {
+        if (resettingPassword) return true
         if (oobCode == null || !checkPassword() || !isValidResetPassword()) return false
         resetPassword(oobCode)
         return true
@@ -38,14 +41,19 @@ class PasswordResetViewModel @Inject constructor(private val authRepository: Aut
         private set
 
     fun resetPassword(oobCode: String) {
+        if (resettingPassword) return
+        val password = inputNewPassword
+        resettingPassword = true
         viewModelScope.launch {
             try {
-                authRepository.confirmPasswordReset(oobCode, inputNewPassword)
+                authRepository.confirmPasswordReset(oobCode, password)
                 _authState.value = AuthState.SUCCESS
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
                 mutableFailureMessage.value = authErrorMessageRes(e)
                 _authState.value = AuthState.FAILURE
+            } finally {
+                resettingPassword = false
             }
         }
     }

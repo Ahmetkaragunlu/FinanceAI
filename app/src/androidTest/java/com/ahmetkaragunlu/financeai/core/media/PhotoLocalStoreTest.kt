@@ -10,7 +10,7 @@ import android.net.Uri
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.ahmetkaragunlu.financeai.core.database.FinanceDatabase
-import com.ahmetkaragunlu.financeai.photo.PhotoStorageUtil
+import com.ahmetkaragunlu.financeai.core.media.local.PhotoFiles
 import java.io.File
 import java.time.Clock
 import java.util.UUID
@@ -28,7 +28,7 @@ class PhotoLocalStoreTest {
     @Before fun prepare() {
         context = ApplicationProvider.getApplicationContext()
         owner = "photo-test-${UUID.randomUUID()}"
-        folder = File(context.filesDir, "${PhotoStorageUtil.PHOTO_DIRECTORY}/$owner").apply { mkdirs() }
+        folder = File(context.filesDir, "${PhotoFiles.DIRECTORY}/$owner").apply { mkdirs() }
         database = Room.inMemoryDatabaseBuilder(context, FinanceDatabase::class.java).build()
         store = PhotoLocalStore(context, database, Dispatchers.IO, Clock.systemUTC())
     }
@@ -62,7 +62,7 @@ class PhotoLocalStoreTest {
         val input = image(64, 32)
         assertNull(store.save(Uri.fromFile(input), input.absolutePath, "other-$owner"))
         assertTrue(input.exists())
-        File(context.filesDir, "${PhotoStorageUtil.PHOTO_DIRECTORY}/other-$owner").deleteRecursively()
+        File(context.filesDir, "${PhotoFiles.DIRECTORY}/other-$owner").deleteRecursively()
     }
     @Test fun pendingUploadProtectsItsFileFromDeletionUntilAcknowledged() = runBlocking {
         val input = image(64, 32)

@@ -7,7 +7,7 @@ import com.ahmetkaragunlu.financeai.core.session.AccountSession
 import com.ahmetkaragunlu.financeai.core.session.ActiveAccount
 import com.ahmetkaragunlu.financeai.core.session.SessionWorkRestorer
 import com.ahmetkaragunlu.financeai.feature.schedule.data.reminder.ReminderScheduler
-import com.ahmetkaragunlu.financeai.photo.PhotoWorkScheduler
+import com.ahmetkaragunlu.financeai.core.media.work.PhotoWorkScheduler
 import com.ahmetkaragunlu.financeai.core.media.PhotoLocalStore
 import com.ahmetkaragunlu.financeai.fcm.FCMTokenManager
 import java.io.File

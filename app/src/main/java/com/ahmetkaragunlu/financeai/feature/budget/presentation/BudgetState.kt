@@ -8,8 +8,7 @@ import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryTyp
 data class BudgetUiState(
     val generalBudgetState: GeneralBudgetState? = null,
     val categoryBudgetStates: List<CategoryBudgetState> = emptyList(),
-    @StringRes val warningMessageResId: Int? = null,
-    val warningMessageArgs: List<Any> = emptyList(),
+    val warning: BudgetWarning? = null,
     val isBudgetEmpty: Boolean = false,
     val isLoading: Boolean = false
 )

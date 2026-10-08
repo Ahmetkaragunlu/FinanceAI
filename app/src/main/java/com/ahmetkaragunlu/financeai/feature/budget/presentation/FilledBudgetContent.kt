@@ -24,7 +24,6 @@ import com.ahmetkaragunlu.financeai.core.ui.component.formatAsAccountCurrency
 import com.ahmetkaragunlu.financeai.core.ui.theme.FinanceColors
 import com.ahmetkaragunlu.financeai.core.ui.theme.FinanceGradients
 import com.ahmetkaragunlu.financeai.core.ui.theme.Spacing
-import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 import com.ahmetkaragunlu.financeai.feature.transaction.format.toResId
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toIconResId
 
@@ -56,20 +55,8 @@ fun FilledBudgetContent(
             )
         }
         Spacer(modifier = Modifier.height(20.dp))
-        uiState.warningMessageResId?.let { resId ->
-            val message =
-                if (uiState.warningMessageArgs.isNotEmpty()) {
-                    val args =
-                        uiState.warningMessageArgs
-                            .map { arg ->
-                                if (arg is CategoryType) stringResource(arg.toResId()) else arg
-                            }
-                            .toTypedArray()
-                    stringResource(resId, *args)
-                } else {
-                    stringResource(resId)
-                }
-            WarningCard(message = message)
+        uiState.warning?.let { warning ->
+            WarningCard(message = warning.localizedText())
             Spacer(modifier = Modifier.height(24.dp))
         }
         Text(

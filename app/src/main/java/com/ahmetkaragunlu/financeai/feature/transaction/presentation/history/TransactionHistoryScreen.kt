@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ahmetkaragunlu.financeai.R
+import com.ahmetkaragunlu.financeai.core.time.DateFilter
 import com.ahmetkaragunlu.financeai.core.format.*
 import com.ahmetkaragunlu.financeai.core.ui.component.EditButton
 import com.ahmetkaragunlu.financeai.core.ui.component.FinanceDropdownMenu
@@ -67,7 +68,7 @@ fun TransactionHistoryScreen(
     transactions: List<Transaction>,
     filters: HistoryFilters,
     showCategoryError: Boolean,
-    onDateSelected: (Int) -> Unit,
+    onDateSelected: (DateFilter) -> Unit,
     onTypeSelected: (TransactionType) -> Unit,
     onCategorySelected: (CategoryType?) -> Unit,
     onCategoryMenuRequested: () -> Boolean,
@@ -140,7 +141,7 @@ fun TransactionHistoryScreen(
 private fun HistoryContent(
     filters: HistoryFilters,
     showCategoryError: Boolean,
-    onDateSelected: (Int) -> Unit,
+    onDateSelected: (DateFilter) -> Unit,
     onTypeSelected: (TransactionType) -> Unit,
     onCategorySelected: (CategoryType?) -> Unit,
     onCategoryMenuRequested: () -> Boolean,
@@ -164,23 +165,16 @@ private fun HistoryContent(
                 modifier = modifier.weight(1f),
                 expanded = isDateMenuOpen,
                 onExpandedChange = { isDateMenuOpen = it },
-                options =
-                    listOf(
-                        R.string.today,
-                        R.string.yesterday,
-                        R.string.last_week,
-                        R.string.last_month,
-                        R.string.date,
-                    ),
+                options = DateFilter.entries,
                 onOptionSelected = { id ->
                     onDateSelected(id)
                     isDateMenuOpen = false
                 },
-                itemLabel = { id -> stringResource(id) },
+                itemLabel = { date -> stringResource(date.labelRes()) },
                 trigger = {
                     EditButton(
                         modifier = Modifier.fillMaxWidth(),
-                        label = filters.dateResId,
+                        label = filters.date.labelRes(),
                         icon = R.drawable.calendar,
                         onClick = { isDateMenuOpen = true },
                     )

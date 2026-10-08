@@ -2,8 +2,9 @@ package com.ahmetkaragunlu.financeai.core.format
 
 import android.content.Context
 import com.ahmetkaragunlu.financeai.R
-import com.ahmetkaragunlu.financeai.core.time.FinancePeriods
-import java.time.*
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -26,18 +27,6 @@ object DateFormatter {
             LocalDate.now(zone) -> context.getString(R.string.today)
             LocalDate.now(zone).plusDays(1) -> context.getString(R.string.tomorrow)
             else -> date.format(DateTimeFormatter.ofPattern("dd MMM", Locale.getDefault()))
-        }
-    }
-
-    /** All DAO ranges have an excluded upper bound. Existing rolling filter semantics remain. */
-    fun getDateRange(dateResId: Int, clock: Clock = Clock.systemDefaultZone()): Pair<Long, Long> {
-        val now = ZonedDateTime.now(clock)
-        return when (dateResId) {
-            R.string.today -> FinancePeriods.day(now.toLocalDate(), clock.zone).let { it.start to clock.millis() + 1 }
-            R.string.yesterday -> FinancePeriods.day(now.toLocalDate().minusDays(1), clock.zone).let { it.start to it.endExclusive }
-            R.string.last_week -> now.minusDays(7).toInstant().toEpochMilli() to clock.millis() + 1
-            R.string.last_month -> now.minusMonths(1).toInstant().toEpochMilli() to clock.millis() + 1
-            else -> 0L to Long.MAX_VALUE
         }
     }
 

@@ -1,4 +1,4 @@
-package com.ahmetkaragunlu.financeai.photo
+package com.ahmetkaragunlu.financeai.core.media.presentation
 
 import android.Manifest
 import android.content.Context

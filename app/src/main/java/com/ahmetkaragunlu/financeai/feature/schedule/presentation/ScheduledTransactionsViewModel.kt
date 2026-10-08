@@ -3,6 +3,8 @@ package com.ahmetkaragunlu.financeai.feature.schedule.presentation
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ahmetkaragunlu.financeai.R
+import com.ahmetkaragunlu.financeai.core.ui.error.dataErrorMessageRes
 import com.ahmetkaragunlu.financeai.core.session.AccountSession
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.model.ScheduledTransaction
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.repository.ScheduledTransactionRepository
@@ -12,6 +14,8 @@ import java.time.ZoneId
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -26,6 +30,11 @@ constructor(
     private val complete: CompleteScheduledTransaction,
     private val scheduledTransactionRepository: ScheduledTransactionRepository,
 ) : ViewModel() {
+    private val mutableErrorResId = MutableStateFlow<Int?>(null)
+    val errorResId = mutableErrorResId.asStateFlow()
+
+    fun consumeError() { mutableErrorResId.value = null }
+
     val timeZoneId =
         session.account
             .map { it?.timeZoneId ?: ZoneId.systemDefault().id }
@@ -53,6 +62,8 @@ constructor(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
+                if (session.isCurrent(account))
+                    mutableErrorResId.value = dataErrorMessageRes(e) ?: R.string.error_operation_retry
                 Log.w(
                     "ScheduledTransactionsViewModel",
                     "Scheduled completion failed (${e.javaClass.simpleName})",

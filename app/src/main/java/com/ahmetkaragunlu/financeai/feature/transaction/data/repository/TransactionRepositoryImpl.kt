@@ -11,6 +11,7 @@ import com.ahmetkaragunlu.financeai.core.session.AccountSession
 import com.ahmetkaragunlu.financeai.core.sync.PendingChanges
 import com.ahmetkaragunlu.financeai.core.sync.SyncScheduler
 import com.ahmetkaragunlu.financeai.feature.transaction.data.local.dao.TransactionDao
+import com.ahmetkaragunlu.financeai.feature.transaction.data.local.entity.TransactionEntity
 import com.ahmetkaragunlu.financeai.feature.transaction.data.mapper.toDomain
 import com.ahmetkaragunlu.financeai.feature.transaction.data.mapper.toEntity
 import com.ahmetkaragunlu.financeai.feature.transaction.data.remote.toFirebaseMap
@@ -45,18 +46,7 @@ class TransactionRepositoryImpl @Inject constructor(
         val id = database.withTransaction {
             val existing = transactionDao.getTransactionByFirestoreId(prepared.firestoreId)
             if (prepared.id != 0 && existing?.id != prepared.id) throw DataAccessException.StaleRecord()
-            val row = prepared.toEntity().copy(id = existing?.id ?: 0)
-            val result = transactionDao.insertTransaction(row)
-            val payload = prepared.toFirebaseMap().toMutableMap()
-            if (existing?.photoUri != null && row.photoUri == null) {
-                payload[PhotoFields.STORAGE_URL] = null
-                payload[PhotoFields.REMOVED] = true
-            } else if (row.photoUri != null && row.photoUri != existing?.photoUri) {
-                payload[PhotoFields.REMOVED] = false
-                if (!row.photoUri.startsWith("http")) payload[PhotoFields.INTENT] = File(row.photoUri).nameWithoutExtension
-            }
-            pendingChanges.record(account.ownerId, FirestoreCollections.TRANSACTIONS, row.firestoreId, payload)
-            result
+            persist(prepared, existing)
         }
         scheduler.enqueue(account.ownerId)
         id
@@ -74,7 +64,46 @@ class TransactionRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun updateTransaction(transaction: Transaction) { save(transaction) }
+    override suspend fun updateDetails(target: Transaction, amount: Double, note: String, category: CategoryType) {
+        mutate(target) { current -> current.copy(amount = amount, note = note, category = category) }
+    }
+
+    override suspend fun updatePhoto(target: Transaction, photoUri: String?): String? =
+        mutate(target) { current -> current.copy(photoUri = photoUri) }.photoUri
+
+    private suspend fun mutate(target: Transaction, change: (Transaction) -> Transaction): Transaction =
+        session.withAccount { account ->
+            require(target.ownerId == account.ownerId)
+            require(target.currencyCode == account.currencyCode)
+            val previous = database.withTransaction {
+                val existing = transactionDao.getTransactionByFirestoreId(target.firestoreId)
+                    ?: throw DataAccessException.StaleRecord()
+                if (existing.id != target.id) throw DataAccessException.StaleRecord()
+                val current = existing.toDomain()
+                val updated = change(current).copy(syncedToFirebase = false)
+                require(MoneyAmounts.toMinor(updated.amount, account.currencyCode) > 0)
+                persist(updated, existing)
+                current
+            }
+            scheduler.enqueue(account.ownerId)
+            previous
+        }
+
+    /** Caller owns the Room transaction; the row and its durable sync intention cannot diverge. */
+    private suspend fun persist(value: Transaction, existing: TransactionEntity?): Long {
+        val row = value.toEntity().copy(id = existing?.id ?: 0)
+        val result = transactionDao.insertTransaction(row)
+        val payload = value.toFirebaseMap().toMutableMap()
+        if (existing?.photoUri != null && row.photoUri == null) {
+            payload[PhotoFields.STORAGE_URL] = null
+            payload[PhotoFields.REMOVED] = true
+        } else if (row.photoUri != null && row.photoUri != existing?.photoUri) {
+            payload[PhotoFields.REMOVED] = false
+            if (!row.photoUri.startsWith("http")) payload[PhotoFields.INTENT] = File(row.photoUri).nameWithoutExtension
+        }
+        pendingChanges.record(value.ownerId, FirestoreCollections.TRANSACTIONS, row.firestoreId, payload)
+        return result
+    }
 
     override fun observeTransactions(): Flow<List<Transaction>> =
         session.observe<List<Transaction>>(emptyList<Transaction>()) { account ->

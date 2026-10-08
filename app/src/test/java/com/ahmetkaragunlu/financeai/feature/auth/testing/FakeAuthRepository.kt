@@ -9,26 +9,38 @@ class FakeAuthRepository : AuthRepository {
 
     var registration: Registration? = null
     var registrationFailure: Exception? = null
+    var registrationCalls = 0
+    var onRegistration: suspend () -> Unit = {}
     var resetRequest: ResetRequest? = null
     var resetRequestMatches = true
     var resetRequestFailure: Exception? = null
+    var resetRequestCalls = 0
+    var onResetRequest: suspend () -> Unit = {}
     var resetConfirmation: Pair<String, String>? = null
     var resetConfirmationFailure: Exception? = null
+    var resetConfirmationCalls = 0
+    var onResetConfirmation: suspend () -> Unit = {}
     var onSignOut: suspend () -> Unit = {}
 
     override suspend fun saveUser(email: String, password: String, firstName: String, lastName: String) {
+        registrationCalls++
         registration = Registration(email, password, firstName, lastName)
+        onRegistration()
         registrationFailure?.let { throw it }
     }
 
     override suspend fun verifyUserAndSendResetEmail(email: String, firstName: String, lastName: String): Boolean {
+        resetRequestCalls++
         resetRequest = ResetRequest(email, firstName, lastName)
+        onResetRequest()
         resetRequestFailure?.let { throw it }
         return resetRequestMatches
     }
 
     override suspend fun confirmPasswordReset(oobCode: String, newPassword: String) {
+        resetConfirmationCalls++
         resetConfirmation = oobCode to newPassword
+        onResetConfirmation()
         resetConfirmationFailure?.let { throw it }
     }
 

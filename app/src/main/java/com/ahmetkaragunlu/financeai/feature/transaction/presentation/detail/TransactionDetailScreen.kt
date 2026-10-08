@@ -87,9 +87,9 @@ import com.ahmetkaragunlu.financeai.feature.transaction.format.toResId
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.TransactionActionResult
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.TransactionResultEffect
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toIconResId
-import com.ahmetkaragunlu.financeai.photo.CameraHelper
-import com.ahmetkaragunlu.financeai.photo.PhotoSourceBottomSheet
-import com.ahmetkaragunlu.financeai.photo.PhotoStorageUtil
+import com.ahmetkaragunlu.financeai.core.media.presentation.CameraHelper
+import com.ahmetkaragunlu.financeai.core.media.presentation.PhotoSourceBottomSheet
+import com.ahmetkaragunlu.financeai.core.media.local.CameraPhotoDrafts
 import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -129,7 +129,7 @@ fun TransactionDetailRoute(
                     permissionLauncher = permissionLauncher,
                     onPreparePhoto = {
                         viewModel.cameraOwnerId()?.let { owner ->
-                            PhotoStorageUtil.createTempPhotoFile(context, owner)?.also { (file, _)
+                            CameraPhotoDrafts.createTempPhotoFile(context, owner)?.also { (file, _)
                                 ->
                                 viewModel.registerCameraDraft(file.absolutePath)
                             }

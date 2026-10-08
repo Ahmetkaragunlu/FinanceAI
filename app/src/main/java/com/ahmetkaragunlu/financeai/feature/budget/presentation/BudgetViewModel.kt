@@ -10,6 +10,7 @@ import com.ahmetkaragunlu.financeai.core.time.FinanceCalendar
 import com.ahmetkaragunlu.financeai.feature.budget.domain.calculation.calculateBudgetUsagePercentage
 import com.ahmetkaragunlu.financeai.feature.budget.domain.calculation.calculateCategoryBudgetLimit
 import com.ahmetkaragunlu.financeai.feature.budget.domain.model.Budget
+import com.ahmetkaragunlu.financeai.feature.budget.domain.error.BudgetException
 import com.ahmetkaragunlu.financeai.feature.budget.domain.model.BudgetType
 import com.ahmetkaragunlu.financeai.feature.budget.domain.repository.BudgetRepository
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryExpense
@@ -21,7 +22,6 @@ import java.math.BigDecimal
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -35,6 +35,10 @@ class BudgetViewModel @Inject constructor(
 ) : ViewModel() {
 
     private var isSaving = false
+    private val mutableErrorResId = MutableStateFlow<Int?>(null)
+    val errorResId = mutableErrorResId.asStateFlow()
+
+    fun consumeError() { mutableErrorResId.value = null }
     private val month = calendar.observeMonth()
     private val _formState = MutableStateFlow(BudgetFormState())
     val formState = _formState.asStateFlow()
@@ -44,7 +48,6 @@ class BudgetViewModel @Inject constructor(
     private val summaryFlow = month.flatMapLatest { financeRepository.observeFinancialSummary(it.start, it.endExclusive) }
     private val categoryExpensesFlow = month.flatMapLatest { financeRepository.observeCategoryExpensesByTypeAndDateRange(TransactionType.EXPENSE, it.start, it.endExclusive) }
 
-    @OptIn(FlowPreview::class)
     val uiState: StateFlow<BudgetUiState> = combine(
         budgetRulesFlow,
         summaryFlow,
@@ -192,7 +195,13 @@ class BudgetViewModel @Inject constructor(
                 }
             } catch (e: CancellationException) { throw e }
             catch (e: Exception) {
-                if (session.isCurrent(account)) _formState.update { it.copy(amountErrorResId = R.string.failure) }
+                if (session.isCurrent(account)) _formState.update {
+                    if (e is BudgetException.DuplicateRule) it.copy(
+                        isConflictDialogOpen = true,
+                        conflictErrorResId = if (currentState.selectedType == BudgetType.GENERAL_MONTHLY)
+                            R.string.error_conflict_general else R.string.error_conflict_category
+                    ) else it.copy(amountErrorResId = budgetErrorMessageRes(e))
+                }
                 Log.w("BudgetViewModel", "Budget save failed (${e.javaClass.simpleName})")
             } finally { isSaving = false }
         }
@@ -259,7 +268,10 @@ class BudgetViewModel @Inject constructor(
                 }
                 if (session.isCurrent(account)) _deleteDialogState.update { it.copy(isVisible = false, budgetIdToDelete = null) }
             } catch (e: CancellationException) { throw e }
-            catch (e: Exception) { Log.w("BudgetViewModel", "Budget delete failed (${e.javaClass.simpleName})") }
+            catch (e: Exception) {
+                if (session.isCurrent(account)) mutableErrorResId.value = budgetErrorMessageRes(e)
+                Log.w("BudgetViewModel", "Budget delete failed (${e.javaClass.simpleName})")
+            }
         }
     }
 
@@ -303,53 +315,12 @@ class BudgetViewModel @Inject constructor(
                     percentageUsed = calculateBudgetUsagePercentage(spent, limit).toInt()
                 )
             }.sortedByDescending { it.percentageUsed }
-        val warning = generateWarning(categoryBudgetStates, generalBudgetState)
         return BudgetUiState(
             isBudgetEmpty = false,
             generalBudgetState = generalBudgetState,
             categoryBudgetStates = categoryBudgetStates,
-            warningMessageResId = warning.first,
-            warningMessageArgs = warning.second
+            warning = budgetWarning(categoryBudgetStates, generalBudgetState)
         )
     }
 
-    private fun generateWarning(
-        categories: List<CategoryBudgetState>,
-        general: GeneralBudgetState?
-    ): Pair<Int?, List<Any>> {
-        val generalOver = general != null && general.remainingAmount < 0
-        val overBudgetCategories = categories.filter { it.isOverBudget }
-        val overCount = overBudgetCategories.size
-
-        return when {
-            generalOver && overCount > 0 -> {
-                if (overCount == 1) {
-                    Pair(
-                        R.string.warning_budget_and_category_exceeded,
-                        listOf(overBudgetCategories.first().category)
-                    )
-                } else {
-                    Pair(R.string.warning_budget_and_multiple_categories, listOf(overCount))
-                }
-            }
-
-            generalOver -> Pair(R.string.warning_budget_exceeded, emptyList())
-            overCount > 0 -> {
-                if (overCount == 1) {
-                    Pair(
-                        R.string.warning_category_exceeded,
-                        listOf(overBudgetCategories.first().category)
-                    )
-                } else {
-                    Pair(R.string.warning_multiple_categories_exceeded, listOf(overCount))
-                }
-            }
-            general != null && general.progress > 0.85f -> Pair(
-                R.string.warning_budget_near_end,
-                emptyList()
-            )
-
-            else -> Pair(null, emptyList())
-        }
-    }
 }

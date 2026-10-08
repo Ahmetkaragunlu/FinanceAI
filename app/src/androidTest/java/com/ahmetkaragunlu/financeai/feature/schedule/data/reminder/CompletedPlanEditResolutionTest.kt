@@ -22,7 +22,7 @@ import com.ahmetkaragunlu.financeai.feature.transaction.data.remote.TransactionR
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
 import com.ahmetkaragunlu.financeai.notification.ReminderPresenter
-import com.ahmetkaragunlu.financeai.photo.PhotoWorkScheduler
+import com.ahmetkaragunlu.financeai.core.media.work.PhotoWorkScheduler
 import dagger.Lazy
 import java.time.Clock
 import kotlinx.coroutines.Dispatchers

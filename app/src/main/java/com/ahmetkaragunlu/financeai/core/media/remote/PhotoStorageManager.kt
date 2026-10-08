@@ -1,4 +1,4 @@
-package com.ahmetkaragunlu.financeai.photo
+package com.ahmetkaragunlu.financeai.core.media.remote
 
 import com.ahmetkaragunlu.financeai.core.firebase.FirestoreCollections
 

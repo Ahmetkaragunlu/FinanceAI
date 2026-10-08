@@ -32,6 +32,9 @@ import java.time.ZoneId
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import com.ahmetkaragunlu.financeai.core.error.DataAccessException
 import org.junit.*
 import org.junit.Assert.*
 import org.junit.runner.RunWith
@@ -102,10 +105,10 @@ class TransactionRepositoryImplTest {
     @Test fun updateKeepsPrimaryKeyAndRejectsOldAccountMutation() = runBlocking {
         val id = repository.insertTransaction(value())
         val stored = repository.observeTransactions().first().single()
-        repository.updateTransaction(stored.copy(amount = 150.25))
+        repository.updateDetails(stored, 150.25, stored.note, stored.category)
         assertEquals(id.toInt(), repository.observeTransactions().first().single().id)
         activate("B", "EUR")
-        try { repository.updateTransaction(stored); fail("Old account mutation accepted") }
+        try { repository.updateDetails(stored, stored.amount, stored.note, stored.category); fail("Old account mutation accepted") }
         catch (_: IllegalArgumentException) { }
     }
     @Test fun exclusiveDateBoundaryDoesNotDoubleCountNextPeriod() = runBlocking {
@@ -177,12 +180,77 @@ class TransactionRepositoryImplTest {
         val record = database.syncRecordDao().get("A", "transactions", "receipt")!!
         database.syncRecordDao().save(record.copy(basePayload = SyncPayload.encode(SyncPayload.decode(record.pendingPayload!!) + mapOf("photoStorageUrl" to old.photoUri)),
             pendingPayload = null, mutationId = null))
-        repository.updateTransaction(old.copy(note = "edited"))
+        repository.updateDetails(old, old.amount, "edited", old.category)
         assertEquals(old.photoUri, SyncPayload.decode(database.syncRecordDao().get("A", "transactions", "receipt")!!.pendingPayload!!)["photoStorageUrl"])
-        repository.updateTransaction(old.copy(photoUri = null))
+        repository.updatePhoto(old, null)
         val removed = SyncPayload.decode(database.syncRecordDao().get("A", "transactions", "receipt")!!.pendingPayload!!)
         assertEquals(true, removed["photoRemoved"])
         assertNull(removed["photoStorageUrl"])
+    }
+
+    @Test fun staleDetailSnapshotCannotRestoreReplacedOrRemovedPhoto() = runBlocking {
+        repository.insertTransaction(value().copy(photoUri = "/local/old.jpg"))
+        val target = repository.observeTransactions().first().single()
+        assertEquals("/local/old.jpg", repository.updatePhoto(target, "/local/new.jpg"))
+        repository.updateDetails(target, 75.25, "new note", CategoryType.GROCERIES)
+        val changed = repository.observeTransactions().first().single()
+        assertEquals("/local/new.jpg", changed.photoUri)
+        assertEquals("new note", changed.note)
+        assertEquals(75.25, changed.amount, 0.0)
+        assertEquals("/local/new.jpg", repository.updatePhoto(target, null))
+        repository.updateDetails(target, 80.25, "next note", CategoryType.FOOD)
+        assertNull(repository.observeTransactions().first().single().photoUri)
+        val pending = SyncPayload.decode(database.syncRecordDao().get("A", "transactions", target.firestoreId)!!.pendingPayload!!)
+        assertEquals(true, pending["photoRemoved"])
+        assertNull(pending["photoStorageUrl"])
+        assertEquals("next note", pending["note"])
+    }
+
+    @Test fun simultaneousPhotoAndDetailEditsPreserveBothAndTheirOutbox() = runBlocking {
+        repository.insertTransaction(value())
+        val target = repository.observeTransactions().first().single()
+        coroutineScope {
+            val photo = async(Dispatchers.Default) { repository.updatePhoto(target, "/local/new.jpg") }
+            val details = async(Dispatchers.Default) { repository.updateDetails(target, 50.25, "edited", CategoryType.GROCERIES) }
+            photo.await()
+            details.await()
+        }
+        val changed = repository.observeTransactions().first().single()
+        assertEquals("/local/new.jpg", changed.photoUri)
+        assertEquals("edited", changed.note)
+        assertEquals(CategoryType.GROCERIES, changed.category)
+        assertEquals(target.date, changed.date)
+        val pending = SyncPayload.decode(database.syncRecordDao().get("A", "transactions", target.firestoreId)!!.pendingPayload!!)
+        assertEquals(5025L, (pending["amountMinor"] as Number).toLong())
+        assertEquals("edited", pending["note"])
+        assertEquals("new", pending["photoIntent"])
+    }
+
+    @Test fun stalePhotoTargetPreservesLatestDetailsAndCannotRecreateDeletedRecord() = runBlocking {
+        repository.insertTransaction(value())
+        val target = repository.observeTransactions().first().single()
+        repository.updateDetails(target, 50.25, "edited", CategoryType.GROCERIES)
+        repository.updatePhoto(target, "/local/new.jpg")
+        assertEquals("edited", repository.observeTransactions().first().single().note)
+        repository.deleteTransaction(target)
+        try { repository.updatePhoto(target, "/local/stale.jpg"); fail("Deleted row recreated") }
+        catch (_: DataAccessException.StaleRecord) { }
+        try { repository.updateDetails(target, 1.0, "stale", target.category); fail("Deleted row recreated") }
+        catch (_: DataAccessException.StaleRecord) { }
+        assertTrue(repository.observeTransactions().first().isEmpty())
+        assertTrue(database.syncRecordDao().get("A", "transactions", target.firestoreId)!!.pendingDelete)
+    }
+
+    @Test fun updateOutboxFailureRollsBackPhotoAndFinancialChanges() = runBlocking {
+        repository.insertTransaction(value())
+        val target = repository.observeTransactions().first().single()
+        database.openHelper.writableDatabase.execSQL("CREATE TRIGGER reject_updates BEFORE UPDATE ON sync_records BEGIN SELECT RAISE(ABORT, 'injected outbox failure'); END")
+        database.openHelper.writableDatabase.execSQL("CREATE TRIGGER reject_inserts BEFORE INSERT ON sync_records BEGIN SELECT RAISE(ABORT, 'injected outbox failure'); END")
+        try { repository.updatePhoto(target, "/local/new.jpg"); fail("Photo changed without durable pending") }
+        catch (_: SQLiteException) { }
+        try { repository.updateDetails(target, 1.0, "new", target.category); fail("Money changed without durable pending") }
+        catch (_: SQLiteException) { }
+        assertEquals(target, repository.observeTransactions().first().single())
     }
 
     @Test fun scheduledCompletionIsAtomicAndRepeatedCallDoesNotDuplicateMoney() = runBlocking {

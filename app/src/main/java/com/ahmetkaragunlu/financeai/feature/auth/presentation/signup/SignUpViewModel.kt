@@ -21,7 +21,10 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class SignUpViewModel @Inject constructor(private val authRepository: AuthRepository) :
     ViewModel() {
+    private var signingUp = false
+
     fun submitRegistration(): Boolean {
+        if (signingUp) return true
         if (!isValidUser()) return false
         saveUser()
         return true
@@ -45,26 +48,28 @@ class SignUpViewModel @Inject constructor(private val authRepository: AuthReposi
         private set
 
     private fun signUp(email: String, password: String, firstName: String, lastName: String) {
+        if (signingUp) return
+        signingUp = true
         viewModelScope.launch {
-            _authState.value =
-                try {
-                    authRepository.saveUser(
-                        email = email,
-                        password = password,
-                        firstName = firstName,
-                        lastName = lastName,
-                    )
-                    AuthState.VERIFICATION_EMAIL_SENT
-                } catch (e: Exception) {
-                    if (e is CancellationException) throw e
-                    mutableFailureMessage.value = authErrorMessageRes(e)
-                    when (e) {
-                        is AuthException.EmailExists -> AuthState.USER_ALREADY_EXISTS
-                        is AuthException.VerificationEmailFailed ->
-                            AuthState.VERIFICATION_EMAIL_FAILED
-                        else -> AuthState.FAILURE
-                    }
+            try {
+                authRepository.saveUser(
+                    email = email,
+                    password = password,
+                    firstName = firstName,
+                    lastName = lastName,
+                )
+                _authState.value = AuthState.VERIFICATION_EMAIL_SENT
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                mutableFailureMessage.value = authErrorMessageRes(e)
+                _authState.value = when (e) {
+                    is AuthException.EmailExists -> AuthState.USER_ALREADY_EXISTS
+                    is AuthException.VerificationEmailFailed -> AuthState.VERIFICATION_EMAIL_FAILED
+                    else -> AuthState.FAILURE
                 }
+            } finally {
+                signingUp = false
+            }
         }
     }
 

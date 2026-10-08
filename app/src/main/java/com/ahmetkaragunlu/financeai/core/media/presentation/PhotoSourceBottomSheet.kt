@@ -1,4 +1,4 @@
-package com.ahmetkaragunlu.financeai.photo
+package com.ahmetkaragunlu.financeai.core.media.presentation
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*

@@ -5,7 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ahmetkaragunlu.financeai.R
+import com.ahmetkaragunlu.financeai.core.time.DateFilter
 import com.ahmetkaragunlu.financeai.core.time.FinanceCalendar
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.Transaction
@@ -38,11 +38,11 @@ constructor(private val repository: TransactionRepository, private val calendar:
         filters
             .flatMapLatest { filter ->
                 calendar
-                    .observeFilterRange { filter.dateResId }
+                    .observeFilterRange(filter.date)
                     .flatMapLatest { range ->
-                        val allDates = filter.dateResId == R.string.date
-                        val start = if (allDates) 0L else range.first
-                        val end = if (allDates) Long.MAX_VALUE else range.second
+                        val allDates = filter.date == DateFilter.ALL
+                        val start = range.start
+                        val end = range.endExclusive
                         when {
                             filter.category != null ->
                                 repository.observeTransactionsByCategoryAndDate(
@@ -60,8 +60,8 @@ constructor(private val repository: TransactionRepository, private val calendar:
             .distinctUntilChanged()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    fun onDateSelected(dateResId: Int) {
-        mutableFilters.update { it.copy(dateResId = dateResId) }
+    fun onDateSelected(date: DateFilter) {
+        mutableFilters.update { it.copy(date = date) }
     }
 
     fun onTypeSelected(type: TransactionType) {

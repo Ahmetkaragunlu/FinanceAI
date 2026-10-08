@@ -1,6 +1,7 @@
 package com.ahmetkaragunlu.financeai.app.backup
 
 import android.database.sqlite.SQLiteDatabase
+import com.ahmetkaragunlu.financeai.core.media.local.PhotoFiles
 import java.io.File
 
 /** A consistent copy of Room data with session/device queues removed only from the backup. */
@@ -56,13 +57,13 @@ internal object FinanceBackupSnapshot {
                             }
                     for (path in paths) {
                         if (!path.startsWith('/')) continue
-                        val marker = path.indexOf("/transaction_photos/")
+                        val marker = path.indexOf("/${PhotoFiles.DIRECTORY}/")
                         if (marker < 0) continue
                         val relative = path.substring(marker + 1)
                         val target = File(filesDirectory, relative).canonicalFile
                         if (
                             !target.path.startsWith(
-                                File(filesDirectory, "transaction_photos").canonicalPath +
+                                File(filesDirectory, PhotoFiles.DIRECTORY).canonicalPath +
                                     File.separator
                             )
                         )

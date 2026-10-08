@@ -5,6 +5,10 @@ import com.ahmetkaragunlu.financeai.feature.auth.domain.error.AuthException
 import com.ahmetkaragunlu.financeai.feature.auth.presentation.AuthState
 import com.ahmetkaragunlu.financeai.feature.auth.testing.FakeAuthRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.test.runCurrent
+import org.junit.Assert.assertTrue
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -14,6 +18,42 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class SignUpViewModelTest {
     @get:Rule val mainDispatcher = MainDispatcherRule()
+
+    @Test
+    fun `repeated submission is ignored while original form snapshot is registering`() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        val repository = FakeAuthRepository().apply { onRegistration = { gate.await() } }
+        val viewModel = SignUpViewModel(repository)
+        viewModel.updateEmail("user@example.com")
+        viewModel.updatePassword("password")
+        viewModel.updateFirstName("Ahmet")
+        viewModel.updateLastName("Karagunlu")
+        viewModel.saveUser()
+        viewModel.updateEmail("changed@example.com")
+        assertTrue(viewModel.submitRegistration())
+        runCurrent()
+        assertEquals(1, repository.registrationCalls)
+        assertEquals("user@example.com", repository.registration?.email)
+        gate.complete(Unit)
+        advanceUntilIdle()
+        assertEquals(AuthState.VERIFICATION_EMAIL_SENT, viewModel.authState.value)
+    }
+
+    @Test
+    fun `failed or cancelled registration releases the submission guard`() = runTest {
+        val repository = FakeAuthRepository().apply { registrationFailure = AuthException.EmailExists() }
+        val viewModel = SignUpViewModel(repository)
+        viewModel.saveUser()
+        advanceUntilIdle()
+        repository.registrationFailure = CancellationException()
+        viewModel.saveUser()
+        advanceUntilIdle()
+        repository.registrationFailure = null
+        viewModel.saveUser()
+        advanceUntilIdle()
+        assertEquals(3, repository.registrationCalls)
+        assertEquals(AuthState.VERIFICATION_EMAIL_SENT, viewModel.authState.value)
+    }
 
     @Test
     fun `registration sends all form fields and keeps verification pending rather than logged in`() = runTest {

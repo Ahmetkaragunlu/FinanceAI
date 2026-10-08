@@ -45,6 +45,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.core.format.formatScheduleDate
 import com.ahmetkaragunlu.financeai.core.ui.component.formatAsAccountCurrency
+import com.ahmetkaragunlu.financeai.core.ui.effect.ToastMessageEffect
 import com.ahmetkaragunlu.financeai.core.ui.theme.FinanceColors
 import com.ahmetkaragunlu.financeai.core.ui.theme.FinanceGradients
 import com.ahmetkaragunlu.financeai.core.ui.theme.Spacing
@@ -61,6 +62,8 @@ fun ScheduledTransactionRoute(
 ) {
     val scheduledTransactions by viewModel.scheduledTransactions.collectAsStateWithLifecycle()
     val timeZoneId by viewModel.timeZoneId.collectAsStateWithLifecycle()
+    val errorResId by viewModel.errorResId.collectAsStateWithLifecycle()
+    ToastMessageEffect(errorResId, viewModel::consumeError)
     ScheduledTransactionScreen(
         scheduledTransactions,
         timeZoneId,

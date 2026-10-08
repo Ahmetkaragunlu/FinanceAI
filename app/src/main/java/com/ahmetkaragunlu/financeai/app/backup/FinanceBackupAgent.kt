@@ -2,7 +2,7 @@ package com.ahmetkaragunlu.financeai.app.backup
 
 import android.app.backup.BackupAgentHelper
 import android.app.backup.FullBackupDataOutput
-import com.ahmetkaragunlu.financeai.photo.PhotoStorageUtil
+import com.ahmetkaragunlu.financeai.core.media.local.PhotoFiles
 import java.io.File
 
 /** Full backup owns a sanitised financial snapshot, never Firebase/FCM/App Check credentials. */
@@ -16,7 +16,7 @@ class FinanceBackupAgent : BackupAgentHelper() {
                 FinanceBackupSnapshot.create(database, snapshot)
                 fullBackupFile(snapshot, data)
             }
-            val photos = File(filesDir, PhotoStorageUtil.PHOTO_DIRECTORY)
+            val photos = File(filesDir, PhotoFiles.DIRECTORY)
             if (photos.isDirectory) {
                 photos
                     .listFiles()

@@ -1,7 +1,8 @@
-package com.ahmetkaragunlu.financeai.photo
+package com.ahmetkaragunlu.financeai.core.media.work
 
 import com.ahmetkaragunlu.financeai.core.firebase.FirestoreCollections
 
+import com.ahmetkaragunlu.financeai.photo.PhotoUploadWorker
 import androidx.work.Constraints
 import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType

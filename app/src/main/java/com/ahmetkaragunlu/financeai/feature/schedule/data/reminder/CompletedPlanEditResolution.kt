@@ -9,7 +9,7 @@ import com.ahmetkaragunlu.financeai.core.sync.SyncPayload
 import com.ahmetkaragunlu.financeai.core.sync.local.entity.SyncRecord
 import com.ahmetkaragunlu.financeai.feature.schedule.data.remote.ScheduledTransactionRemoteStore
 import com.ahmetkaragunlu.financeai.feature.transaction.data.remote.TransactionRemoteStore
-import com.ahmetkaragunlu.financeai.photo.PhotoWorkScheduler
+import com.ahmetkaragunlu.financeai.core.media.work.PhotoWorkScheduler
 import javax.inject.Inject
 
 internal data class CompletedFinancialSnapshot(val remoteId: String, val payload: String?, val revision: Long,

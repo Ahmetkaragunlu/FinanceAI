@@ -14,6 +14,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.core.ui.component.EditAlertDialog
+import com.ahmetkaragunlu.financeai.core.ui.effect.ToastMessageEffect
 import com.ahmetkaragunlu.financeai.core.ui.theme.FinanceColors
 
 @Composable
@@ -21,6 +22,8 @@ fun BudgetRoute(modifier: Modifier = Modifier, viewModel: BudgetViewModel = hilt
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val formState by viewModel.formState.collectAsStateWithLifecycle()
     val deleteState by viewModel.deleteDialogState.collectAsStateWithLifecycle()
+    val errorResId by viewModel.errorResId.collectAsStateWithLifecycle()
+    ToastMessageEffect(errorResId, viewModel::consumeError)
 
     BudgetScreen(uiState, formState, deleteState, viewModel::onEvent, modifier)
 }

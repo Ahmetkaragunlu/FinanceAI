@@ -21,7 +21,10 @@ import kotlinx.coroutines.launch
 class PasswordResetRequestViewModel
 @Inject
 constructor(private val authRepository: AuthRepository) : ViewModel() {
+    private var sendingRequest = false
+
     fun submitResetRequest(): Boolean {
+        if (sendingRequest) return true
         if (!isValidResetRequestPassword()) return false
         sendResetPasswordRequest()
         return true
@@ -42,19 +45,26 @@ constructor(private val authRepository: AuthRepository) : ViewModel() {
         private set
 
     fun sendResetPasswordRequest() {
+        if (sendingRequest) return
+        val email = inputEmail
+        val firstName = inputFirstName
+        val lastName = inputLastName
+        sendingRequest = true
         viewModelScope.launch {
             try {
                 val result =
                     authRepository.verifyUserAndSendResetEmail(
-                        inputEmail,
-                        inputFirstName,
-                        inputLastName,
+                        email,
+                        firstName,
+                        lastName,
                     )
                 _authState.value = if (result) AuthState.SUCCESS else AuthState.USER_NOT_FOUND
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
                 mutableFailureMessage.value = authErrorMessageRes(e)
                 _authState.value = AuthState.FAILURE
+            } finally {
+                sendingRequest = false
             }
         }
     }

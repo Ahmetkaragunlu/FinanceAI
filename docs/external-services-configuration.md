@@ -49,6 +49,6 @@ Model `gemini-3.5-flash-lite`; mevcut LOW thinking, timeout ve retry ayarları k
 
 `app/google-services.json`, eski `app/src/main/res/raw/ai_google_services.json`, `local.properties`, `.env`, keystore/private key ve App Check debug token dosyaları ignore edilir. Takip edilmiş dosyaları ignore etmek geçmişi temizlemez; `git rm --cached` ile takipten çıkarmak ve geçmişteki gerçek değerleri ayrıca temizlemek gerekir.
 
-Anahtar yenileme mevcut Firebase proje/Android app kimliklerini korumalıdır. Yeni kısıtlı anahtarlar yerel yapılandırmaya aktarıldıktan ve doğrulandıktan sonra eski anahtarlar iptal edilir. Geçmiş temizliği branch/tag commit kimliklerini değiştirir; GitHub'a güncelleme ve varsa eski PR/cache kayıtları için ek GitHub işlemleri gerekebilir. Eski faz/ilerleme belgeleri tarihçe olarak korunur.
+Anahtar yenileme mevcut Firebase proje/Android app kimliklerini korumalıdır. Yeni kısıtlı anahtarlar yerel yapılandırmaya aktarıldıktan ve doğrulandıktan sonra eski anahtarlar iptal edilir. Geçmiş temizliği branch/tag commit kimliklerini değiştirir; GitHub'a güncelleme ve varsa eski PR/cache kayıtları için ek GitHub işlemleri gerekebilir.
 
 Kaynaklar: [Firebase API anahtarları](https://firebase.google.com/docs/projects/api-keys), [App Check debug provider](https://firebase.google.com/docs/app-check/android/debug-provider), [Firebase AI Logic](https://firebase.google.com/docs/ai-logic).
