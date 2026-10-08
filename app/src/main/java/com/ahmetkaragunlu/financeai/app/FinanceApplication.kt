@@ -7,7 +7,7 @@ import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.*
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.core.session.SessionCoordinator
-import com.ahmetkaragunlu.financeai.notification.NotificationWorker
+import com.ahmetkaragunlu.financeai.notification.work.NotificationWorker
 import com.ahmetkaragunlu.financeai.core.security.AppCheckInstaller
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject

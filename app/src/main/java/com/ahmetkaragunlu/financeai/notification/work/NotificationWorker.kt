@@ -1,4 +1,4 @@
-package com.ahmetkaragunlu.financeai.notification
+package com.ahmetkaragunlu.financeai.notification.work
 
 import android.content.Context
 import androidx.hilt.work.HiltWorker
@@ -12,7 +12,7 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.CancellationException
 
-/** Retains the persisted Worker class identity; the coordinator owns all reminder decisions. */
+/** Runs account-scoped reminder decisions through the shared coordinator. */
 @HiltWorker
 class NotificationWorker @AssistedInject constructor(
     @Assisted context: Context,

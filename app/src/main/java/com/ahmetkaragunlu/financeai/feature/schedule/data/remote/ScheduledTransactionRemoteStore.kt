@@ -17,7 +17,7 @@ import com.ahmetkaragunlu.financeai.feature.schedule.domain.model.*
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.*
 import javax.inject.Inject
 import com.ahmetkaragunlu.financeai.feature.schedule.data.reminder.ReminderScheduler
-import com.ahmetkaragunlu.financeai.notification.ReminderPresenter
+import com.ahmetkaragunlu.financeai.notification.presentation.ReminderPresenter
 
 class ScheduledTransactionRemoteStore @Inject constructor(private val database: FinanceDatabase, private val photos: PhotoRemoteCache,
     private val reminders: ReminderScheduler, private val presenter: ReminderPresenter) : RemoteRecordStore {

@@ -12,7 +12,7 @@ import com.ahmetkaragunlu.financeai.feature.schedule.data.mapper.toDomain
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.reminder.ReminderDecision
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.reminder.ReminderKind
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.reminder.ReminderPolicy
-import com.ahmetkaragunlu.financeai.notification.ReminderPresenter
+import com.ahmetkaragunlu.financeai.notification.presentation.ReminderPresenter
 import java.time.Clock
 import java.time.ZoneId
 import javax.inject.Inject

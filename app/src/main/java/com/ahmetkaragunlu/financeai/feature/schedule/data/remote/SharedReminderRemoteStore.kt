@@ -9,7 +9,7 @@ import com.ahmetkaragunlu.financeai.core.session.ActiveAccount
 import com.ahmetkaragunlu.financeai.core.sync.contract.RemoteRecordStore
 import com.ahmetkaragunlu.financeai.feature.schedule.data.reminder.ReminderScheduler
 import com.ahmetkaragunlu.financeai.feature.schedule.data.local.entity.ReminderState
-import com.ahmetkaragunlu.financeai.notification.ReminderPresenter
+import com.ahmetkaragunlu.financeai.notification.presentation.ReminderPresenter
 import javax.inject.Inject
 import com.ahmetkaragunlu.financeai.core.error.DataAccessException
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.reminder.ScheduleCommandType

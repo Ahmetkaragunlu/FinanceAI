@@ -1,4 +1,4 @@
-package com.ahmetkaragunlu.financeai.notification
+package com.ahmetkaragunlu.financeai.notification.work
 
 import android.content.Context
 import androidx.hilt.work.HiltWorker
@@ -12,7 +12,7 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.CancellationException
 
-/** Compatibility entry for old persisted jobs: re-evaluate the approved expiration policy. */
+/** Re-evaluates the plan's expiration policy through the shared reminder coordinator. */
 @HiltWorker
 class DeleteExpiredNotification @AssistedInject constructor(
     @Assisted context: Context,

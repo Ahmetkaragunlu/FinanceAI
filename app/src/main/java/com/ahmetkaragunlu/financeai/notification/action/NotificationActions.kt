@@ -1,4 +1,4 @@
-package com.ahmetkaragunlu.financeai.notification
+package com.ahmetkaragunlu.financeai.notification.action
 
 /** Stable Android action identities; keep values compatible with persisted PendingIntents. */
 object NotificationActions {

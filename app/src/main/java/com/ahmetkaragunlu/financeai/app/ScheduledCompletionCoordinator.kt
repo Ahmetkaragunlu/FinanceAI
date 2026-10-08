@@ -3,7 +3,7 @@ package com.ahmetkaragunlu.financeai.app
 import com.ahmetkaragunlu.financeai.core.firebase.FirestoreCollections
 
 import com.ahmetkaragunlu.financeai.feature.schedule.data.reminder.ReminderScheduler
-import com.ahmetkaragunlu.financeai.notification.ReminderPresenter
+import com.ahmetkaragunlu.financeai.notification.presentation.ReminderPresenter
 import com.ahmetkaragunlu.financeai.core.session.AccountSession
 import com.ahmetkaragunlu.financeai.feature.schedule.data.RoomScheduledCompletion
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.model.ScheduledTransaction

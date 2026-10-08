@@ -22,7 +22,7 @@ import com.ahmetkaragunlu.financeai.feature.schedule.data.repository.ScheduledTr
 import com.ahmetkaragunlu.financeai.feature.schedule.data.sync.ScheduleCommandQueue
 import com.ahmetkaragunlu.financeai.feature.schedule.data.reminder.ReminderScheduler
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.reminder.ReminderKind
-import com.ahmetkaragunlu.financeai.notification.ReminderPresenter
+import com.ahmetkaragunlu.financeai.notification.presentation.ReminderPresenter
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.model.ScheduledTransaction
 import com.ahmetkaragunlu.financeai.feature.transaction.data.remote.TransactionRemoteStore
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.*

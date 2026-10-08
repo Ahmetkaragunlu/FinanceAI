@@ -1,7 +1,7 @@
 package com.ahmetkaragunlu.financeai.notification.di
 
-import com.ahmetkaragunlu.financeai.notification.AndroidReminderPresenter
-import com.ahmetkaragunlu.financeai.notification.ReminderPresenter
+import com.ahmetkaragunlu.financeai.notification.presentation.AndroidReminderPresenter
+import com.ahmetkaragunlu.financeai.notification.presentation.ReminderPresenter
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn

@@ -22,7 +22,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import com.ahmetkaragunlu.financeai.feature.schedule.data.reminder.ReminderScheduler
-import com.ahmetkaragunlu.financeai.notification.ReminderPresenter
+import com.ahmetkaragunlu.financeai.notification.presentation.ReminderPresenter
 
 class ScheduledTransactionRepositoryImpl @Inject constructor(
     private val scheduledTransactionDao: ScheduledTransactionDao,

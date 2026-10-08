@@ -5,7 +5,7 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.workDataOf
 import com.ahmetkaragunlu.financeai.core.sync.SyncScheduler
-import com.ahmetkaragunlu.financeai.notification.NotificationWorker
+import com.ahmetkaragunlu.financeai.notification.work.NotificationWorker
 import java.time.Clock
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
