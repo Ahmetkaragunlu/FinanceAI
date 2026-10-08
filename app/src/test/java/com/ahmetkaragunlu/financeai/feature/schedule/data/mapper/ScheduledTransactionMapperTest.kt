@@ -10,7 +10,7 @@ class ScheduledTransactionMapperTest {
     @Test
     fun `schedule identity time notification flags and media survive mapping`() {
         val row = ScheduledTransactionEntity(
-            id = 5_000_000_000, firestoreId = "remote-schedule", currencyCode = "USD", amountMinor = 12550L,
+            id = 5_000_000_000, firestoreId = "remote-schedule", ownerId = "account-A", currencyCode = "USD", amountMinor = 12550L,
             type = TransactionType.EXPENSE, category = CategoryType.RENT, note = "Kira",
             scheduledDate = 1_800_000_000_000, expirationNotificationSent = true,
             notificationSent = true, photoUri = "file:///schedule.jpg",

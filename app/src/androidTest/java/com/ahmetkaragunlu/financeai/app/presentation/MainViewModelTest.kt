@@ -42,6 +42,7 @@ import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.yield
 import org.junit.After
 import org.junit.Assert.*
@@ -240,14 +241,16 @@ class MainViewModelTest {
 
     @Test
     fun resumeRefreshesTheMonthWithoutRequiringAnAccountOrNetwork() = runBlocking {
-        val periods = mutableListOf<Long>()
-        val observation = launch { calendar.observeMonth().take(2).collect { periods += it.start } }
-        while (periods.isEmpty()) yield()
-        now = Instant.parse("2026-11-05T12:00:00Z")
-        withContext(Dispatchers.Main) { viewModel().onForeground() }
-        observation.join()
-        assertEquals(2, periods.size)
-        assertTrue(periods[1] > periods[0])
+        withTimeout(5_000) {
+            val periods = mutableListOf<Long>()
+            val observation = launch { calendar.observeMonth().take(2).collect { periods += it.start } }
+            while (periods.isEmpty()) yield()
+            now = Instant.parse("2026-11-05T12:00:00Z")
+            withContext(Dispatchers.Main) { viewModel().onForeground() }
+            observation.join()
+            assertEquals(2, periods.size)
+            assertTrue(periods[1] > periods[0])
+        }
     }
 
     // Simulate values supplied by SavedStateHandle restoration, without coupling to private keys.

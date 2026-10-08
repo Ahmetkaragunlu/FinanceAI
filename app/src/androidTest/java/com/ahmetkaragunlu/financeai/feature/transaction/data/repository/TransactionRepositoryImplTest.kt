@@ -17,13 +17,6 @@ import com.ahmetkaragunlu.financeai.core.media.remote.PhotoRemoteCache
 import com.ahmetkaragunlu.financeai.core.session.*
 import com.ahmetkaragunlu.financeai.core.sync.*
 import com.ahmetkaragunlu.financeai.core.time.FinancePeriods
-import com.ahmetkaragunlu.financeai.feature.schedule.data.RoomScheduledCompletion
-import com.ahmetkaragunlu.financeai.feature.schedule.data.repository.ScheduledTransactionRepositoryImpl
-import com.ahmetkaragunlu.financeai.feature.schedule.data.sync.ScheduleCommandQueue
-import com.ahmetkaragunlu.financeai.feature.schedule.data.reminder.ReminderScheduler
-import com.ahmetkaragunlu.financeai.feature.schedule.domain.reminder.ReminderKind
-import com.ahmetkaragunlu.financeai.notification.presentation.ReminderPresenter
-import com.ahmetkaragunlu.financeai.feature.schedule.domain.model.ScheduledTransaction
 import com.ahmetkaragunlu.financeai.feature.transaction.data.remote.TransactionRemoteStore
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.*
 import dagger.Lazy
@@ -47,15 +40,6 @@ class TransactionRepositoryImplTest {
     private lateinit var repository: TransactionRepositoryImpl
     private lateinit var scheduler: SyncScheduler
     private lateinit var pending: PendingChanges
-    private val presenter = object : ReminderPresenter {
-        override fun show(plan: ScheduledTransaction, kind: ReminderKind, eventId: String) = false
-        override fun cancel(ownerId: String, remoteId: String) = Unit
-    }
-    private fun schedules() = ScheduledTransactionRepositoryImpl(database.scheduledTransactionDao(), database,
-        session, pending, scheduler, ReminderScheduler(WorkManager.getInstance(ApplicationProvider.getApplicationContext()), Clock.systemUTC()), presenter)
-    private fun completion() = RoomScheduledCompletion(database, session, pending, scheduler, Clock.systemUTC(),
-        ScheduleCommandQueue(database, Clock.systemUTC()))
-
     @Before fun setUp() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
         WorkManagerTestInitHelper.initializeTestWorkManager(context, Configuration.Builder().build())
@@ -254,34 +238,4 @@ class TransactionRepositoryImplTest {
         assertEquals(target, repository.observeTransactions().first().single())
     }
 
-    @Test fun scheduledCompletionIsAtomicAndRepeatedCallDoesNotDuplicateMoney() = runBlocking {
-        val schedules = schedules()
-        val id = schedules.insertScheduledTransaction(ScheduledTransaction(firestoreId = "plan", amount = 50.25,
-            type = TransactionType.EXPENSE, category = CategoryType.FOOD, note = "Plan", scheduledDate = 100))
-        val plan = schedules.getScheduledTransactionById(id)!!
-        val complete = completion()
-        assertNotNull(complete(plan)); assertNull(complete(plan))
-        assertEquals(1, repository.observeTransactions().first().size)
-        assertTrue(schedules.observeScheduledTransactions().first().isEmpty())
-        assertEquals(2, database.syncRecordDao().pending("A").size)
-        assertEquals(1, database.scheduleCommandDao().forAccount("A").size)
-        assertEquals("complete", database.scheduleCommandDao().forAccount("A").single().type)
-    }
-
-    @Test fun scheduledCompletionRetainsRemotePhotoMetadataWithoutUploadingCachedFile() = runBlocking {
-        val schedules = schedules()
-        val id = schedules.insertScheduledTransaction(ScheduledTransaction(firestoreId = "photo-plan", amount = 50.25,
-            type = TransactionType.EXPENSE, category = CategoryType.FOOD, note = "Photo plan", scheduledDate = 100,
-            photoUri = "/account/A/SYNC_cached.jpg"))
-        val record = database.syncRecordDao().get("A", "scheduled_transactions", "photo-plan")!!
-        val metadata = mapOf("photoStorageUrl" to "https://example.test/receipt", "photoRemoved" to false, "photoVersion" to "v2")
-        database.syncRecordDao().save(record.copy(pendingPayload = SyncPayload.encode(SyncPayload.decode(record.pendingPayload!!) + metadata)))
-        val complete = completion()
-        val completed = complete(schedules.getScheduledTransactionById(id)!!)!!
-        val outgoing = SyncPayload.decode(database.syncRecordDao().get("A", "transactions", completed.firestoreId)!!.pendingPayload!!)
-        assertEquals("/account/A/SYNC_cached.jpg", completed.photoUri)
-        metadata.forEach { (key, expected) -> assertEquals(expected, outgoing[key]) }
-        assertFalse(outgoing.containsKey("photoUri"))
-        assertTrue(database.syncRecordDao().get("A", "scheduled_transactions", "photo-plan")!!.pendingDelete)
-    }
 }

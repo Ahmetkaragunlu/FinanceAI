@@ -6,6 +6,8 @@ import androidx.test.core.app.ApplicationProvider
 import com.ahmetkaragunlu.financeai.feature.location.domain.AddressResolver
 import com.ahmetkaragunlu.financeai.feature.location.domain.Coordinates
 import com.ahmetkaragunlu.financeai.feature.location.domain.LocationGateway
+import com.ahmetkaragunlu.financeai.feature.location.domain.error.LocationFailure
+import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.feature.location.domain.model.LocationData
 import com.google.android.gms.maps.model.LatLng
 import kotlinx.coroutines.*
@@ -82,6 +84,8 @@ class LocationPickerViewModelTest {
                 viewModel.search()
             }
             withTimeout(5_000) { viewModel.uiState.first { it.error != null } }
+            assertEquals(LocationFailure.AddressNotFound, viewModel.uiState.value.error)
+            assertEquals(R.string.address_not_found, checkNotNull(viewModel.uiState.value.error).messageRes())
             assertFalse(viewModel.uiState.value.isSearching)
             assertFalse(viewModel.uiState.value.isLoading)
         } finally {

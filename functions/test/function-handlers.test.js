@@ -4,6 +4,8 @@ const { test, after, mock } = require('node:test');
 const assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
 const admin = require('firebase-admin');
+const handlerNow = Date.parse('2026-10-09T00:00:00Z');
+mock.method(Date, 'now', () => handlerNow);
 const { firestoreMemory } = require('./support/firestore-memory');
 const { ScheduleError, ScheduleErrorCode } = require('../src/schedule/schedule-errors');
 
@@ -120,4 +122,79 @@ test('v1 trigger identities, callable regions and failure policies remain unchan
         assert.equal(handlers[name].__endpoint.platform, 'gcfv1');
         assert.deepEqual(handlers[name].__trigger.regions, ['us-central1']);
     }
+});
+
+function notificationEventFixture(t, tokens, deliver = async () => 'message-id') {
+    const sent = [];
+    const event = { userId: 'A', transactionId: 'p1', revision: 3, sent: false, delivered: [] };
+    const user = { fcmTokens: [...tokens] };
+    t.mock.method(admin.firestore.FieldValue, 'arrayUnion', (...values) => ({ add: values }));
+    t.mock.method(admin.firestore.FieldValue, 'arrayRemove', (...values) => ({ remove: values }));
+    t.mock.method(db, 'collection', name => {
+        assert.equal(name, 'users', 'Event delivery must not write financial records');
+        return { doc: uid => {
+            assert.equal(uid, 'A');
+            return {
+                get: async () => ({ data: () => structuredClone(user) }),
+                update: async patch => {
+                    user.fcmTokens = user.fcmTokens.filter(token => !patch.fcmTokens.remove.includes(token));
+                }
+            };
+        } };
+    });
+    t.mock.getter(admin, 'messaging', () => () => ({ send: async message => {
+        sent.push(message);
+        return deliver(message.token);
+    } }));
+    const ref = {
+        get: async () => ({ exists: true, id: 'p1_3', data: () => structuredClone(event) }),
+        update: async patch => {
+            if (patch.delivered) event.delivered = [...new Set([...event.delivered, ...patch.delivered.add])];
+            if (Object.hasOwn(patch, 'sent')) event.sent = patch.sent;
+        }
+    };
+    return { event, user, sent, snapshot: { ref } };
+}
+
+test('one account event reaches every registered device once and ignores duplicate tokens and trigger retries', async t => {
+    const fixture = notificationEventFixture(t, ['first-device', 'second-device', 'first-device']);
+    await handlers.onNotificationEvent.run(fixture.snapshot);
+    await handlers.onNotificationEvent.run(fixture.snapshot);
+    assert.deepEqual(fixture.sent.map(message => message.token), ['first-device', 'second-device']);
+    for (const message of fixture.sent) assert.deepEqual(message.data, {
+        type: 'SCHEDULE_STATE_CHANGED', userId: 'A', transactionId: 'p1', eventId: 'p1_3', revision: '3'
+    });
+    assert.equal(fixture.event.sent, true);
+    assert.equal(fixture.event.delivered.length, 2);
+});
+
+test('partial fan-out retries only the device that failed and retains successful delivery receipts', async t => {
+    let unavailable = true;
+    const fixture = notificationEventFixture(t, ['first-device', 'second-device'], async token => {
+        if (token === 'second-device' && unavailable)
+            throw Object.assign(new Error('temporary outage'), { code: 'messaging/server-unavailable' });
+        return 'message-id';
+    });
+    await assert.rejects(handlers.onNotificationEvent.run(fixture.snapshot),
+        error => error instanceof ScheduleError && error.code === ScheduleErrorCode.FCM_TRANSIENT_FAILURE);
+    assert.equal(fixture.event.sent, false);
+    assert.equal(fixture.event.delivered.length, 1);
+    unavailable = false;
+    await handlers.onNotificationEvent.run(fixture.snapshot);
+    assert.deepEqual(fixture.sent.map(message => message.token), ['first-device', 'second-device', 'second-device']);
+    assert.equal(fixture.event.sent, true);
+    assert.equal(fixture.event.delivered.length, 2);
+});
+
+test('an unregistered token is removed while valid devices complete without a transient retry', async t => {
+    const fixture = notificationEventFixture(t, ['dead-device', 'valid-device'], async token => {
+        if (token === 'dead-device')
+            throw Object.assign(new Error('unregistered device'), { code: 'messaging/registration-token-not-registered' });
+        return 'message-id';
+    });
+    await handlers.onNotificationEvent.run(fixture.snapshot);
+    assert.deepEqual(fixture.user.fcmTokens, ['valid-device']);
+    assert.equal(fixture.event.sent, true);
+    assert.equal(fixture.event.delivered.length, 1);
+    assert.deepEqual(fixture.sent.map(message => message.token), ['dead-device', 'valid-device']);
 });

@@ -12,6 +12,12 @@ import androidx.test.core.app.ApplicationProvider
 import com.ahmetkaragunlu.financeai.core.database.FinanceDatabase
 import java.io.File
 import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
+import com.ahmetkaragunlu.financeai.feature.transaction.data.local.entity.TransactionEntity
+import com.ahmetkaragunlu.financeai.feature.schedule.data.local.entity.ScheduledTransactionEntity
+import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
+import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
@@ -24,12 +30,13 @@ class PhotoLocalStoreTest {
     private lateinit var store: PhotoLocalStore
     private lateinit var owner: String
     private lateinit var folder: File
+    private val clock = Clock.fixed(Instant.parse("2026-10-09T12:00:00Z"), ZoneOffset.UTC)
     @Before fun prepare() {
         context = ApplicationProvider.getApplicationContext()
         owner = "photo-test-${UUID.randomUUID()}"
         folder = File(context.filesDir, "${PhotoFiles.DIRECTORY}/$owner").apply { mkdirs() }
         database = Room.inMemoryDatabaseBuilder(context, FinanceDatabase::class.java).build()
-        store = PhotoLocalStore(context, database, Dispatchers.IO, Clock.systemUTC())
+        store = PhotoLocalStore(context, database, Dispatchers.IO, clock)
     }
     @After fun close() { database.close(); folder.deleteRecursively() }
     private fun image(width: Int, height: Int): File {
@@ -74,5 +81,31 @@ class PhotoLocalStoreTest {
     @Test fun cleanupDoesNotDeleteFilesOutsideTheManagedDirectory() = runBlocking {
         val outside = File(context.cacheDir, "photo-outside-${UUID.randomUUID()}").apply { writeText("keep") }
         try { assertFalse(store.delete(outside.absolutePath)); assertTrue(outside.exists()) } finally { outside.delete() }
+    }
+
+    @Test fun financialAndPlanReferencesProtectAnOldPhotoUntilItsLastReferenceIsRemoved() = runBlocking {
+        val file = File(folder, "IMG_referenced.jpg")
+        check(image(64, 32).renameTo(file))
+        check(file.setLastModified(clock.millis() - 2 * 86_400_000L))
+        val financial = TransactionEntity(ownerId = owner, firestoreId = "receipt", currencyCode = "USD",
+            amountMinor = 1000, transaction = TransactionType.EXPENSE, category = CategoryType.FOOD,
+            date = 100, photoUri = file.absolutePath)
+        val financialId = database.transactionDao().insertTransaction(financial)
+        assertFalse(store.delete(file.absolutePath))
+        store.cleanUnreferenced(owner)
+        assertTrue(file.isFile)
+
+        val plan = ScheduledTransactionEntity(ownerId = owner, firestoreId = "plan", currencyCode = "USD",
+            amountMinor = 1000, type = TransactionType.EXPENSE, category = CategoryType.FOOD,
+            note = null, scheduledDate = 100, photoUri = file.absolutePath)
+        val planId = database.scheduledTransactionDao().insertScheduledTransaction(plan)
+        database.transactionDao().deleteTransaction(financial.copy(id = financialId.toInt()))
+        assertFalse(store.delete(file.absolutePath))
+        store.cleanUnreferenced(owner)
+        assertTrue(file.isFile)
+
+        database.scheduledTransactionDao().deleteScheduledTransaction(plan.copy(id = planId))
+        store.cleanUnreferenced(owner)
+        assertFalse(file.exists())
     }
 }

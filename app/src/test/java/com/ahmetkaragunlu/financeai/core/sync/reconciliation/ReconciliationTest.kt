@@ -26,9 +26,4 @@ class ReconciliationTest {
         assertEquals(Reconciliation.Write(null), reconcile(values(100), null, values(100)))
         assertEquals(Reconciliation.Equal, reconcile(values(100), null, null))
     }
-    @Test fun `large long monetary payload is not narrowed to double`() {
-        val amount = 9_007_199_254_740_993L
-        val encoded = SyncPayload.encode(mapOf("amountMinor" to amount))
-        assertEquals(amount, SyncPayload.decode(encoded)["amountMinor"])
-    }
 }

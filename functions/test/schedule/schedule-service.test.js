@@ -72,10 +72,12 @@ test('expiration uses tombstones and preserves completed financial data', async 
     const now = date + 72 * HOUR;
     const state = { ...initialState(plan, 'Europe/Istanbul'), expirationAcceptedAt: now - 24 * HOUR,
         deleteAt: now, dueAt: now };
-    const db = fixture({}, { 'schedule_states/p1': state });
+    const financial = { userId: 'A', amountMinor: 10000, currencyCode: 'TRY', transaction: 'INCOME', date };
+    const db = fixture({}, { 'schedule_states/p1': state, 'transactions/completed_previous': financial });
     await scheduleService(db, () => now).advance('p1');
     assert.equal(db.values.get('scheduled_transactions/p1').deleted, true);
     assert.equal(db.values.get('schedule_states/p1').status, 'deleted');
+    assert.deepEqual(db.values.get('transactions/completed_previous'), financial);
 });
 test('invalid money is a retained failure receipt, not an infinite trigger retry', async () => {
     const invalid = { ...plan, amountMinor: -1 };

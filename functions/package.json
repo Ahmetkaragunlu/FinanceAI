@@ -8,6 +8,7 @@
   "scripts": {
     "test": "node --test test/*.test.js test/auth/*.test.js test/schedule/*.test.js",
     "test:rules": "node --test test/rules/*.test.js",
+    "test:integration": "node --test test/integration/schedule/*.test.js",
     "check": "for file in index.js src/*.js src/auth/*.js src/schedule/*.js; do node --check \"$file\" || exit $?; done"
   },
   "dependencies": {

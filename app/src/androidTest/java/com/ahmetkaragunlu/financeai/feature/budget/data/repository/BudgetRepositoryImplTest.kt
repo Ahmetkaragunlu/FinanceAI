@@ -3,6 +3,8 @@ package com.ahmetkaragunlu.financeai.feature.budget.data.repository
 import com.ahmetkaragunlu.financeai.core.sync.local.PendingChanges
 import com.ahmetkaragunlu.financeai.core.session.local.entity.ActiveAccountRow
 import android.content.Context
+import android.database.sqlite.SQLiteException
+import com.ahmetkaragunlu.financeai.core.database.testing.AccountDatabaseFixture
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -23,6 +25,45 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class BudgetRepositoryImplTest {
+    private fun repository(f: AccountDatabaseFixture) = BudgetRepositoryImpl(
+        f.database.budgetDao(), f.database, f.session, f.pending, f.scheduler
+    )
+
+    @Test fun oldAccountBudgetCannotBeObservedEditedOrDeletedAfterSwitchingAccounts() = runBlocking {
+        AccountDatabaseFixture().use { f ->
+            f.activate()
+            val repository = repository(f)
+            repository.insertBudget(Budget(budgetType = BudgetType.GENERAL_MONTHLY, amount = 100.0))
+            val stored = repository.observeBudgets().first().single()
+            f.activate("B", "EUR")
+            assertTrue(repository.observeBudgets().first().isEmpty())
+            assertThrows(IllegalArgumentException::class.java) { runBlocking { repository.updateBudget(stored.copy(amount = 150.0)) } }
+            assertThrows(IllegalArgumentException::class.java) { runBlocking { repository.deleteBudget(stored) } }
+            assertEquals(1, f.database.syncRecordDao().pending("A").size)
+            f.activate()
+            assertEquals(stored, repository.observeBudgets().first().single())
+        }
+    }
+
+    @Test fun outboxFailureRollsBackBudgetChangesAndSuccessfulDeleteKeepsATombstone() = runBlocking {
+        AccountDatabaseFixture().use { f ->
+            f.activate()
+            val repository = repository(f)
+            repository.insertBudget(Budget(budgetType = BudgetType.GENERAL_MONTHLY, amount = 100.0))
+            val stored = repository.observeBudgets().first().single()
+            f.rejectSyncWrites()
+            assertThrows(SQLiteException::class.java) { runBlocking { repository.updateBudget(stored.copy(amount = 150.0)) } }
+            assertThrows(SQLiteException::class.java) { runBlocking { repository.deleteBudget(stored) } }
+            assertEquals(stored, repository.observeBudgets().first().single())
+            f.allowSyncWrites()
+            repository.deleteBudget(stored)
+            assertTrue(repository.observeBudgets().first().isEmpty())
+            val pending = checkNotNull(f.database.syncRecordDao().get("A", "budgets", stored.firestoreId))
+            assertTrue(pending.pendingDelete)
+            assertNotNull(pending.mutationId)
+        }
+    }
+
     @Test fun duplicateBudgetIsRejectedAtomicallyAndEditKeepsIdentityAndFraction() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
         WorkManagerTestInitHelper.initializeTestWorkManager(context, Configuration.Builder().build())

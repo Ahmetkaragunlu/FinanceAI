@@ -10,7 +10,7 @@ class TransactionMapperTest {
     @Test
     fun `persisted identity financial data media and sync status survive both directions`() {
         val row = TransactionEntity(
-            id = 73, firestoreId = "remote-transaction", currencyCode = "USD", amountMinor = 15275L,
+            id = 73, firestoreId = "remote-transaction", ownerId = "account-A", currencyCode = "USD", amountMinor = 15275L,
             transaction = TransactionType.EXPENSE, category = CategoryType.FOOD,
             note = "Yemek", date = 1_750_000_000_000,
             photoUri = "file:///receipt.jpg", locationFull = "Tam adres", locationShort = "Konum",

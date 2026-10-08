@@ -80,28 +80,12 @@ class TypedNavigationTest {
                     }
                 controller.switchRoot(MainDestination)
                 controller.switchRoot(MainDestination)
-                assertNull(controller.previousBackStackEntry)
-                controller.switchRoot(SignInDestination)
-                assertNull(controller.previousBackStackEntry)
-                assertFalse(controller.popBackStack())
-            }
-        }
-
-    @Test
-    fun loginAndLogoutClearThePreviousAccountNavigationStack() =
-        runBlocking(Dispatchers.Main) {
-            withController { controller ->
-                controller.graph =
-                    controller.createGraph(startDestination = SignInDestination) {
-                        composable<SignInDestination> {}
-                        composable<MainDestination> {}
-                    }
-                controller.switchRoot(MainDestination)
                 assertTrue(controller.currentDestination!!.hasRoute<MainDestination>())
                 assertNull(controller.previousBackStackEntry)
                 controller.switchRoot(SignInDestination)
                 assertTrue(controller.currentDestination!!.hasRoute<SignInDestination>())
                 assertNull(controller.previousBackStackEntry)
+                assertFalse(controller.popBackStack())
             }
         }
 
