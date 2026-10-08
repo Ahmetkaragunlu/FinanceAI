@@ -5,7 +5,7 @@ import android.app.backup.FullBackupDataOutput
 import com.ahmetkaragunlu.financeai.core.media.local.PhotoFiles
 import java.io.File
 
-/** Full backup owns a sanitised financial snapshot, never Firebase/FCM/App Check credentials. */
+/** Full backup owns a sanitized financial snapshot, never Firebase/FCM/App Check credentials. */
 class FinanceBackupAgent : BackupAgentHelper() {
     override fun onFullBackup(data: FullBackupDataOutput) {
         val staging = File(filesDir, BACKUP_DIRECTORY)

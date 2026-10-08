@@ -30,7 +30,7 @@ class SignUpScreenTest {
             restoration.setContent {
                 MaterialTheme { SignUpRoute(viewModel = viewModel, onSignIn = {}) }
             }
-            composeRule.runOnIdle { viewModel.saveUser() }
+            composeRule.runOnIdle { viewModel.registerUser() }
             composeRule.waitForIdle()
             composeRule.onNodeWithText(title).assertIsDisplayed()
             composeRule.runOnIdle { assertEquals(AuthState.EMPTY, viewModel.authState.value) }
@@ -45,7 +45,7 @@ class SignUpScreenTest {
     }
 
     private class RegistrationRepository : AuthRepository {
-        override suspend fun saveUser(
+        override suspend fun registerUser(
             email: String,
             password: String,
             firstName: String,

@@ -1,6 +1,6 @@
 package com.ahmetkaragunlu.financeai.app.navigation.deeplink
 
-import com.ahmetkaragunlu.financeai.core.navigation.FinanceLinkContract
+import com.ahmetkaragunlu.financeai.core.deeplink.FinanceLinkContract
 import java.net.URI
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets

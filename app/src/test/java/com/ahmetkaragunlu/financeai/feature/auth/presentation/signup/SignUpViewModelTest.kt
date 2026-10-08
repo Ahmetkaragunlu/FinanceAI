@@ -28,7 +28,7 @@ class SignUpViewModelTest {
         viewModel.updatePassword("password")
         viewModel.updateFirstName("Ahmet")
         viewModel.updateLastName("Karagunlu")
-        viewModel.saveUser()
+        viewModel.registerUser()
         viewModel.updateEmail("changed@example.com")
         assertTrue(viewModel.submitRegistration())
         runCurrent()
@@ -43,13 +43,13 @@ class SignUpViewModelTest {
     fun `failed or cancelled registration releases the submission guard`() = runTest {
         val repository = FakeAuthRepository().apply { registrationFailure = AuthException.EmailExists() }
         val viewModel = SignUpViewModel(repository)
-        viewModel.saveUser()
+        viewModel.registerUser()
         advanceUntilIdle()
         repository.registrationFailure = CancellationException()
-        viewModel.saveUser()
+        viewModel.registerUser()
         advanceUntilIdle()
         repository.registrationFailure = null
-        viewModel.saveUser()
+        viewModel.registerUser()
         advanceUntilIdle()
         assertEquals(3, repository.registrationCalls)
         assertEquals(AuthState.VERIFICATION_EMAIL_SENT, viewModel.authState.value)
@@ -64,7 +64,7 @@ class SignUpViewModelTest {
         viewModel.updateFirstName("Ahmet")
         viewModel.updateLastName("Karagunlu")
 
-        viewModel.saveUser()
+        viewModel.registerUser()
         advanceUntilIdle()
 
         assertEquals(FakeAuthRepository.Registration("user@example.com", "password", "Ahmet", "Karagunlu"), repository.registration)
@@ -75,7 +75,7 @@ class SignUpViewModelTest {
     fun `existing account retains its specific result`() = runTest {
         val repository = FakeAuthRepository().apply { registrationFailure = AuthException.EmailExists() }
         val viewModel = SignUpViewModel(repository)
-        viewModel.saveUser()
+        viewModel.registerUser()
         advanceUntilIdle()
         assertEquals(AuthState.USER_ALREADY_EXISTS, viewModel.authState.value)
     }
@@ -84,7 +84,7 @@ class SignUpViewModelTest {
     fun `verification email failure is not treated as registration success`() = runTest {
         val repository = FakeAuthRepository().apply { registrationFailure = AuthException.VerificationEmailFailed() }
         val viewModel = SignUpViewModel(repository)
-        viewModel.saveUser()
+        viewModel.registerUser()
         advanceUntilIdle()
         assertEquals(AuthState.VERIFICATION_EMAIL_FAILED, viewModel.authState.value)
     }
@@ -93,7 +93,7 @@ class SignUpViewModelTest {
     fun `unexpected registration failure retains generic failure`() = runTest {
         val repository = FakeAuthRepository().apply { registrationFailure = IllegalStateException("failed") }
         val viewModel = SignUpViewModel(repository)
-        viewModel.saveUser()
+        viewModel.registerUser()
         advanceUntilIdle()
         assertEquals(AuthState.FAILURE, viewModel.authState.value)
     }

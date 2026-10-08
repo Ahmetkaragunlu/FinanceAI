@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
 const admin = require('firebase-admin');
 const { firestoreMemory } = require('./support/firestore-memory');
-const { ScheduleError, ScheduleErrorCode } = require('../src/schedule-errors');
+const { ScheduleError, ScheduleErrorCode } = require('../src/schedule/schedule-errors');
 
 // Load the real v1 export adapters against a demo project; every data/messaging operation is fake.
 const previousConfig = process.env.FIREBASE_CONFIG;

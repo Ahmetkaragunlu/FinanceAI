@@ -3,11 +3,10 @@ package com.ahmetkaragunlu.financeai.feature.budget.data.remote
 import com.ahmetkaragunlu.financeai.core.firebase.FirestoreCollections
 import com.ahmetkaragunlu.financeai.core.error.DataAccessException
 import com.ahmetkaragunlu.financeai.core.sync.contract.FinancialFields
-
 import com.ahmetkaragunlu.financeai.core.database.FinanceDatabase
 import com.ahmetkaragunlu.financeai.core.money.MoneyAmounts
 import com.ahmetkaragunlu.financeai.core.session.ActiveAccount
-import com.ahmetkaragunlu.financeai.core.sync.RemoteRecordStore
+import com.ahmetkaragunlu.financeai.core.sync.contract.RemoteRecordStore
 import com.ahmetkaragunlu.financeai.feature.budget.data.mapper.*
 import com.ahmetkaragunlu.financeai.feature.budget.domain.model.*
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.*

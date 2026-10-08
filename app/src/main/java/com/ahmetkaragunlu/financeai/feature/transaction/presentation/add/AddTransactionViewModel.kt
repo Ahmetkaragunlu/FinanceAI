@@ -9,7 +9,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ahmetkaragunlu.financeai.R
-import com.ahmetkaragunlu.financeai.core.media.PhotoLocalStore
+import com.ahmetkaragunlu.financeai.core.media.local.PhotoLocalStore
 import com.ahmetkaragunlu.financeai.core.money.MoneyAmounts
 import com.ahmetkaragunlu.financeai.core.session.AccountSession
 import com.ahmetkaragunlu.financeai.core.time.FinancePeriods

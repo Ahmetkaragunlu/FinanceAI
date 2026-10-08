@@ -10,10 +10,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.core.format.DateFormatter
 import com.ahmetkaragunlu.financeai.core.media.PhotoFields
-import com.ahmetkaragunlu.financeai.core.sync.SyncPayload
+import com.ahmetkaragunlu.financeai.core.sync.contract.SyncPayload
 import com.ahmetkaragunlu.financeai.core.sync.contract.FinancialFields
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
-import com.ahmetkaragunlu.financeai.feature.schedule.data.remote.ScheduleFields
+import com.ahmetkaragunlu.financeai.feature.schedule.data.remote.contract.ScheduleFields
 import com.ahmetkaragunlu.financeai.feature.transaction.data.remote.TransactionFields
 import com.ahmetkaragunlu.financeai.feature.transaction.format.toResId
 

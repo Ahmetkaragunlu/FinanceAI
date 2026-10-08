@@ -13,7 +13,7 @@ import com.ahmetkaragunlu.financeai.MainActivity
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.core.format.formatAsCurrency
 import com.ahmetkaragunlu.financeai.core.format.formatAsShortDate
-import com.ahmetkaragunlu.financeai.core.navigation.FinanceLinkContract
+import com.ahmetkaragunlu.financeai.core.deeplink.FinanceLinkContract
 import com.ahmetkaragunlu.financeai.core.session.AccountSession
 import com.ahmetkaragunlu.financeai.core.sync.SyncScheduler
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.model.ScheduledTransaction

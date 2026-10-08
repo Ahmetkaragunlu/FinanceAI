@@ -87,7 +87,7 @@ import com.ahmetkaragunlu.financeai.feature.transaction.format.toResId
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.TransactionActionResult
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.TransactionResultEffect
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toIconResId
-import com.ahmetkaragunlu.financeai.core.media.presentation.CameraHelper
+import com.ahmetkaragunlu.financeai.core.media.presentation.CameraCaptureLauncher
 import com.ahmetkaragunlu.financeai.core.media.presentation.PhotoSourceBottomSheet
 import com.ahmetkaragunlu.financeai.core.media.local.CameraPhotoDrafts
 import java.io.File
@@ -101,7 +101,7 @@ fun TransactionDetailRoute(
 ) {
     val detailState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    var cameraHelperRef by remember { mutableStateOf<CameraHelper?>(null) }
+    var cameraCaptureLauncherRef by remember { mutableStateOf<CameraCaptureLauncher?>(null) }
     ToastMessageEffect(viewModel.photoErrorResId, viewModel::consumePhotoError)
     val cameraLauncher =
         rememberLauncherForActivityResult(contract = ActivityResultContracts.TakePicture()) {
@@ -113,7 +113,7 @@ fun TransactionDetailRoute(
     val permissionLauncher =
         rememberLauncherForActivityResult(contract = ActivityResultContracts.RequestPermission()) {
             isGranted ->
-            cameraHelperRef?.onPermissionResult(isGranted)
+            cameraCaptureLauncherRef?.onPermissionResult(isGranted)
         }
 
     val galleryLauncher =
@@ -121,9 +121,9 @@ fun TransactionDetailRoute(
             uri?.let { viewModel.onPhotoSelected(it) }
         }
 
-    val cameraHelper =
+    val cameraCaptureLauncher =
         remember(context, cameraLauncher, permissionLauncher) {
-            CameraHelper(
+            CameraCaptureLauncher(
                     context = context,
                     cameraLauncher = cameraLauncher,
                     permissionLauncher = permissionLauncher,
@@ -136,7 +136,7 @@ fun TransactionDetailRoute(
                         }
                     },
                 )
-                .also { cameraHelperRef = it }
+                .also { cameraCaptureLauncherRef = it }
         }
 
     TransactionDetailScreen(
@@ -158,7 +158,7 @@ fun TransactionDetailRoute(
         onResultConsumed = viewModel::consumeActionResult,
         onDeleted = onDeleted,
         onDeletePhoto = viewModel::deletePhoto,
-        onCameraClick = cameraHelper::launchCamera,
+        onCameraClick = cameraCaptureLauncher::launchCamera,
         onGalleryClick = { galleryLauncher.launch("image/*") },
         modifier = modifier,
     )

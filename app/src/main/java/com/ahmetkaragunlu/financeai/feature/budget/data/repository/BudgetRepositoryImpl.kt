@@ -1,14 +1,13 @@
 package com.ahmetkaragunlu.financeai.feature.budget.data.repository
 
 import com.ahmetkaragunlu.financeai.core.firebase.FirestoreCollections
-
 import androidx.room.withTransaction
 import com.ahmetkaragunlu.financeai.core.error.DataAccessException
 import com.ahmetkaragunlu.financeai.feature.budget.domain.error.BudgetException
 import com.ahmetkaragunlu.financeai.core.database.FinanceDatabase
 import com.ahmetkaragunlu.financeai.core.money.MoneyAmounts
 import com.ahmetkaragunlu.financeai.core.session.AccountSession
-import com.ahmetkaragunlu.financeai.core.sync.PendingChanges
+import com.ahmetkaragunlu.financeai.core.sync.local.PendingChanges
 import com.ahmetkaragunlu.financeai.core.sync.SyncScheduler
 import com.ahmetkaragunlu.financeai.feature.budget.data.local.dao.BudgetDao
 import com.ahmetkaragunlu.financeai.feature.budget.data.mapper.toDomain

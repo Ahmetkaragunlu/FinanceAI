@@ -1,8 +1,8 @@
 package com.ahmetkaragunlu.financeai.app.di
 
-import com.ahmetkaragunlu.financeai.core.sync.RemoteRecordStore
-import com.ahmetkaragunlu.financeai.core.sync.AccountSyncParticipant
-import com.ahmetkaragunlu.financeai.feature.schedule.data.reminder.ScheduleCommands
+import com.ahmetkaragunlu.financeai.core.sync.contract.RemoteRecordStore
+import com.ahmetkaragunlu.financeai.core.sync.contract.AccountSyncParticipant
+import com.ahmetkaragunlu.financeai.feature.schedule.data.sync.ScheduleCommands
 import com.ahmetkaragunlu.financeai.feature.aichat.data.remote.AiMessageRemoteStore
 import com.ahmetkaragunlu.financeai.feature.budget.data.remote.BudgetRemoteStore
 import com.ahmetkaragunlu.financeai.feature.schedule.data.remote.ScheduledTransactionRemoteStore

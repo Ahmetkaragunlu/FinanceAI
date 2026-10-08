@@ -78,9 +78,11 @@ fun FinanceNavigation(
                     }
                 }
                 if (account != null) {
+                    val userName by accountViewModel.userName.collectAsStateWithLifecycle()
                     key(account?.ownerId) {
                         MainNavigation(
                             onSignOut = sessionViewModel::performSignOut,
+                            userName = userName,
                             scheduleRequestId =
                                 deepLink?.id.takeIf {
                                     destination is FinanceDeepLink.Schedule &&

@@ -84,7 +84,7 @@ constructor(
             .await()
     }
 
-    override suspend fun saveUser(
+    override suspend fun registerUser(
         email: String,
         password: String,
         firstName: String,

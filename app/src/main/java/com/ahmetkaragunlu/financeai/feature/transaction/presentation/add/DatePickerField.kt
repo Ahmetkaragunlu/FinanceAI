@@ -19,7 +19,7 @@ fun DatePickerField(
     selectedDate: Long,
     onDateClick: () -> Unit,
     modifier: Modifier = Modifier,
-    isRemenderEnabled: Boolean,
+    isReminderEnabled: Boolean,
     zone: ZoneId = ZoneId.systemDefault(),
 ) {
     val formattedDate = selectedDate.formatAsDate(zone = zone)
@@ -32,7 +32,7 @@ fun DatePickerField(
             Icon(
                 imageVector = Icons.Default.CalendarMonth,
                 contentDescription = null,
-                tint = if (isRemenderEnabled) FinanceColors.onAccent else FinanceColors.mutedText,
+                tint = if (isReminderEnabled) FinanceColors.onAccent else FinanceColors.mutedText,
             )
         },
         modifier = modifier.clickable { onDateClick() },
@@ -40,7 +40,7 @@ fun DatePickerField(
             OutlinedTextFieldDefaults.colors(
                 disabledContainerColor = FinanceColors.fieldSurface,
                 disabledTextColor =
-                    if (isRemenderEnabled) FinanceColors.onAccent else FinanceColors.mutedText,
+                    if (isReminderEnabled) FinanceColors.onAccent else FinanceColors.mutedText,
             ),
         enabled = false,
         shape = RoundedCornerShape(12.dp),

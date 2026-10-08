@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.ahmetkaragunlu.financeai.core.format.formatAsCurrency
 import com.ahmetkaragunlu.financeai.core.session.AccountSession
 import com.ahmetkaragunlu.financeai.core.time.FinanceCalendar
-import com.ahmetkaragunlu.financeai.feature.auth.domain.repository.AuthRepository
 import com.ahmetkaragunlu.financeai.feature.budget.domain.repository.BudgetRepository
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryExpense
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.FinancialSummary
@@ -19,7 +18,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -31,30 +29,12 @@ constructor(
     private val session: AccountSession,
     repository: TransactionRepository,
     budgetRepository: BudgetRepository,
-    authRepository: AuthRepository,
 ) : ViewModel() {
     private val month = calendar.observeMonth()
     private val summary: StateFlow<FinancialSummary?> =
         month
             .flatMapLatest { repository.observeFinancialSummary(it.start, it.endExclusive) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
-
-    val userName: StateFlow<String> =
-        session.account
-            .flatMapLatest { account ->
-                flow {
-                    if (account == null) emit("")
-                    else {
-                        val name = authRepository.getUserName()
-                        emit(
-                            if (session.isCurrent(account))
-                                name?.lowercase()?.replaceFirstChar { it.uppercase() }.orEmpty()
-                            else ""
-                        )
-                    }
-                }
-            }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), "")
 
     val homeUiState: StateFlow<HomeUiState> =
         combine(summary, session.account) { value, account ->

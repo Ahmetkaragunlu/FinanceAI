@@ -9,7 +9,7 @@ import androidx.work.testing.WorkManagerTestInitHelper
 import com.ahmetkaragunlu.financeai.core.database.FinanceDatabase
 import com.ahmetkaragunlu.financeai.core.session.AccountSession
 import com.ahmetkaragunlu.financeai.core.session.local.entity.ActiveAccountRow
-import com.ahmetkaragunlu.financeai.core.sync.PendingChanges
+import com.ahmetkaragunlu.financeai.core.sync.local.PendingChanges
 import com.ahmetkaragunlu.financeai.core.sync.SyncScheduler
 import java.time.Clock
 import java.time.Instant

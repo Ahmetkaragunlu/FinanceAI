@@ -30,7 +30,7 @@ import com.ahmetkaragunlu.financeai.core.sync.SyncScheduler
 import com.ahmetkaragunlu.financeai.core.time.FinanceCalendar
 import com.ahmetkaragunlu.financeai.feature.schedule.data.reminder.ReminderCoordinator
 import com.ahmetkaragunlu.financeai.feature.schedule.data.reminder.ReminderScheduler
-import com.ahmetkaragunlu.financeai.feature.schedule.data.reminder.ScheduleCommandQueue
+import com.ahmetkaragunlu.financeai.feature.schedule.data.sync.ScheduleCommandQueue
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.model.ScheduledTransaction
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.reminder.ReminderKind
 import com.ahmetkaragunlu.financeai.notification.ReminderPresenter

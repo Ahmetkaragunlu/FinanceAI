@@ -88,7 +88,7 @@ class SignInWithPasswordTest {
             return verified
         }
 
-        override suspend fun saveUser(email: String, password: String, firstName: String, lastName: String): Unit = unused()
+        override suspend fun registerUser(email: String, password: String, firstName: String, lastName: String): Unit = unused()
         override suspend fun verifyUserAndSendResetEmail(email: String, firstName: String, lastName: String): Boolean = unused()
         override suspend fun confirmPasswordReset(oobCode: String, newPassword: String): Unit = unused()
         override suspend fun signInWithGoogle(idToken: String?): Unit = unused()

@@ -11,7 +11,7 @@ import androidx.work.WorkManager
 import androidx.work.workDataOf
 import com.ahmetkaragunlu.financeai.core.database.FinanceDatabase
 import com.ahmetkaragunlu.financeai.core.media.local.entity.PhotoOperation
-import com.ahmetkaragunlu.financeai.core.media.PhotoRemoteCache
+import com.ahmetkaragunlu.financeai.core.media.remote.PhotoRemoteCache
 import com.ahmetkaragunlu.financeai.core.session.AccountSession
 import com.ahmetkaragunlu.financeai.core.sync.SyncScheduler
 import java.io.File

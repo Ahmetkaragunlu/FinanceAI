@@ -26,7 +26,7 @@ class SignUpViewModel @Inject constructor(private val authRepository: AuthReposi
     fun submitRegistration(): Boolean {
         if (signingUp) return true
         if (!isValidUser()) return false
-        saveUser()
+        registerUser()
         return true
     }
 
@@ -52,7 +52,7 @@ class SignUpViewModel @Inject constructor(private val authRepository: AuthReposi
         signingUp = true
         viewModelScope.launch {
             try {
-                authRepository.saveUser(
+                authRepository.registerUser(
                     email = email,
                     password = password,
                     firstName = firstName,
@@ -73,7 +73,7 @@ class SignUpViewModel @Inject constructor(private val authRepository: AuthReposi
         }
     }
 
-    fun saveUser() {
+    fun registerUser() {
         signUp(
             email = inputEmail,
             firstName = inputFirstName,

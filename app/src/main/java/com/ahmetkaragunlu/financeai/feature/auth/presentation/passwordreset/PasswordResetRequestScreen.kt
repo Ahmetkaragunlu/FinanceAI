@@ -45,7 +45,7 @@ import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.core.ui.component.EditAlertDialog
 import com.ahmetkaragunlu.financeai.core.ui.component.EditTextField
 import com.ahmetkaragunlu.financeai.core.ui.theme.FinanceColors
-import com.ahmetkaragunlu.financeai.core.ui.theme.SignUpTextFieldStyles
+import com.ahmetkaragunlu.financeai.feature.auth.presentation.component.AuthTextFieldStyles
 import com.ahmetkaragunlu.financeai.core.ui.theme.Spacing
 import com.ahmetkaragunlu.financeai.feature.auth.presentation.AuthState
 import com.ahmetkaragunlu.financeai.feature.auth.presentation.ResetRequestFormState
@@ -175,7 +175,7 @@ fun PasswordResetRequestScreen(
                         keyboardType = KeyboardType.Email,
                     ),
                 supportingText = if (form.emailError) R.string.error_email else null,
-                colors = SignUpTextFieldStyles.whiteTextFieldColors(),
+                colors = AuthTextFieldStyles.whiteTextFieldColors(),
             )
             EditTextField(
                 value = form.firstName,
@@ -187,7 +187,7 @@ fun PasswordResetRequestScreen(
                         keyboardType = KeyboardType.Text,
                     ),
                 supportingText = if (form.firstNameError) R.string.error_first_name else null,
-                colors = SignUpTextFieldStyles.whiteTextFieldColors(),
+                colors = AuthTextFieldStyles.whiteTextFieldColors(),
             )
             EditTextField(
                 value = form.lastName,
@@ -199,7 +199,7 @@ fun PasswordResetRequestScreen(
                         keyboardType = KeyboardType.Text,
                     ),
                 supportingText = if (form.lastNameError) R.string.error_last_name else null,
-                colors = SignUpTextFieldStyles.whiteTextFieldColors(),
+                colors = AuthTextFieldStyles.whiteTextFieldColors(),
             )
             Button(
                 onClick = onSubmitClick,

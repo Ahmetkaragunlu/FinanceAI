@@ -1,7 +1,7 @@
 package com.ahmetkaragunlu.financeai.feature.schedule.data.remote
 
+import com.ahmetkaragunlu.financeai.feature.schedule.data.remote.contract.ScheduleFields
 import com.ahmetkaragunlu.financeai.core.sync.contract.FinancialFields
-
 import com.ahmetkaragunlu.financeai.core.money.MoneyAmounts
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.model.ScheduledTransaction
 

@@ -50,7 +50,7 @@ import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.core.ui.component.EditAlertDialog
 import com.ahmetkaragunlu.financeai.core.ui.component.EditTextField
 import com.ahmetkaragunlu.financeai.core.ui.theme.FinanceGradients
-import com.ahmetkaragunlu.financeai.core.ui.theme.SignUpTextFieldStyles
+import com.ahmetkaragunlu.financeai.feature.auth.presentation.component.AuthTextFieldStyles
 import com.ahmetkaragunlu.financeai.feature.auth.presentation.AuthState
 import com.ahmetkaragunlu.financeai.feature.auth.presentation.RegistrationFormState
 import com.ahmetkaragunlu.financeai.feature.auth.presentation.component.PasswordVisibilityToggle
@@ -205,7 +205,7 @@ fun SignUpScreen(
                             imeAction = ImeAction.Next,
                             keyboardType = KeyboardType.Email,
                         ),
-                    colors = SignUpTextFieldStyles.whiteTextFieldColors(),
+                    colors = AuthTextFieldStyles.whiteTextFieldColors(),
                     supportingText = if (form.emailError) R.string.error_email else null,
                 )
                 EditTextField(
@@ -223,7 +223,7 @@ fun SignUpScreen(
                             onToggle = { passwordVisibility = !passwordVisibility },
                         )
                     },
-                    colors = SignUpTextFieldStyles.whiteTextFieldColors(),
+                    colors = AuthTextFieldStyles.whiteTextFieldColors(),
                     supportingText = if (form.passwordError) R.string.error_password else null,
                     visualTransformation =
                         if (passwordVisibility) VisualTransformation.None
@@ -238,7 +238,7 @@ fun SignUpScreen(
                             imeAction = ImeAction.Next,
                             keyboardType = KeyboardType.Text,
                         ),
-                    colors = SignUpTextFieldStyles.whiteTextFieldColors(),
+                    colors = AuthTextFieldStyles.whiteTextFieldColors(),
                     supportingText = if (form.firstNameError) R.string.error_first_name else null,
                 )
                 EditTextField(
@@ -250,7 +250,7 @@ fun SignUpScreen(
                             imeAction = ImeAction.Done,
                             keyboardType = KeyboardType.Text,
                         ),
-                    colors = SignUpTextFieldStyles.whiteTextFieldColors(),
+                    colors = AuthTextFieldStyles.whiteTextFieldColors(),
                     supportingText = if (form.lastNameError) R.string.error_last_name else null,
                 )
                 Button(

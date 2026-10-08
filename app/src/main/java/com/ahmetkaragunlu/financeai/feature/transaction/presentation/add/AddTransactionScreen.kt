@@ -35,7 +35,6 @@ import com.ahmetkaragunlu.financeai.core.ui.component.EditTextField
 import com.ahmetkaragunlu.financeai.core.ui.component.FinanceDropdownMenu
 import com.ahmetkaragunlu.financeai.core.ui.component.getAccountCurrencySymbol
 import com.ahmetkaragunlu.financeai.core.ui.effect.ToastMessageEffect
-import com.ahmetkaragunlu.financeai.core.ui.theme.AddTransactionScreenTextFieldStyles
 import com.ahmetkaragunlu.financeai.core.ui.theme.FinanceColors
 import com.ahmetkaragunlu.financeai.core.ui.theme.Spacing
 import com.ahmetkaragunlu.financeai.feature.location.domain.model.LocationData
@@ -46,7 +45,7 @@ import com.ahmetkaragunlu.financeai.feature.transaction.format.toResId
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.TransactionActionResult
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.TransactionResultEffect
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.*
-import com.ahmetkaragunlu.financeai.core.media.presentation.CameraHelper
+import com.ahmetkaragunlu.financeai.core.media.presentation.CameraCaptureLauncher
 import com.ahmetkaragunlu.financeai.core.media.presentation.PhotoSourceBottomSheet
 import com.ahmetkaragunlu.financeai.core.media.local.CameraPhotoDrafts
 
@@ -61,7 +60,7 @@ fun AddTransactionRoute(
     var isDatePickerOpen by rememberSaveable { mutableStateOf(false) }
     var showPhotoBottomSheet by rememberSaveable { mutableStateOf(false) }
     var showLocationPicker by rememberSaveable { mutableStateOf(false) }
-    var cameraHelperRef by remember { mutableStateOf<CameraHelper?>(null) }
+    var cameraCaptureLauncherRef by remember { mutableStateOf<CameraCaptureLauncher?>(null) }
     // Photo Picker Launcher
     val photoPickerLauncher =
         rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) {
@@ -82,11 +81,11 @@ fun AddTransactionRoute(
     val cameraPermissionLauncher =
         rememberLauncherForActivityResult(contract = ActivityResultContracts.RequestPermission()) {
             isGranted ->
-            cameraHelperRef?.onPermissionResult(isGranted)
+            cameraCaptureLauncherRef?.onPermissionResult(isGranted)
         }
-    val cameraHelper =
+    val cameraCaptureLauncher =
         remember(context, viewModel, cameraLauncher, cameraPermissionLauncher) {
-            CameraHelper(
+            CameraCaptureLauncher(
                     context = context,
                     cameraLauncher = cameraLauncher,
                     permissionLauncher = cameraPermissionLauncher,
@@ -99,7 +98,7 @@ fun AddTransactionRoute(
                         }
                     },
                 )
-                .also { cameraHelperRef = it }
+                .also { cameraCaptureLauncherRef = it }
         }
 
     ToastMessageEffect(viewModel.feedbackMessageRes, viewModel::consumeFeedback)
@@ -149,7 +148,7 @@ fun AddTransactionRoute(
     if (showPhotoBottomSheet) {
         PhotoSourceBottomSheet(
             onDismiss = { showPhotoBottomSheet = false },
-            onCameraClick = { cameraHelper.launchCamera() },
+            onCameraClick = { cameraCaptureLauncher.launchCamera() },
             onGalleryClick = { photoPickerLauncher.launch("image/*") },
         )
     }
@@ -261,7 +260,7 @@ fun AddTransactionScreen(
             DatePickerField(
                 selectedDate = state.date,
                 onDateClick = { onDateClick() },
-                isRemenderEnabled = state.reminderEnabled,
+                isReminderEnabled = state.reminderEnabled,
                 zone = state.zone,
                 modifier = modifier.widthIn(max = 450.dp).padding(bottom = 14.dp).fillMaxWidth(),
             )

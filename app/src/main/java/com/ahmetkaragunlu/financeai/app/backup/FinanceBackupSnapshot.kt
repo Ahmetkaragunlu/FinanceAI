@@ -15,6 +15,8 @@ internal object FinanceBackupSnapshot {
         SQLiteDatabase.openDatabase(source.path, null, SQLiteDatabase.OPEN_READONLY).use { database
             ->
             // Includes committed WAL records without modifying the live database.
+            // RoomSql's editor parser does not support VACUUM INTO; backup tests validate this SQL.
+            // language=TEXT
             database.execSQL("VACUUM INTO ?", arrayOf(destination.path))
         }
         SQLiteDatabase.openDatabase(destination.path, null, SQLiteDatabase.OPEN_READWRITE).use {

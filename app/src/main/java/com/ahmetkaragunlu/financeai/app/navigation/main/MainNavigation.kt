@@ -12,8 +12,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.ahmetkaragunlu.financeai.R
@@ -26,7 +24,6 @@ import com.ahmetkaragunlu.financeai.core.ui.theme.FinanceColors
 import com.ahmetkaragunlu.financeai.feature.aichat.navigation.AiChatDestination
 import com.ahmetkaragunlu.financeai.feature.budget.navigation.BudgetDestination
 import com.ahmetkaragunlu.financeai.feature.home.navigation.HomeDestination
-import com.ahmetkaragunlu.financeai.feature.home.presentation.HomeViewModel
 import com.ahmetkaragunlu.financeai.feature.schedule.navigation.ScheduledTransactionsDestination
 import com.ahmetkaragunlu.financeai.feature.transaction.navigation.AddTransactionDestination
 import com.ahmetkaragunlu.financeai.feature.transaction.navigation.TransactionHistoryDestination
@@ -34,6 +31,7 @@ import com.ahmetkaragunlu.financeai.feature.transaction.navigation.TransactionHi
 @Composable
 fun MainNavigation(
     onSignOut: () -> Unit,
+    userName: String,
     scheduleRequestId: String? = null,
     onScheduleOpened: (String) -> Unit = {},
 ) {
@@ -41,8 +39,6 @@ fun MainNavigation(
     var showLogoutDialog by rememberSaveable { mutableStateOf(false) }
     val currentEntry by mainNavController.currentBackStackEntryAsState()
     val screen = currentEntry?.destination.mainScreen()
-    val homeViewModel: HomeViewModel = hiltViewModel()
-    val userName by homeViewModel.userName.collectAsStateWithLifecycle()
 
     LaunchedEffect(scheduleRequestId) {
         if (scheduleRequestId != null) {

@@ -21,8 +21,9 @@ class FakeAuthRepository : AuthRepository {
     var resetConfirmationCalls = 0
     var onResetConfirmation: suspend () -> Unit = {}
     var onSignOut: suspend () -> Unit = {}
+    var onUserName: suspend () -> String? = { unexpected() }
 
-    override suspend fun saveUser(email: String, password: String, firstName: String, lastName: String) {
+    override suspend fun registerUser(email: String, password: String, firstName: String, lastName: String) {
         registrationCalls++
         registration = Registration(email, password, firstName, lastName)
         onRegistration()
@@ -49,7 +50,7 @@ class FakeAuthRepository : AuthRepository {
     override suspend fun refreshEmailVerification(): Boolean = unexpected()
     override suspend fun signInWithGoogle(idToken: String?): Unit = unexpected()
     override suspend fun isUserRegistered(email: String): Boolean = unexpected()
-    override suspend fun getUserName(): String? = unexpected()
+    override suspend fun getUserName(): String? = onUserName()
 
     private fun unexpected(): Nothing = error("Unexpected auth repository call")
 }

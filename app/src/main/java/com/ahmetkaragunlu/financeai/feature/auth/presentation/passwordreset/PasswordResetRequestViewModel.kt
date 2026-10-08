@@ -25,7 +25,7 @@ constructor(private val authRepository: AuthRepository) : ViewModel() {
 
     fun submitResetRequest(): Boolean {
         if (sendingRequest) return true
-        if (!isValidResetRequestPassword()) return false
+        if (!isResetRequestValid()) return false
         sendResetPasswordRequest()
         return true
     }
@@ -98,5 +98,5 @@ constructor(private val authRepository: AuthRepository) : ViewModel() {
 
     fun lastNameSupportingText() = !isValidLastName() && inputLastName.isNotBlank()
 
-    fun isValidResetRequestPassword() = isValidLastName() && isValidFirstName() && isEmailValid()
+    fun isResetRequestValid() = isValidLastName() && isValidFirstName() && isEmailValid()
 }

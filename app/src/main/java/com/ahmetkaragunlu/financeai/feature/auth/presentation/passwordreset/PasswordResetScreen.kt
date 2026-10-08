@@ -50,7 +50,7 @@ import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.core.ui.component.EditAlertDialog
 import com.ahmetkaragunlu.financeai.core.ui.component.EditTextField
 import com.ahmetkaragunlu.financeai.core.ui.theme.FinanceColors
-import com.ahmetkaragunlu.financeai.core.ui.theme.SignUpTextFieldStyles
+import com.ahmetkaragunlu.financeai.feature.auth.presentation.component.AuthTextFieldStyles
 import com.ahmetkaragunlu.financeai.core.ui.theme.Spacing
 import com.ahmetkaragunlu.financeai.feature.auth.presentation.AuthState
 import com.ahmetkaragunlu.financeai.feature.auth.presentation.ResetPasswordFormState
@@ -170,7 +170,7 @@ fun PasswordResetScreen(
                         keyboardType = KeyboardType.NumberPassword,
                     ),
                 supportingText = if (form.passwordError) R.string.error_password else null,
-                colors = SignUpTextFieldStyles.whiteTextFieldColors(),
+                colors = AuthTextFieldStyles.whiteTextFieldColors(),
                 trailingIcon = {
                     PasswordVisibilityToggle(
                         visible = passwordVisibility,
@@ -191,7 +191,7 @@ fun PasswordResetScreen(
                         keyboardType = KeyboardType.NumberPassword,
                     ),
                 supportingText = if (form.confirmationError) R.string.error_password else null,
-                colors = SignUpTextFieldStyles.whiteTextFieldColors(),
+                colors = AuthTextFieldStyles.whiteTextFieldColors(),
                 trailingIcon = {
                     Icon(
                         imageVector =

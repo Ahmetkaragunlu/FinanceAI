@@ -3,12 +3,12 @@
 const functions = require('firebase-functions/v1');
 const admin = require('firebase-admin');
 const { createHash } = require('node:crypto');
-const { scheduleService } = require('./src/schedule-service');
-const { authLookups } = require('./src/auth-lookups');
-const { authLookupFailure } = require('./src/auth-errors');
-const { ScheduleError, ScheduleErrorCode, scheduleRestoreFailure } = require('./src/schedule-errors');
-const { ScheduleCommandType, ScheduleStatus, ScheduleCollections } = require('./src/schedule-contract');
-const { scheduleRestore } = require('./src/schedule-restore');
+const { scheduleService } = require('./src/schedule/schedule-service');
+const { authLookups } = require('./src/auth/auth-lookups');
+const { authLookupFailure } = require('./src/auth/auth-errors');
+const { ScheduleError, ScheduleErrorCode, scheduleRestoreFailure } = require('./src/schedule/schedule-errors');
+const { ScheduleCommandType, ScheduleStatus, ScheduleCollections } = require('./src/schedule/schedule-contract');
+const { scheduleRestore } = require('./src/schedule/schedule-restore');
 
 admin.initializeApp();
 const db = admin.firestore();

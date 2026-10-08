@@ -3,17 +3,16 @@ package com.ahmetkaragunlu.financeai.feature.schedule.data
 import com.ahmetkaragunlu.financeai.core.firebase.FirestoreCollections
 import com.ahmetkaragunlu.financeai.core.sync.contract.SyncFields
 import com.ahmetkaragunlu.financeai.core.media.PhotoFields
-
 import androidx.room.withTransaction
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.reminder.ScheduleCommandType
 import com.ahmetkaragunlu.financeai.core.database.FinanceDatabase
 import com.ahmetkaragunlu.financeai.core.session.AccountSession
-import com.ahmetkaragunlu.financeai.core.sync.PendingChanges
-import com.ahmetkaragunlu.financeai.core.sync.SyncPayload
+import com.ahmetkaragunlu.financeai.core.sync.local.PendingChanges
+import com.ahmetkaragunlu.financeai.core.sync.contract.SyncPayload
 import com.ahmetkaragunlu.financeai.core.sync.SyncScheduler
 import com.ahmetkaragunlu.financeai.feature.schedule.data.mapper.toDomain
 import com.ahmetkaragunlu.financeai.feature.schedule.data.remote.toFirebaseMap as scheduledToFirebaseMap
-import com.ahmetkaragunlu.financeai.feature.schedule.data.reminder.ScheduleCommandQueue
+import com.ahmetkaragunlu.financeai.feature.schedule.data.sync.ScheduleCommandQueue
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.model.ScheduledTransaction
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.usecase.CompleteScheduledTransaction
 import com.ahmetkaragunlu.financeai.feature.transaction.data.mapper.toEntity

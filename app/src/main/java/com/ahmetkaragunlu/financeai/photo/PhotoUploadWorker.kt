@@ -11,7 +11,7 @@ import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.ahmetkaragunlu.financeai.core.database.FinanceDatabase
-import com.ahmetkaragunlu.financeai.core.media.PhotoLocalStore
+import com.ahmetkaragunlu.financeai.core.media.local.PhotoLocalStore
 import com.ahmetkaragunlu.financeai.core.session.SessionCoordinator
 import com.ahmetkaragunlu.financeai.core.sync.SyncScheduler
 import com.google.firebase.firestore.FirebaseFirestore
