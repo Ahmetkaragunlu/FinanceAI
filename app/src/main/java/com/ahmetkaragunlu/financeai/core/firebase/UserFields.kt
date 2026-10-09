@@ -2,6 +2,7 @@ package com.ahmetkaragunlu.financeai.core.firebase
 
 /** User profile fields read by auth, session and token registration. */
 object UserFields {
+    const val UID = "uid"
     const val EMAIL = "email"
     const val FIRST_NAME = "firstName"
     const val LAST_NAME = "lastName"

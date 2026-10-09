@@ -7,6 +7,8 @@ sealed class AuthException(cause: Throwable? = null) : Exception(cause) {
 
     class VerificationEmailFailed(cause: Throwable? = null) : AuthException(cause)
 
+    class RegistrationIncomplete(cause: Throwable? = null) : AuthException(cause)
+
     class InvalidCredentials(cause: Throwable? = null) : AuthException(cause)
 
     class MissingGoogleEmail : AuthException()

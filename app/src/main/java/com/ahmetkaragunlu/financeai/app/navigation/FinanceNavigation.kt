@@ -1,10 +1,12 @@
 package com.ahmetkaragunlu.financeai.app.navigation
 
+import android.widget.Toast
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -70,6 +72,15 @@ fun FinanceNavigation(
             composable<MainDestination> {
                 val sessionViewModel: SessionViewModel = hiltViewModel()
                 val lifecycle = LocalLifecycleOwner.current.lifecycle
+                val context = LocalContext.current
+                LaunchedEffect(sessionViewModel.failureMessageRes, lifecycle) {
+                    sessionViewModel.failureMessageRes?.let { message ->
+                        lifecycle.withStateAtLeast(Lifecycle.State.STARTED) {
+                            Toast.makeText(context, context.getString(message), Toast.LENGTH_SHORT).show()
+                            sessionViewModel.consumeFailure()
+                        }
+                    }
+                }
                 LaunchedEffect(sessionViewModel.signOutComplete, lifecycle) {
                     if (sessionViewModel.signOutComplete) {
                         lifecycle.withStateAtLeast(Lifecycle.State.STARTED) {

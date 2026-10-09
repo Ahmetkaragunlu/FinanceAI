@@ -21,6 +21,7 @@
     <string name="reset_password">Şifreyi Sıfırla</string>
     <string name="this_email_is_already_exists">Bu e-posta zaten kayıtlı</string>
     <string name="email_verification_could_not_be_sent">E-posta doğrulaması gönderilemedi</string>
+    <string name="registration_incomplete_retry">Hesap oluşturuldu ancak kayıt tamamlanamadı. Aynı bilgilerle yeniden deneyin.</string>
     <string name="your_password_has_been_changed_successfully">Şifreniz başarıyla değiştirildi</string>
     <string name="have_an_account_sign_up">Hesabınız yok mu? Kayıt olun</string>
     <string name="fill_all_fields_correctly">Lütfen tüm alanları doğru doldurun</string>

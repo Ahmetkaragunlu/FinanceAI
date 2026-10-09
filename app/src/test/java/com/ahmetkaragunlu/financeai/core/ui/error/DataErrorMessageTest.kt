@@ -30,6 +30,9 @@ class DataErrorMessageTest {
             dataErrorMessageRes(DataAccessException.AccessDenied(diagnostic)),
         )
         assertNull(dataErrorMessageRes(diagnostic))
+        assertEquals(R.string.error_rate_limited, dataErrorMessageRes(DataAccessException.RateLimited(diagnostic)))
+        assertEquals(R.string.error_invalid_remote_data, dataErrorMessageRes(DataAccessException.InvalidRemoteData(diagnostic)))
+        assertEquals(R.string.error_stale_record, dataErrorMessageRes(DataAccessException.StaleRecord()))
     }
 
     @Test

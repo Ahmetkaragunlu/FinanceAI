@@ -12,6 +12,7 @@ fun authErrorMessageRes(error: Throwable): Int =
         is AuthException.InvalidCredentials -> R.string.invalid_email_or_password
         is AuthException.UidNotFound -> R.string.user_not_found
         is AuthException.VerificationEmailFailed -> R.string.email_verification_could_not_be_sent
+        is AuthException.RegistrationIncomplete -> R.string.registration_incomplete_retry
         is AuthException.ExpiredResetCode -> R.string.password_reset_link_expired
         is AuthException.InvalidResetCode -> R.string.password_reset_link_invalid
         else -> dataErrorMessageRes(error) ?: R.string.something_went_wrong

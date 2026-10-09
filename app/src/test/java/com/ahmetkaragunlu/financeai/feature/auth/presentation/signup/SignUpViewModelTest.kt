@@ -2,6 +2,7 @@ package com.ahmetkaragunlu.financeai.feature.auth.presentation.signup
 
 import com.ahmetkaragunlu.financeai.core.coroutines.testing.MainDispatcherRule
 import com.ahmetkaragunlu.financeai.feature.auth.domain.error.AuthException
+import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.feature.auth.presentation.AuthState
 import com.ahmetkaragunlu.financeai.feature.auth.testing.FakeAuthRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -18,6 +19,27 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class SignUpViewModelTest {
     @get:Rule val mainDispatcher = MainDispatcherRule()
+
+    @Test
+    fun `incomplete registration shows the retry explanation and keeps the original form`() = runTest {
+        val repository = FakeAuthRepository().apply { registrationFailure = AuthException.RegistrationIncomplete() }
+        val viewModel = SignUpViewModel(repository)
+        viewModel.updateEmail("user@example.com")
+        viewModel.updatePassword("password")
+        viewModel.updateFirstName("First")
+        viewModel.updateLastName("Last")
+        assertTrue(viewModel.submitRegistration())
+        advanceUntilIdle()
+        assertEquals(AuthState.FAILURE, viewModel.authState.value)
+        assertEquals(R.string.registration_incomplete_retry, viewModel.failureMessageRes.value)
+        viewModel.resetAuthState()
+        repository.registrationFailure = null
+        assertTrue(viewModel.submitRegistration())
+        advanceUntilIdle()
+        assertEquals(2, repository.registrationCalls)
+        assertEquals(FakeAuthRepository.Registration("user@example.com", "password", "First", "Last"), repository.registration)
+        assertEquals(AuthState.VERIFICATION_EMAIL_SENT, viewModel.authState.value)
+    }
 
     @Test
     fun `repeated submission is ignored while original form snapshot is registering`() = runTest {

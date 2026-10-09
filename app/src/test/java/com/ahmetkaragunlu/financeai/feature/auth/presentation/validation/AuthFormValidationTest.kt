@@ -6,6 +6,18 @@ import org.junit.Test
 
 class AuthFormValidationTest {
     @Test
+    fun `email acceptance preserves existing characters lengths and no trimming`() {
+        listOf("a@b.co", "User.Name+tag_1%2@example-domain.com", "a".repeat(256) + "@b.co",
+            "a@" + "b".repeat(65) + ".co", "a@b." + "c".repeat(26)).forEach {
+            assertTrue(it, AuthFormValidation.isEmailValid(it))
+        }
+        listOf("", "user", "a@b", " a@b.co", "a@b.co ", "a b@c.co", "ü@b.co",
+            "a@-b.co", "a@b..co", "a".repeat(257) + "@b.co", "a@" + "b".repeat(66) + ".co",
+            "a@b." + "c".repeat(27)).forEach {
+            assertFalse(it, AuthFormValidation.isEmailValid(it))
+        }
+    }
+    @Test
     fun `password threshold and blank rejection remain shared across registration and reset`() {
         assertFalse(AuthFormValidation.isPasswordValid("12345"))
         assertFalse(AuthFormValidation.isPasswordValid("      "))

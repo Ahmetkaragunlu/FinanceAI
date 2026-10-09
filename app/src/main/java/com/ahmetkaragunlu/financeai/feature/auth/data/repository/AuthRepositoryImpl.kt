@@ -1,6 +1,7 @@
 package com.ahmetkaragunlu.financeai.feature.auth.data.repository
 
 import android.util.Log
+import com.ahmetkaragunlu.financeai.core.error.DataAccessException
 import com.ahmetkaragunlu.financeai.core.firebase.FirestoreCollections
 import com.ahmetkaragunlu.financeai.core.firebase.UserFields
 import com.ahmetkaragunlu.financeai.core.firebase.error.toDataAccessFailure
@@ -13,17 +14,19 @@ import com.ahmetkaragunlu.financeai.feature.auth.data.remote.User
 import com.ahmetkaragunlu.financeai.feature.auth.domain.error.AuthException
 import com.ahmetkaragunlu.financeai.feature.auth.domain.repository.AuthRepository
 import com.google.android.gms.tasks.Task
-import com.google.firebase.auth.AuthResult
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthInvalidUserException
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
+import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.tasks.await
@@ -41,17 +44,23 @@ constructor(
     private val credentialSessionCleaner: CredentialSessionCleaner,
 ) : AuthRepository {
     private val transitions = Mutex()
+    private var pendingRegistration: RegistrationAttempt? = null
+
+    // Retry authority comes from this successful SDK creation, never from an email collision.
+    // Kept only for this repository lifetime; no password or SDK token is retained.
+    private class RegistrationAttempt(val submittedEmail: String, val profile: User) {
+        var verificationSent = false
+        var profileSaved = false
+    }
 
     // Firebase Tasks cannot be undone by cancelling the caller. Keep transitions serialized until
     // SDK completion.
     private suspend fun <T> completeAuth(task: Task<T>): T =
         withContext(NonCancellable) { task.await() }
 
-    private suspend fun signUp(email: String, password: String): AuthResult =
-        completeAuth(auth.createUserWithEmailAndPassword(email, password))
-
     override suspend fun signIn(email: String, password: String): Unit =
         transitions.withLock {
+            pendingRegistration = null
             try {
                 completeAuth(auth.signInWithEmailAndPassword(email, password))
                 coordinator.prepare()
@@ -71,18 +80,34 @@ constructor(
 
     override suspend fun refreshEmailVerification(): Boolean =
         transitions.withLock {
-            auth.currentUser?.reload()?.await()
-            val verified = auth.currentUser?.isEmailVerified == true
-            if (verified) coordinator.prepare()
-            verified
+            try {
+                auth.currentUser?.reload()?.await()
+                val verified = auth.currentUser?.isEmailVerified == true
+                if (verified) coordinator.prepare()
+                verified
+            } catch (e: Exception) {
+                throw e.toDataAccessFailure()
+            }
         }
 
     private suspend fun saveUserFirestore(user: User) {
-        firestore
-            .collection(FirestoreCollections.USERS)
-            .document(user.uid)
-            .set(user, SetOptions.merge())
-            .await()
+        val ref = firestore.collection(FirestoreCollections.USERS).document(user.uid)
+        firestore.runTransaction { transaction ->
+            val existing = transaction.get(ref)
+            if (existing.contains(UserFields.UID) && existing.getString(UserFields.UID) != user.uid) {
+                throw DataAccessException.InvalidRemoteData()
+            }
+            val fields = mapOf(
+                UserFields.UID to user.uid,
+                UserFields.EMAIL to user.email,
+                UserFields.FIRST_NAME to user.firstName,
+                UserFields.LAST_NAME to user.lastName,
+                UserFields.FCM_TOKENS to emptyList<String>(),
+            ).filterKeys { !existing.contains(it) }
+            // A previous/ambiguous commit or another client may already have populated the profile.
+            // Fill missing identity fields only; never replace tokens, preferences or existing names.
+            if (fields.isNotEmpty()) transaction.set(ref, fields, SetOptions.merge())
+        }.await()
     }
 
     override suspend fun registerUser(
@@ -93,20 +118,41 @@ constructor(
     ): Unit =
         transitions.withLock {
             try {
-                val authResult = signUp(email = email, password = password)
-                sendEmailVerification()
-                val uid = authResult.user?.uid ?: throw AuthException.UidNotFound()
-                val user =
-                    User(
-                        email = authResult.user?.email ?: email,
-                        firstName = firstName,
-                        lastName = lastName,
-                        uid = uid,
-                        fcmTokens = emptyList(),
-                    )
-                saveUserFirestore(user)
+                val previous = pendingRegistration?.takeIf {
+                    it.submittedEmail == email && auth.currentUser?.uid == it.profile.uid
+                }
+                if (previous != null &&
+                    (previous.profile.firstName != firstName || previous.profile.lastName != lastName)) {
+                    // Retain the original attempt instead of creating another account or silently
+                    // applying edited form fields to an already-created profile.
+                    throw AuthException.RegistrationIncomplete()
+                }
+                val attempt = previous ?: withContext(NonCancellable) {
+                    pendingRegistration = null
+                    val created = auth.createUserWithEmailAndPassword(email, password).await()
+                    val user = created.user ?: throw AuthException.UidNotFound()
+                    RegistrationAttempt(email, User(firstName, lastName, user.email ?: email, user.uid))
+                        .also { pendingRegistration = it }
+                }
+                currentCoroutineContext().ensureActive()
+                val user = auth.currentUser?.takeIf { it.uid == attempt.profile.uid }
+                    ?: throw AuthException.InvalidCredentials()
+                if (!attempt.verificationSent) {
+                    withContext(NonCancellable) {
+                        sendEmailVerification(user)
+                        attempt.verificationSent = true
+                    }
+                }
+                currentCoroutineContext().ensureActive()
+                if (auth.currentUser?.uid != attempt.profile.uid) throw AuthException.InvalidCredentials()
+                if (!attempt.profileSaved) {
+                    saveUserFirestore(attempt.profile)
+                    attempt.profileSaved = true
+                }
+                if (auth.currentUser?.uid != attempt.profile.uid) throw AuthException.InvalidCredentials()
                 coordinator.prepare()
                 queueToken()
+                pendingRegistration = null
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
                 when (e) {
@@ -114,14 +160,23 @@ constructor(
                         throw AuthException.EmailExists(e)
                     }
 
-                    else -> throw e.toDataAccessFailure()
+                    else -> {
+                        val failure = e.toDataAccessFailure()
+                        val pending = pendingRegistration
+                        if (pending != null && pending.profile.uid == auth.currentUser?.uid &&
+                            failure !is AuthException &&
+                            failure !is DataAccessException.InvalidRemoteData) {
+                            throw AuthException.RegistrationIncomplete(failure)
+                        }
+                        throw failure
+                    }
                 }
             }
         }
 
-    private suspend fun sendEmailVerification() {
+    private suspend fun sendEmailVerification(user: FirebaseUser) {
         try {
-            auth.currentUser?.sendEmailVerification()?.await()
+            user.sendEmailVerification().await()
         } catch (e: Exception) {
             if (e is CancellationException) throw e
             throw AuthException.VerificationEmailFailed(e)
@@ -153,6 +208,7 @@ constructor(
 
     override suspend fun signInWithGoogle(idToken: String?): Unit =
         transitions.withLock {
+            pendingRegistration = null
             if (idToken.isNullOrBlank()) throw AuthException.InvalidCredentials()
             try {
                 val credential = GoogleAuthProvider.getCredential(idToken, null)
@@ -188,6 +244,7 @@ constructor(
 
     override suspend fun signOut(): Unit =
         transitions.withLock {
+            pendingRegistration = null
             // Bound remote token cleanup; a network outage must not prevent local sign-out.
             try {
                 withTimeoutOrNull(2_000) { fcmTokenManager.removeFCMToken() }
@@ -199,7 +256,21 @@ constructor(
                     "Token revocation remains pending (${e.javaClass.simpleName})",
                 )
             }
-            coordinator.signOut()
+            try {
+                coordinator.signOut()
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                // Cleanup may have detached the local account before failing, while Auth is still
+                // signed in. Re-prepare that actual SDK state so the existing UI can safely retry.
+                // Do not invent success, switch users or discard pending financial records.
+                try {
+                    coordinator.prepare()
+                } catch (recovery: Exception) {
+                    if (recovery is CancellationException) throw recovery
+                    Log.w("AuthRepository", "Account recovery deferred (${recovery.javaClass.simpleName})")
+                }
+                throw e.toDataAccessFailure()
+            }
             try {
                 withTimeoutOrNull(2_000) { credentialSessionCleaner.clear() }
             } catch (e: CancellationException) {
