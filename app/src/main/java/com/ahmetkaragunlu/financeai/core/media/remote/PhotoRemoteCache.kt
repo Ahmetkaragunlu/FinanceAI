@@ -2,9 +2,9 @@ package com.ahmetkaragunlu.financeai.core.media.remote
 
 import android.content.Context
 import com.ahmetkaragunlu.financeai.core.coroutines.di.IoDispatcher
+import com.ahmetkaragunlu.financeai.core.media.local.PhotoFiles
 import com.ahmetkaragunlu.financeai.core.session.AccountSession
 import com.ahmetkaragunlu.financeai.core.session.ActiveAccount
-import com.ahmetkaragunlu.financeai.core.media.local.PhotoFiles
 import com.google.firebase.storage.FirebaseStorage
 import dagger.Lazy
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -31,11 +31,11 @@ class PhotoRemoteCache @Inject constructor(
         if (photo == previous && existingPath != null && File(existingPath).isFile) return@withContext existingPath
         val hash = MessageDigest.getInstance("SHA-256").digest("$url|${photo.version}".toByteArray()).take(12).joinToString("") { "%02x".format(it) }
         val folder = File(context.filesDir, "${PhotoFiles.DIRECTORY}/${account.ownerId}")
-        val file = File(folder, "SYNC_${remoteId.hashCode()}_$hash.jpg")
+        val file = File(folder, "${PhotoFiles.CACHE_PREFIX}${remoteId.hashCode()}_$hash.jpg")
         try {
             if (!file.isFile) {
                 check(folder.isDirectory || folder.mkdirs())
-                val temporary = File.createTempFile("SYNC_", ".part", folder)
+                val temporary = File.createTempFile(PhotoFiles.CACHE_PREFIX, ".part", folder)
                 try {
                     val download = storage.get().getReferenceFromUrl(url).getFile(temporary)
                     try { download.await() }
@@ -49,6 +49,6 @@ class PhotoRemoteCache @Inject constructor(
     }
 
     companion object {
-        fun isCachedPath(path: String): Boolean = File(path).name.startsWith("SYNC_")
+        fun isCachedPath(path: String): Boolean = File(path).name.startsWith(PhotoFiles.CACHE_PREFIX)
     }
 }

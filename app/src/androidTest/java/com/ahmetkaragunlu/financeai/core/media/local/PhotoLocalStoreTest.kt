@@ -24,6 +24,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -111,5 +112,30 @@ class PhotoLocalStoreTest {
         database.scheduledTransactionDao().deleteScheduledTransaction(plan.copy(id = planId))
         store.cleanUnreferenced(owner)
         assertFalse(file.exists())
+    }
+
+    @Test fun cleanupKeepsExactDayBoundaryCameraPreparationAndUnknownShapes(): Unit = runBlocking {
+        val cutoff = clock.millis() - 86_400_000L
+        val oldPermanent = File(folder, "IMG_old.png").apply { writeText("old"); check(setLastModified(cutoff - 1)) }
+        val oldCache = File(folder, "SYNC_old.jpg").apply { writeText("old"); check(setLastModified(cutoff - 1)) }
+        val retained = listOf("IMG_boundary.jpg", "TEMP_camera.jpg", "PREP_decode.part", "unknown.jpg").map { name ->
+            File(folder, name).apply { writeText("keep"); check(setLastModified(if (name == "IMG_boundary.jpg") cutoff else cutoff - 1)) }
+        }
+        store.cleanUnreferenced(owner)
+        assertFalse(oldPermanent.exists())
+        assertFalse(oldCache.exists())
+        retained.forEach { assertTrue(it.name, it.isFile) }
+        assertThrows(IllegalArgumentException::class.java) { runBlocking { store.cleanUnreferenced("../other") } }
+    }
+
+    @Test fun canonicalAndroidAliasesCannotBypassAPendingReference(): Unit = runBlocking {
+        val file = File(folder, "IMG_alias.jpg").apply { writeText("keep") }
+        val alias = "/data/data/${context.packageName}/files/${PhotoFiles.DIRECTORY}/$owner/${file.name}"
+        assertEquals(file.canonicalFile, File(alias).canonicalFile)
+        database.photoOperationDao().insert(PhotoOperation(owner, "transactions", "alias", alias, "v1"))
+        assertFalse(store.delete(file.canonicalPath))
+        assertTrue(file.isFile)
+        database.photoOperationDao().acknowledge(owner, "transactions", "alias", alias)
+        assertTrue(store.delete(file.canonicalPath))
     }
 }

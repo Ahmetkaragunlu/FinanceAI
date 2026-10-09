@@ -25,12 +25,7 @@ class FinanceBackupAgent : BackupAgentHelper() {
                         ownerDirectory
                             .listFiles()
                             ?.filter { file ->
-                                file.isFile &&
-                                    file.name.endsWith(".jpg") &&
-                                    (file.name.startsWith("IMG_") ||
-                                        file.name.startsWith("SYNC_")) &&
-                                    file.canonicalFile.parentFile == ownerDirectory.canonicalFile &&
-                                    ownerDirectory.canonicalFile.parentFile == photos.canonicalFile
+                                isBackupPhoto(file, ownerDirectory, photos)
                             }
                             ?.forEach { fullBackupFile(it, data) }
                     }
@@ -65,3 +60,9 @@ class FinanceBackupAgent : BackupAgentHelper() {
         const val DATABASE_NAME = "finance_db"
     }
 }
+
+/** Backup has a JPEG/two-level boundary in addition to the shared permanent/cache file shapes. */
+internal fun isBackupPhoto(file: File, ownerDirectory: File, photos: File): Boolean =
+    file.isFile && file.name.endsWith(".jpg") && PhotoFiles.isPermanentOrCache(file.name) &&
+        file.canonicalFile.parentFile == ownerDirectory.canonicalFile &&
+        ownerDirectory.canonicalFile.parentFile == photos.canonicalFile

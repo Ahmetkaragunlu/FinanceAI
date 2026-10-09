@@ -53,7 +53,7 @@ class RoomScheduledCompletion @Inject constructor(
             val payload = transaction.transactionToFirebaseMap().toMutableMap()
             val photoState = database.syncRecordDao().get(account.ownerId, FirestoreCollections.SCHEDULED_TRANSACTIONS, scheduled.firestoreId)
             val photoMetadata = (photoState?.pendingPayload ?: photoState?.basePayload)?.let(SyncPayload::decode)
-                .orEmpty().filterKeys { it in setOf(PhotoFields.STORAGE_URL, PhotoFields.REMOVED, PhotoFields.VERSION, PhotoFields.INTENT) }
+                .orEmpty().filterKeys { it in PhotoFields.PERSISTED_METADATA }
             payload.putAll(photoMetadata)
             if (current.photoUri?.startsWith("https://") == true) payload[PhotoFields.STORAGE_URL] = current.photoUri
             pending.record(account.ownerId, FirestoreCollections.TRANSACTIONS, remoteId, payload)

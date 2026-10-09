@@ -1,5 +1,6 @@
 package com.ahmetkaragunlu.financeai.feature.schedule.data.sync
 
+import com.ahmetkaragunlu.financeai.core.media.PhotoFields
 import com.ahmetkaragunlu.financeai.core.sync.contract.SyncPayload
 import com.ahmetkaragunlu.financeai.core.sync.reconciliation.Reconciliation
 import org.junit.Assert.assertEquals
@@ -35,5 +36,23 @@ class CompletedPlanEditsTest {
         val values = SyncPayload.decode((result.decision as Reconciliation.Write).payload!!)
         assertEquals("own edit", values["note"])
         assertEquals(7500L, values["amountMinor"])
+    }
+
+    @Test fun onlyPersistedPhotoMetadataTransfersAndCompletionDateRemainsCanonical() {
+        val before = SyncPayload.decode(plan()) + mapOf("photoStorageUrl" to "https://old",
+            "photoRemoved" to false, "photoVersion" to "old", "photoIntent" to "old")
+        val changes = mapOf("photoStorageUrl" to "https://new", "photoRemoved" to true,
+            "photoVersion" to "new", "photoIntent" to "new")
+        val wanted = before + changes + mapOf("localPhotoUri" to "/private.jpg", "scheduledDate" to 5000L,
+            "completedFrom" to "injected")
+        val canonical = SyncPayload.decode(financial()) + before.filterKeys { it in changes }
+        val result = projectCompletedPlanEdit(SyncPayload.encode(before), SyncPayload.encode(wanted), SyncPayload.encode(canonical))
+        val projected = SyncPayload.decode(result.wanted)
+        changes.forEach { (key, value) -> assertEquals(value, projected[key]) }
+        assertEquals(9999L, projected["date"])
+        assertFalse(projected.containsKey("localPhotoUri"))
+        assertFalse(projected.containsKey("completedFrom"))
+        assertFalse(projected.containsKey("scheduledDate"))
+        assertEquals(listOf("photoStorageUrl", "photoRemoved", "photoVersion", "photoIntent"), PhotoFields.PERSISTED_METADATA.toList())
     }
 }

@@ -5,15 +5,15 @@ import android.graphics.Bitmap
 import android.graphics.ImageDecoder
 import android.net.Uri
 import android.util.Log
+import androidx.room.withTransaction
 import com.ahmetkaragunlu.financeai.core.coroutines.di.IoDispatcher
 import com.ahmetkaragunlu.financeai.core.database.FinanceDatabase
 import com.ahmetkaragunlu.financeai.core.media.PhotoDimensions
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
-import java.util.UUID
 import java.time.Clock
 import java.time.Duration
-import androidx.room.withTransaction
+import java.util.UUID
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
@@ -29,15 +29,15 @@ class PhotoLocalStore @Inject constructor(
 ) {
     /** ImageDecoder performs orientation-aware bounded decoding on every supported device (minSdk 30). */
     suspend fun save(uri: Uri, cameraPath: String?, ownerId: String): String? = withContext(io) {
-        require(ownerId.isNotBlank() && '/' !in ownerId && ownerId != "." && ownerId != "..")
+        PhotoFiles.requireOwnerId(ownerId)
         val folder = File(context.filesDir, "${PhotoFiles.DIRECTORY}/$ownerId").canonicalFile
         check(folder.isDirectory || folder.mkdirs())
-        val target = File(folder, "IMG_${UUID.randomUUID()}.jpg")
+        val target = File(folder, "${PhotoFiles.PERMANENT_PREFIX}${UUID.randomUUID()}.jpg")
         var part: File? = null
         var bitmap: Bitmap? = null
         try {
             val camera = cameraPath?.let { File(it).canonicalFile.also { file ->
-                require(file.parentFile == folder && file.name.startsWith("TEMP_") && file.isFile)
+                require(file.parentFile == folder && file.name.startsWith(PhotoFiles.CAMERA_PREFIX) && file.isFile)
             } }
             val source = if (camera != null) ImageDecoder.createSource(camera)
                 else ImageDecoder.createSource(context.contentResolver, uri)
@@ -49,7 +49,7 @@ class PhotoLocalStore @Inject constructor(
                 decoder.setOnPartialImageListener { false }
             }
             currentCoroutineContext().ensureActive()
-            part = File.createTempFile("PREP_", ".part", folder)
+            part = File.createTempFile(PhotoFiles.PREPARATION_PREFIX, ".part", folder)
             part.outputStream().use { output ->
                 check(checkNotNull(bitmap).compress(Bitmap.CompressFormat.JPEG, PhotoDimensions.JPEG_QUALITY, output))
                 output.fd.sync()
@@ -80,10 +80,10 @@ class PhotoLocalStore @Inject constructor(
     }
     /** Sweep only known permanent/cache shapes, never unknown/active camera drafts. */
     suspend fun cleanUnreferenced(ownerId: String) = withContext(io) {
-        require(ownerId.isNotBlank() && '/' !in ownerId && ownerId != "." && ownerId != "..")
+        PhotoFiles.requireOwnerId(ownerId)
         val folder = File(context.filesDir, "${PhotoFiles.DIRECTORY}/$ownerId")
         val cutoff = clock.millis() - Duration.ofDays(1).toMillis()
-        folder.listFiles()?.filter { it.isFile && it.lastModified() < cutoff && (it.name.startsWith("IMG_") || it.name.startsWith("SYNC_")) }
+        folder.listFiles()?.filter { it.isFile && it.lastModified() < cutoff && PhotoFiles.isPermanentOrCache(it.name) }
             ?.forEach { delete(it.absolutePath) }
     }
     private fun ownedFile(path: String?): File? {

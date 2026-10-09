@@ -1,12 +1,12 @@
 package com.ahmetkaragunlu.financeai.feature.schedule.data.sync
 
-import com.ahmetkaragunlu.financeai.core.sync.contract.FinancialFields
 import com.ahmetkaragunlu.financeai.core.media.PhotoFields
-import com.ahmetkaragunlu.financeai.feature.transaction.data.remote.TransactionFields
-import com.ahmetkaragunlu.financeai.feature.schedule.data.remote.contract.ScheduleFields
-import com.ahmetkaragunlu.financeai.core.sync.reconciliation.Reconciliation
+import com.ahmetkaragunlu.financeai.core.sync.contract.FinancialFields
 import com.ahmetkaragunlu.financeai.core.sync.contract.SyncPayload
+import com.ahmetkaragunlu.financeai.core.sync.reconciliation.Reconciliation
 import com.ahmetkaragunlu.financeai.core.sync.reconciliation.reconcile
+import com.ahmetkaragunlu.financeai.feature.schedule.data.remote.contract.ScheduleFields
+import com.ahmetkaragunlu.financeai.feature.transaction.data.remote.TransactionFields
 
 internal data class CompletedEdit(val base: String, val wanted: String, val decision: Reconciliation)
 
@@ -19,7 +19,7 @@ internal fun projectCompletedPlanEdit(planBase: String?, planWanted: String, rem
     val base = financialBase?.let(SyncPayload::decode)?.toMutableMap() ?: remote.toMutableMap()
     val wanted = financialWanted?.let(SyncPayload::decode)?.toMutableMap() ?: remote.toMutableMap()
     val fields = listOf(FinancialFields.AMOUNT_MINOR, FinancialFields.LEGACY_AMOUNT, FinancialFields.CURRENCY_CODE, ScheduleFields.TYPE, FinancialFields.CATEGORY, FinancialFields.NOTE,
-        FinancialFields.LOCATION_FULL, FinancialFields.LOCATION_SHORT, FinancialFields.LATITUDE, FinancialFields.LONGITUDE, PhotoFields.STORAGE_URL, PhotoFields.REMOVED, PhotoFields.VERSION, PhotoFields.INTENT)
+        FinancialFields.LOCATION_FULL, FinancialFields.LOCATION_SHORT, FinancialFields.LATITUDE, FinancialFields.LONGITUDE) + PhotoFields.PERSISTED_METADATA
     for (source in fields) {
         val old = if (source == FinancialFields.NOTE) oldPlan[source] ?: "" else oldPlan[source]
         val new = if (source == FinancialFields.NOTE) newPlan[source] ?: "" else newPlan[source]

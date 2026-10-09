@@ -5,7 +5,7 @@ import com.ahmetkaragunlu.financeai.core.error.DataAccessException
 import com.ahmetkaragunlu.financeai.core.firebase.FirestoreCollections
 import com.ahmetkaragunlu.financeai.core.media.PhotoFields
 import com.ahmetkaragunlu.financeai.core.media.remote.PhotoRemoteCache
-import com.ahmetkaragunlu.financeai.core.media.remote.RemotePhoto
+import com.ahmetkaragunlu.financeai.core.media.remote.PhotoRemotePolicy
 import com.ahmetkaragunlu.financeai.core.money.MoneyAmounts
 import com.ahmetkaragunlu.financeai.core.session.ActiveAccount
 import com.ahmetkaragunlu.financeai.core.sync.contract.FinancialFields
@@ -42,14 +42,13 @@ class ScheduledTransactionRemoteStore @Inject constructor(private val database: 
         )
     }
     override fun normalize(data: Map<String, Any?>, account: ActiveAccount): Map<String, Any?> =
-        model(account, "", data).toFirebaseMap() + mapOf(PhotoFields.STORAGE_URL to data[PhotoFields.STORAGE_URL], PhotoFields.REMOVED to (data[PhotoFields.REMOVED] == true), PhotoFields.VERSION to data[PhotoFields.VERSION], PhotoFields.INTENT to data[PhotoFields.INTENT])
+        model(account, "", data).toFirebaseMap() + PhotoRemotePolicy.normalize(data)
 
     override suspend fun prepare(account: ActiveAccount, remoteId: String, data: Map<String, Any?>): Map<String, Any?> {
         if (data[PhotoFields.REMOVED] == true) return data
         val existing = database.scheduledTransactionDao().getScheduledTransactionByFirestoreId(remoteId)
         val baseline = database.syncRecordDao().get(account.ownerId, collection, remoteId)?.basePayload?.let(SyncPayload::decode).orEmpty()
-        val localPhoto = photos.prepare(account, remoteId, RemotePhoto(data[PhotoFields.STORAGE_URL] as? String, data[PhotoFields.VERSION] as? String), existing?.photoUri, RemotePhoto(baseline[PhotoFields.STORAGE_URL] as? String, baseline[PhotoFields.VERSION] as? String))
-        return data + mapOf(PhotoFields.LOCAL_URI to localPhoto)
+        return PhotoRemotePolicy.prepare(photos, account, remoteId, data, existing?.photoUri, baseline)
     }
 
     override suspend fun apply(account: ActiveAccount, remoteId: String, data: Map<String, Any?>?) {
@@ -62,9 +61,7 @@ class ScheduledTransactionRemoteStore @Inject constructor(private val database: 
             return
         }
         val previousUrl = database.syncRecordDao().get(account.ownerId, collection, remoteId)?.basePayload?.let(SyncPayload::decode)?.get(PhotoFields.STORAGE_URL)
-        val incomingUrl = data[PhotoFields.STORAGE_URL] as? String
-        val localPhoto = existing?.photoUri?.takeUnless { it.startsWith("http://") || it.startsWith("https://") }
-        val photo = if (data[PhotoFields.REMOVED] == true) null else data[PhotoFields.LOCAL_URI] as? String ?: if (localPhoto != null && (incomingUrl == null || incomingUrl == previousUrl)) localPhoto else incomingUrl ?: existing?.photoUri
+        val photo = PhotoRemotePolicy.select(data, existing?.photoUri, previousUrl)
         val next = model(account, remoteId, data).toEntity().copy(id = existing?.id ?: 0L, photoUri = photo, notificationSent = existing?.notificationSent ?: false, expirationNotificationSent = existing?.expirationNotificationSent ?: false)
         dao.insertScheduledTransaction(next)
         if (existing == null || existing.scheduledDate != next.scheduledDate) reminders.wake(account.ownerId, remoteId)

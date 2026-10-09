@@ -113,6 +113,29 @@ class FinanceBackupSnapshotTest {
             it.getInt(0)
         }
 
+    @Test fun restoreDoesNotRebaseTraversalEscapesOrUnrelatedPrivatePaths() {
+        withSnapshot { source, destination ->
+            val paths = listOf("/old/files/transaction_photos/../outside/IMG_escape.jpg",
+                "/old/files/transaction_photos/account/../../outside/IMG_escape.jpg",
+                "/old/files/unrelated/IMG_receipt.jpg", "https://example.test/transaction_photos/receipt.jpg",
+                "/old/files/transaction_photos/account/IMG_owned.jpg")
+            SQLiteDatabase.openOrCreateDatabase(source, null).use { database ->
+                database.execSQL("CREATE TABLE transaction_table (photoUri TEXT)")
+                paths.forEach { database.execSQL("INSERT INTO transaction_table VALUES (?)", arrayOf(it)) }
+            }
+            FinanceBackupSnapshot.create(source, destination)
+            val newFiles = File(destination.parentFile, "new-files")
+            FinanceBackupSnapshot.rebasePhotos(destination, newFiles)
+            SQLiteDatabase.openDatabase(destination.path, null, SQLiteDatabase.OPEN_READONLY).use { database ->
+                database.rawQuery("SELECT photoUri FROM transaction_table ORDER BY rowid", null).use { cursor ->
+                    paths.take(4).forEach { expected -> cursor.moveToNext(); assertEquals(expected, cursor.getString(0)) }
+                    cursor.moveToNext()
+                    assertEquals(File(newFiles, "transaction_photos/account/IMG_owned.jpg").canonicalPath, cursor.getString(0))
+                }
+            }
+        }
+    }
+
     private inline fun withSnapshot(test: (File, File) -> Unit) {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val directory =
