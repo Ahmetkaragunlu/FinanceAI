@@ -76,9 +76,9 @@ import com.ahmetkaragunlu.financeai.feature.location.domain.model.LocationData
 import com.ahmetkaragunlu.financeai.feature.location.presentation.MapLocationPickerRoute
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
-import com.ahmetkaragunlu.financeai.feature.transaction.format.toResId
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.TransactionActionResult
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.TransactionResultEffect
+import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toLabelResId
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -406,10 +406,10 @@ private fun TransactionInputFields(
         onExpandedChange = { isOpen -> isCategoryDropdownExpanded = isOpen },
         options = CategoryType.entries.filter { it.type == type },
         onOptionSelected = onCategoryChanged,
-        itemLabel = { category -> stringResource(category.toResId()) },
+        itemLabel = { category -> stringResource(category.toLabelResId()) },
         trigger = {
             OutlinedTextField(
-                value = category?.let { stringResource(it.toResId()) } ?: "",
+                value = category?.let { stringResource(it.toLabelResId()) } ?: "",
                 onValueChange = {},
                 readOnly = true,
                 placeholder = {

@@ -16,8 +16,8 @@ import com.ahmetkaragunlu.financeai.feature.schedule.data.mapper.toEntity
 import com.ahmetkaragunlu.financeai.feature.schedule.data.reminder.ReminderScheduler
 import com.ahmetkaragunlu.financeai.feature.schedule.data.remote.toFirebaseMap
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.model.ScheduledTransaction
+import com.ahmetkaragunlu.financeai.feature.schedule.domain.reminder.ReminderPresenter
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.repository.ScheduledTransactionRepository
-import com.ahmetkaragunlu.financeai.notification.presentation.ReminderPresenter
 import java.io.File
 import java.util.UUID
 import javax.inject.Inject

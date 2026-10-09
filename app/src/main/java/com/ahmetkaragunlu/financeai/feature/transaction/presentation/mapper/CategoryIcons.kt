@@ -1,9 +1,9 @@
 package com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper
-
-
+import androidx.annotation.DrawableRes
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 
+@DrawableRes
 fun CategoryType.toIconResId(): Int {
     return when (this) {
         CategoryType.FOOD -> R.drawable.food

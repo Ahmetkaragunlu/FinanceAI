@@ -4,8 +4,9 @@ import android.content.Context
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.ahmetkaragunlu.financeai.core.sync.SyncScheduler
+import com.ahmetkaragunlu.financeai.core.work.AccountWork
 import com.ahmetkaragunlu.financeai.fcm.FCMTokenManager
+import com.ahmetkaragunlu.financeai.feature.schedule.domain.usecase.RestoreScheduleState
 import com.google.firebase.auth.FirebaseAuth
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
@@ -14,15 +15,18 @@ import kotlinx.coroutines.CancellationException
 @HiltWorker
 class TokenRegistrationWorker @AssistedInject constructor(
     @Assisted context: Context, @Assisted parameters: WorkerParameters,
-    private val manager: FCMTokenManager, private val auth: FirebaseAuth
+    private val manager: FCMTokenManager, private val auth: FirebaseAuth,
+    private val restoreScheduleState: RestoreScheduleState
 ) : CoroutineWorker(context, parameters) {
     override suspend fun doWork(): Result = try {
-        val owner = inputData.getString(SyncScheduler.OWNER_ID) ?: auth.currentUser?.uid
+        val owner = inputData.getString(AccountWork.OWNER_ID) ?: auth.currentUser?.uid
         if (owner != null && auth.currentUser?.uid == owner) {
             inputData.getString(TOKEN)?.let { manager.suppliedToken(it) }
             if (inputData.getBoolean(FETCH_CURRENT, false)) manager.updateFCMToken()
             manager.flush(owner)
-            if (inputData.getBoolean(FETCH_CURRENT, false)) manager.restorePlans(owner)
+            if (inputData.getBoolean(FETCH_CURRENT, false)) {
+                manager.registeredDeviceToken(owner)?.let { restoreScheduleState(owner, it) }
+            }
         }
         Result.success()
     } catch (e: CancellationException) { throw e }

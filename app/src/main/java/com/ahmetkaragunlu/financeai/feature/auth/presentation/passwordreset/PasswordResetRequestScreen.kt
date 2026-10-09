@@ -45,10 +45,10 @@ import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.core.ui.component.EditAlertDialog
 import com.ahmetkaragunlu.financeai.core.ui.component.EditTextField
 import com.ahmetkaragunlu.financeai.core.ui.theme.FinanceColors
-import com.ahmetkaragunlu.financeai.feature.auth.presentation.component.AuthTextFieldStyles
 import com.ahmetkaragunlu.financeai.core.ui.theme.Spacing
 import com.ahmetkaragunlu.financeai.feature.auth.presentation.AuthState
 import com.ahmetkaragunlu.financeai.feature.auth.presentation.ResetRequestFormState
+import com.ahmetkaragunlu.financeai.feature.auth.presentation.component.AuthTextFieldStyles
 
 @Composable
 fun PasswordResetRequestRoute(
@@ -110,9 +110,9 @@ fun PasswordResetRequestRoute(
                 email = viewModel.inputEmail,
                 firstName = viewModel.inputFirstName,
                 lastName = viewModel.inputLastName,
-                emailError = viewModel.emailSupportingText(),
-                firstNameError = viewModel.firstNameSupportingText(),
-                lastNameError = viewModel.lastNameSupportingText(),
+                emailError = viewModel.shouldShowEmailError(),
+                firstNameError = viewModel.shouldShowFirstNameError(),
+                lastNameError = viewModel.shouldShowLastNameError(),
             ),
         onEmailChanged = viewModel::updateEmail,
         onFirstNameChanged = viewModel::updateFirstName,

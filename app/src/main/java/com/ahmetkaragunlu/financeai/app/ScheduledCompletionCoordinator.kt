@@ -6,9 +6,9 @@ import com.ahmetkaragunlu.financeai.core.session.AccountSession
 import com.ahmetkaragunlu.financeai.feature.schedule.data.RoomScheduledCompletion
 import com.ahmetkaragunlu.financeai.feature.schedule.data.reminder.ReminderScheduler
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.model.ScheduledTransaction
+import com.ahmetkaragunlu.financeai.feature.schedule.domain.reminder.ReminderPresenter
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.usecase.CompleteScheduledTransaction
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.Transaction
-import com.ahmetkaragunlu.financeai.notification.presentation.ReminderPresenter
 import javax.inject.Inject
 
 /** Screen and notification actions share local completion and the same disposable work handoff. */

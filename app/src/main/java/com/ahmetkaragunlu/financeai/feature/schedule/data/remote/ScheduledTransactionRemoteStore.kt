@@ -15,9 +15,9 @@ import com.ahmetkaragunlu.financeai.feature.schedule.data.mapper.toEntity
 import com.ahmetkaragunlu.financeai.feature.schedule.data.reminder.ReminderScheduler
 import com.ahmetkaragunlu.financeai.feature.schedule.data.remote.contract.ScheduleFields
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.model.ScheduledTransaction
+import com.ahmetkaragunlu.financeai.feature.schedule.domain.reminder.ReminderPresenter
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
-import com.ahmetkaragunlu.financeai.notification.presentation.ReminderPresenter
 import javax.inject.Inject
 
 class ScheduledTransactionRemoteStore @Inject constructor(private val database: FinanceDatabase, private val photos: PhotoRemoteCache,

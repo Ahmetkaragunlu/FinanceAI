@@ -4,7 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.core.ui.component.formatAsAccountCurrency
-import com.ahmetkaragunlu.financeai.feature.transaction.format.toResId
+import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toLabelResId
 
 data class AiSuggestionText(val message: String, val prompt: String)
 
@@ -46,7 +46,7 @@ fun AiSuggestionState.localizedText(): AiSuggestionText =
                 stringResource(R.string.home_ai_general_near_prompt, percentage),
             )
         is AiSuggestionState.CategoryExceeded -> {
-            val name = stringResource(category.toResId())
+            val name = stringResource(category.toLabelResId())
             AiSuggestionText(
                 stringResource(R.string.home_ai_category_exceeded, name),
                 stringResource(
@@ -58,7 +58,7 @@ fun AiSuggestionState.localizedText(): AiSuggestionText =
             )
         }
         is AiSuggestionState.CategoryNearLimit -> {
-            val name = stringResource(category.toResId())
+            val name = stringResource(category.toLabelResId())
             AiSuggestionText(
                 stringResource(R.string.home_ai_category_near, name, percentage),
                 stringResource(R.string.home_ai_category_near_prompt, name, percentage),

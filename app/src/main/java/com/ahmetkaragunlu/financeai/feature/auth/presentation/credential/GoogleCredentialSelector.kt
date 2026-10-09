@@ -1,4 +1,4 @@
-package com.ahmetkaragunlu.financeai.feature.auth.data.credential
+package com.ahmetkaragunlu.financeai.feature.auth.presentation.credential
 
 import android.content.Context
 import androidx.credentials.CredentialManager

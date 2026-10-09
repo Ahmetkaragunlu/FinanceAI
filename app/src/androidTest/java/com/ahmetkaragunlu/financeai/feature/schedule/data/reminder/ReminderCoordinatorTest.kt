@@ -22,9 +22,9 @@ import com.ahmetkaragunlu.financeai.feature.schedule.data.repository.ScheduledTr
 import com.ahmetkaragunlu.financeai.feature.schedule.data.sync.ScheduleCommandQueue
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.model.ScheduledTransaction
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.reminder.ReminderKind
+import com.ahmetkaragunlu.financeai.feature.schedule.domain.reminder.ReminderPresenter
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
-import com.ahmetkaragunlu.financeai.notification.presentation.ReminderPresenter
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneId

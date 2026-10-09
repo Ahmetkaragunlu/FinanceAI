@@ -6,7 +6,6 @@ import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.workDataOf
-import com.ahmetkaragunlu.financeai.core.sync.SyncScheduler
 import com.ahmetkaragunlu.financeai.core.work.AccountWork
 import com.ahmetkaragunlu.financeai.fcm.PushPayload
 import com.ahmetkaragunlu.financeai.fcm.work.PushEventWorker
@@ -29,7 +28,7 @@ class FinanceMessagingService : FirebaseMessagingService() {
     override fun onMessageReceived(message: RemoteMessage) {
         val payload = PushPayload.parse(message.data, message.messageId) ?: return
         val work = OneTimeWorkRequestBuilder<PushEventWorker>().setInputData(workDataOf(
-            SyncScheduler.OWNER_ID to payload.ownerId, PushEventWorker.RECORD to payload.remoteId,
+            AccountWork.OWNER_ID to payload.ownerId, PushEventWorker.RECORD to payload.remoteId,
             PushEventWorker.EVENT to payload.eventId, PushEventWorker.TYPE to payload.type))
             .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
             .addTag(AccountWork.tag(payload.ownerId)).build()

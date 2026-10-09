@@ -8,7 +8,7 @@ import androidx.work.Configuration
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.core.security.AppCheckInstaller
 import com.ahmetkaragunlu.financeai.core.session.SessionCoordinator
-import com.ahmetkaragunlu.financeai.notification.work.NotificationWorker
+import com.ahmetkaragunlu.financeai.notification.NotificationChannels
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 
@@ -31,7 +31,7 @@ class FinanceApplication : Application(), Configuration.Provider {
             .build()
     private fun createNotificationChannel() {
         val channel = NotificationChannel(
-            NotificationWorker.CHANNEL_ID,
+            NotificationChannels.SCHEDULED_TRANSACTIONS,
             getString(R.string.notification_channel_name),
             NotificationManager.IMPORTANCE_HIGH
         ).apply {

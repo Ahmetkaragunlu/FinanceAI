@@ -50,9 +50,9 @@ import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.core.ui.component.EditAlertDialog
 import com.ahmetkaragunlu.financeai.core.ui.component.EditTextField
 import com.ahmetkaragunlu.financeai.core.ui.theme.FinanceGradients
-import com.ahmetkaragunlu.financeai.feature.auth.presentation.component.AuthTextFieldStyles
 import com.ahmetkaragunlu.financeai.feature.auth.presentation.AuthState
 import com.ahmetkaragunlu.financeai.feature.auth.presentation.RegistrationFormState
+import com.ahmetkaragunlu.financeai.feature.auth.presentation.component.AuthTextFieldStyles
 import com.ahmetkaragunlu.financeai.feature.auth.presentation.component.PasswordVisibilityToggle
 
 @Composable
@@ -136,10 +136,10 @@ fun SignUpRoute(
                 password = viewModel.inputPassword,
                 firstName = viewModel.inputFirstName,
                 lastName = viewModel.inputLastName,
-                emailError = viewModel.emailSupportingText(),
-                passwordError = viewModel.passwordSupportingText(),
-                firstNameError = viewModel.firstNameSupportingText(),
-                lastNameError = viewModel.lastNameSupportingText(),
+                emailError = viewModel.shouldShowEmailError(),
+                passwordError = viewModel.shouldShowPasswordError(),
+                firstNameError = viewModel.shouldShowFirstNameError(),
+                lastNameError = viewModel.shouldShowLastNameError(),
             ),
         onEmailChanged = viewModel::updateEmail,
         onPasswordChanged = viewModel::updatePassword,

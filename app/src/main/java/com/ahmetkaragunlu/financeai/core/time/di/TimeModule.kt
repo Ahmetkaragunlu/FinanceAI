@@ -1,4 +1,4 @@
-package com.ahmetkaragunlu.financeai.core.time
+package com.ahmetkaragunlu.financeai.core.time.di
 
 import dagger.Module
 import dagger.Provides

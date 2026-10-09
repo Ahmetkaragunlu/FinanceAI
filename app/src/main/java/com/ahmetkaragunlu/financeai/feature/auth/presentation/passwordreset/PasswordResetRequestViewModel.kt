@@ -92,11 +92,11 @@ constructor(private val authRepository: AuthRepository) : ViewModel() {
 
     fun isValidLastName() = AuthFormValidation.isLastNameValid(inputLastName)
 
-    fun emailSupportingText() = !isEmailValid() && inputEmail.isNotBlank()
+    fun shouldShowEmailError() = !isEmailValid() && inputEmail.isNotBlank()
 
-    fun firstNameSupportingText() = !isValidFirstName() && inputFirstName.isNotBlank()
+    fun shouldShowFirstNameError() = !isValidFirstName() && inputFirstName.isNotBlank()
 
-    fun lastNameSupportingText() = !isValidLastName() && inputLastName.isNotBlank()
+    fun shouldShowLastNameError() = !isValidLastName() && inputLastName.isNotBlank()
 
     fun isResetRequestValid() = isValidLastName() && isValidFirstName() && isEmailValid()
 }

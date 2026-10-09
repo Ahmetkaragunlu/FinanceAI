@@ -5,6 +5,7 @@ import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.ahmetkaragunlu.financeai.core.session.SessionCoordinator
+import com.ahmetkaragunlu.financeai.core.work.AccountWork
 import com.google.firebase.firestore.FirebaseFirestoreException
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
@@ -18,7 +19,7 @@ class AccountSyncWorker @AssistedInject constructor(
     private val engine: AccountSyncEngine
 ) : CoroutineWorker(context, parameters) {
     override suspend fun doWork(): Result {
-        val ownerId = inputData.getString(SyncScheduler.OWNER_ID) ?: return Result.failure()
+        val ownerId = inputData.getString(AccountWork.OWNER_ID) ?: return Result.failure()
         return try {
             coordinator.prepare()
             val account = coordinator.session.account.value?.takeIf { it.ownerId == ownerId } ?: return Result.success()

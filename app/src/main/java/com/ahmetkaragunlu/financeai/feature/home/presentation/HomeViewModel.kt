@@ -26,7 +26,7 @@ class HomeViewModel
 @Inject
 constructor(
     calendar: FinanceCalendar,
-    private val session: AccountSession,
+     val session: AccountSession,
     repository: TransactionRepository,
     budgetRepository: BudgetRepository,
 ) : ViewModel() {

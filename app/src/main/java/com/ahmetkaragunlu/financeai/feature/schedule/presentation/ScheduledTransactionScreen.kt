@@ -51,8 +51,8 @@ import com.ahmetkaragunlu.financeai.core.ui.theme.FinanceGradients
 import com.ahmetkaragunlu.financeai.core.ui.theme.Spacing
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.model.ScheduledTransaction
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
-import com.ahmetkaragunlu.financeai.feature.transaction.format.toResId
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toIconResId
+import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toLabelResId
 import java.time.ZoneId
 
 @Composable
@@ -155,7 +155,7 @@ fun ScheduledTransactionItem(
                 Spacer(modifier = Modifier.width(16.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = stringResource(id = transaction.category.toResId()),
+                        text = stringResource(id = transaction.category.toLabelResId()),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onPrimary,
                         fontWeight = FontWeight.Bold,

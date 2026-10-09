@@ -1,9 +1,5 @@
 package com.ahmetkaragunlu.financeai.notification.presentation
 
-import com.ahmetkaragunlu.financeai.notification.action.NotificationActionReceiver
-import com.ahmetkaragunlu.financeai.notification.action.NotificationActions
-import com.ahmetkaragunlu.financeai.notification.work.NotificationWorker
-
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
@@ -15,25 +11,24 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.net.toUri
 import com.ahmetkaragunlu.financeai.MainActivity
 import com.ahmetkaragunlu.financeai.R
+import com.ahmetkaragunlu.financeai.core.deeplink.FinanceLinkContract
 import com.ahmetkaragunlu.financeai.core.format.formatAsCurrency
 import com.ahmetkaragunlu.financeai.core.format.formatAsShortDate
-import com.ahmetkaragunlu.financeai.core.deeplink.FinanceLinkContract
 import com.ahmetkaragunlu.financeai.core.session.AccountSession
-import com.ahmetkaragunlu.financeai.core.sync.SyncScheduler
+import com.ahmetkaragunlu.financeai.core.work.AccountWork
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.model.ScheduledTransaction
+import com.ahmetkaragunlu.financeai.feature.schedule.domain.reminder.ReminderKeys
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.reminder.ReminderKind
+import com.ahmetkaragunlu.financeai.feature.schedule.domain.reminder.ReminderPresenter
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
-import com.ahmetkaragunlu.financeai.feature.transaction.format.toResId
+import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toLabelResId
+import com.ahmetkaragunlu.financeai.notification.NotificationChannels
+import com.ahmetkaragunlu.financeai.notification.action.NotificationActionReceiver
+import com.ahmetkaragunlu.financeai.notification.action.NotificationActions
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.ZoneId
 import javax.inject.Inject
-
-interface ReminderPresenter {
-    fun show(plan: ScheduledTransaction, kind: ReminderKind, eventId: String): Boolean
-
-    fun cancel(ownerId: String, remoteId: String)
-}
 
 class AndroidReminderPresenter
 @Inject
@@ -48,7 +43,7 @@ constructor(
         if (auth.currentUser?.uid != account.ownerId) return false
         if (
             !NotificationManagerCompat.from(context).areNotificationsEnabled() ||
-                manager.getNotificationChannel(NotificationWorker.CHANNEL_ID)?.importance ==
+                manager.getNotificationChannel(NotificationChannels.SCHEDULED_TRANSACTIONS)?.importance ==
                     NotificationManager.IMPORTANCE_NONE
         )
             return false
@@ -81,7 +76,7 @@ constructor(
             context.getString(
                 message,
                 plan.amount.formatAsCurrency(plan.currencyCode),
-                context.getString(plan.category.toResId()),
+                context.getString(plan.category.toLabelResId()),
                 plan.scheduledDate.formatAsShortDate(zone = ZoneId.of(account.timeZoneId)),
             )
         val open =
@@ -94,10 +89,10 @@ constructor(
                         .appendQueryParameter(FinanceLinkContract.RECORD_QUERY, plan.firestoreId)
                         .build()
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                putExtra(SyncScheduler.OWNER_ID, plan.ownerId)
+                putExtra(AccountWork.OWNER_ID, plan.ownerId)
             }
         val builder =
-            NotificationCompat.Builder(context, NotificationWorker.CHANNEL_ID)
+            NotificationCompat.Builder(context, NotificationChannels.SCHEDULED_TRANSACTIONS)
                 .setSmallIcon(R.drawable.ic_notification)
                 .setContentTitle(context.getString(title))
                 .setContentText(text)
@@ -153,8 +148,8 @@ constructor(
                         .appendPath(plan.firestoreId)
                         .appendPath(action)
                         .build()
-                putExtra(SyncScheduler.OWNER_ID, plan.ownerId)
-                putExtra(NotificationWorker.FIRESTORE_ID_KEY, plan.firestoreId)
+                putExtra(AccountWork.OWNER_ID, plan.ownerId)
+                putExtra(ReminderKeys.REMOTE_ID, plan.firestoreId)
             }
         return PendingIntent.getBroadcast(
             context,

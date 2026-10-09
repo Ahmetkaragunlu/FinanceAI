@@ -5,9 +5,9 @@ import com.ahmetkaragunlu.financeai.core.database.testing.AccountDatabaseFixture
 import com.ahmetkaragunlu.financeai.feature.schedule.data.reminder.ReminderScheduler
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.model.ScheduledTransaction
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.reminder.ReminderKind
+import com.ahmetkaragunlu.financeai.feature.schedule.domain.reminder.ReminderPresenter
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
-import com.ahmetkaragunlu.financeai.notification.presentation.ReminderPresenter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals

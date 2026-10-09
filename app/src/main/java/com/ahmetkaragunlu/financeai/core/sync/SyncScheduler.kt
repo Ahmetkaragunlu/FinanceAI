@@ -7,6 +7,7 @@ import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.workDataOf
+import com.ahmetkaragunlu.financeai.core.work.AccountWork
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -15,7 +16,7 @@ import javax.inject.Singleton
 class SyncScheduler @Inject constructor(private val workManager: WorkManager) {
     fun enqueue(ownerId: String) {
         val request = OneTimeWorkRequestBuilder<AccountSyncWorker>()
-            .setInputData(workDataOf(OWNER_ID to ownerId))
+            .setInputData(workDataOf(AccountWork.OWNER_ID to ownerId))
             .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
             .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS)
             .addTag(tag(ownerId)).build()
@@ -23,7 +24,6 @@ class SyncScheduler @Inject constructor(private val workManager: WorkManager) {
     }
     fun stop(ownerId: String) { workManager.cancelAllWorkByTag(tag(ownerId)) }
     companion object {
-        const val OWNER_ID = "account_owner_id"
         fun tag(ownerId: String) = "account_sync_$ownerId"
     }
 }

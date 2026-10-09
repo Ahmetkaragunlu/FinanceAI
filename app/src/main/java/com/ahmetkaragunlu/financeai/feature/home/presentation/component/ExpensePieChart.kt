@@ -31,7 +31,7 @@ import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.core.ui.component.formatAsAccountCurrency
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryExpense
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
-import com.ahmetkaragunlu.financeai.feature.transaction.format.toResId
+import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toLabelResId
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlinx.coroutines.CancellationException
@@ -71,7 +71,7 @@ fun ExpensePieChart(categoryExpenses: List<CategoryExpense>, modifier: Modifier 
     val categoryDisplayStrings =
         remember(categoryData, localeKey) {
             categoryData.associate { (categoryType, _, _) ->
-                categoryType to context.getString(categoryType.toResId())
+                categoryType to context.getString(categoryType.toLabelResId())
             }
         }
     val description =

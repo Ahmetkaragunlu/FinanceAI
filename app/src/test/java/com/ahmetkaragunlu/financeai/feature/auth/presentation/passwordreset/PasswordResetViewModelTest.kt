@@ -3,14 +3,15 @@ package com.ahmetkaragunlu.financeai.feature.auth.presentation.passwordreset
 import com.ahmetkaragunlu.financeai.core.coroutines.testing.MainDispatcherRule
 import com.ahmetkaragunlu.financeai.feature.auth.presentation.AuthState
 import com.ahmetkaragunlu.financeai.feature.auth.testing.FakeAuthRepository
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.test.runCurrent
-import org.junit.Assert.assertTrue
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -70,5 +71,21 @@ class PasswordResetViewModelTest {
         viewModel.resetPassword("expired-code")
         advanceUntilIdle()
         assertEquals(AuthState.FAILURE, viewModel.authState.value)
+    }
+
+    @Test
+    fun `field errors remain separate from password mismatch after helper renaming`() {
+        val viewModel = PasswordResetViewModel(FakeAuthRepository())
+        assertFalse(viewModel.shouldShowNewPasswordError())
+        assertFalse(viewModel.shouldShowConfirmNewPasswordError())
+        viewModel.updateNewPassword("abc")
+        viewModel.updateConfirmPassword("abc")
+        assertTrue(viewModel.shouldShowNewPasswordError())
+        assertTrue(viewModel.shouldShowConfirmNewPasswordError())
+        viewModel.updateNewPassword("valid-password")
+        viewModel.updateConfirmPassword("another-valid-password")
+        assertFalse(viewModel.shouldShowNewPasswordError())
+        assertFalse(viewModel.shouldShowConfirmNewPasswordError())
+        assertFalse(viewModel.checkPassword())
     }
 }

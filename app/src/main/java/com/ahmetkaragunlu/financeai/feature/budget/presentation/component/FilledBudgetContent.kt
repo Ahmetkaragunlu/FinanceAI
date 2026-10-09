@@ -49,8 +49,8 @@ import com.ahmetkaragunlu.financeai.feature.budget.presentation.BudgetUiState
 import com.ahmetkaragunlu.financeai.feature.budget.presentation.CategoryBudgetState
 import com.ahmetkaragunlu.financeai.feature.budget.presentation.GeneralBudgetState
 import com.ahmetkaragunlu.financeai.feature.budget.presentation.mapper.localizedText
-import com.ahmetkaragunlu.financeai.feature.transaction.format.toResId
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toIconResId
+import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toLabelResId
 
 @Composable
 fun FilledBudgetContent(
@@ -433,7 +433,7 @@ private fun CategoryBudgetCard(
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = stringResource(id = state.category.toResId()),
+                            text = stringResource(id = state.category.toLabelResId()),
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onPrimary,
                             fontWeight = FontWeight.SemiBold,

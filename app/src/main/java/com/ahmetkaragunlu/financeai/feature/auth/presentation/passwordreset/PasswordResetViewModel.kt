@@ -77,9 +77,9 @@ class PasswordResetViewModel @Inject constructor(private val authRepository: Aut
 
     fun isValidConfirmNewPassword() = AuthFormValidation.isPasswordValid(inputConfirmPassword)
 
-    fun newPasswordSupportingText() = !isValidNewPassword() && inputNewPassword.isNotBlank()
+    fun shouldShowNewPasswordError() = !isValidNewPassword() && inputNewPassword.isNotBlank()
 
-    fun confirmNewPasswordSupportingText() =
+    fun shouldShowConfirmNewPasswordError() =
         !isValidConfirmNewPassword() && inputConfirmPassword.isNotBlank()
 
     fun isValidResetPassword() = isValidNewPassword() && isValidConfirmNewPassword()

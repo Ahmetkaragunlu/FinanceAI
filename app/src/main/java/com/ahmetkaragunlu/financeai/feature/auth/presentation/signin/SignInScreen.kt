@@ -59,9 +59,9 @@ import com.ahmetkaragunlu.financeai.core.ui.component.EditTextField
 import com.ahmetkaragunlu.financeai.core.ui.theme.FinanceColors
 import com.ahmetkaragunlu.financeai.core.ui.theme.FinanceGradients
 import com.ahmetkaragunlu.financeai.core.ui.theme.Spacing
-import com.ahmetkaragunlu.financeai.feature.auth.data.credential.GoogleCredentialSelector
 import com.ahmetkaragunlu.financeai.feature.auth.presentation.AuthState
 import com.ahmetkaragunlu.financeai.feature.auth.presentation.component.PasswordVisibilityToggle
+import com.ahmetkaragunlu.financeai.feature.auth.presentation.credential.GoogleCredentialSelector
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 

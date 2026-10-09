@@ -7,10 +7,10 @@ import com.ahmetkaragunlu.financeai.feature.schedule.data.repository.ScheduledTr
 import com.ahmetkaragunlu.financeai.feature.schedule.data.sync.ScheduleCommandQueue
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.model.ScheduledTransaction
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.reminder.ReminderKind
+import com.ahmetkaragunlu.financeai.feature.schedule.domain.reminder.ReminderPresenter
 import com.ahmetkaragunlu.financeai.feature.transaction.data.repository.TransactionRepositoryImpl
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
-import com.ahmetkaragunlu.financeai.notification.presentation.ReminderPresenter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After

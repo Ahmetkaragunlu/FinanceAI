@@ -56,8 +56,8 @@ import com.ahmetkaragunlu.financeai.feature.schedule.presentation.ScheduledTrans
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.Transaction
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
-import com.ahmetkaragunlu.financeai.feature.transaction.format.toResId
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toIconResId
+import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toLabelResId
 
 @Composable
 fun TransactionHistoryRoute(
@@ -208,11 +208,11 @@ private fun HistoryContent(
                         onCategorySelected(category)
                         isCategoryMenuOpen = false
                     },
-                    itemLabel = { category -> stringResource(category.toResId()) },
+                    itemLabel = { category -> stringResource(category.toLabelResId()) },
                     trigger = {
                         EditButton(
                             modifier = Modifier.fillMaxWidth(),
-                            label = filters.category?.toResId() ?: R.string.category,
+                            label = filters.category?.toLabelResId() ?: R.string.category,
                             icon = R.drawable.categories,
                             onClick = { isCategoryMenuOpen = onCategoryMenuRequested() },
                         )
@@ -315,7 +315,7 @@ private fun TransactionCard(
 
             Column {
                 Text(
-                    text = stringResource(transaction.category.toResId()),
+                    text = stringResource(transaction.category.toLabelResId()),
                     color = MaterialTheme.colorScheme.onPrimary,
                     style = MaterialTheme.typography.titleMedium,
                 )

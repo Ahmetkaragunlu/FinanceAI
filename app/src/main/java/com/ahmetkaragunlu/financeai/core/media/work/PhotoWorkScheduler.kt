@@ -11,7 +11,6 @@ import com.ahmetkaragunlu.financeai.core.media.PhotoRecordType
 import com.ahmetkaragunlu.financeai.core.media.local.entity.PhotoOperation
 import com.ahmetkaragunlu.financeai.core.media.remote.PhotoRemoteCache
 import com.ahmetkaragunlu.financeai.core.session.AccountSession
-import com.ahmetkaragunlu.financeai.core.sync.SyncScheduler
 import com.ahmetkaragunlu.financeai.core.work.AccountWork
 import com.ahmetkaragunlu.financeai.photo.PhotoUploadWorker
 import java.io.File
@@ -30,7 +29,7 @@ class PhotoWorkScheduler @Inject constructor(
         val version = File(path).nameWithoutExtension
         database.photoOperationDao().insert(PhotoOperation(ownerId, collection, remoteId, path, version))
         val request = OneTimeWorkRequestBuilder<PhotoUploadWorker>()
-            .setInputData(workDataOf(SyncScheduler.OWNER_ID to ownerId,
+            .setInputData(workDataOf(AccountWork.OWNER_ID to ownerId,
                 PhotoUploadWorker.KEY_LOCAL_PATH to path, PhotoUploadWorker.KEY_FIRESTORE_ID to remoteId,
                 PhotoUploadWorker.KEY_COLLECTION_TYPE to collection, PhotoUploadWorker.KEY_VERSION to version))
             .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())

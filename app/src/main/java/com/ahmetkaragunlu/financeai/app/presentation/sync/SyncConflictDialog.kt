@@ -20,7 +20,7 @@ import com.ahmetkaragunlu.financeai.feature.budget.data.remote.BudgetFields
 import com.ahmetkaragunlu.financeai.feature.schedule.data.remote.contract.ScheduleFields
 import com.ahmetkaragunlu.financeai.feature.transaction.data.remote.TransactionFields
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
-import com.ahmetkaragunlu.financeai.feature.transaction.format.toResId
+import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toLabelResId
 
 @Composable
 fun SyncConflictDialog(viewModel: SyncConflictViewModel = hiltViewModel()) {
@@ -67,6 +67,6 @@ private fun ConflictSummary(payload: String?) {
     (values["note"] ?: values[AiMessageFields.TEXT])?.toString()?.takeIf { it.isNotBlank() }?.let { Text(it) }
     values["category"]?.toString()?.let { name ->
         val category = CategoryType.valueOf(name)
-        Text(stringResource(category.toResId()))
+        Text(stringResource(category.toLabelResId()))
     }
 }

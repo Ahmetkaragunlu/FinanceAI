@@ -26,10 +26,10 @@ import com.ahmetkaragunlu.financeai.feature.schedule.data.remote.ScheduledTransa
 import com.ahmetkaragunlu.financeai.feature.schedule.data.repository.ScheduledTransactionRepositoryImpl
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.model.ScheduledTransaction
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.reminder.ReminderKind
+import com.ahmetkaragunlu.financeai.feature.schedule.domain.reminder.ReminderPresenter
 import com.ahmetkaragunlu.financeai.feature.transaction.data.remote.TransactionRemoteStore
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
-import com.ahmetkaragunlu.financeai.notification.presentation.ReminderPresenter
 import dagger.Lazy
 import java.time.Clock
 import kotlinx.coroutines.Dispatchers

@@ -7,7 +7,7 @@ import androidx.work.WorkerParameters
 import com.ahmetkaragunlu.financeai.core.database.FinanceDatabase
 import com.ahmetkaragunlu.financeai.core.session.SessionCoordinator
 import com.ahmetkaragunlu.financeai.core.sync.AccountSyncEngine
-import com.ahmetkaragunlu.financeai.core.sync.SyncScheduler
+import com.ahmetkaragunlu.financeai.core.work.AccountWork
 import com.ahmetkaragunlu.financeai.fcm.data.local.entity.PushEvent
 import com.ahmetkaragunlu.financeai.feature.schedule.data.reminder.ReminderCoordinator
 import dagger.assisted.Assisted
@@ -22,7 +22,7 @@ class PushEventWorker @AssistedInject constructor(
     private val engine: AccountSyncEngine, private val reminders: ReminderCoordinator, private val clock: Clock
 ) : CoroutineWorker(context, parameters) {
     override suspend fun doWork(): Result {
-        val owner = inputData.getString(SyncScheduler.OWNER_ID) ?: return Result.failure()
+        val owner = inputData.getString(AccountWork.OWNER_ID) ?: return Result.failure()
         val record = inputData.getString(RECORD) ?: return Result.failure()
         val event = inputData.getString(EVENT) ?: return Result.failure()
         val type = inputData.getString(TYPE) ?: return Result.failure()

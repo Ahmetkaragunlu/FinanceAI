@@ -50,7 +50,7 @@ import com.ahmetkaragunlu.financeai.feature.budget.presentation.BudgetEvent
 import com.ahmetkaragunlu.financeai.feature.budget.presentation.BudgetFormState
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
-import com.ahmetkaragunlu.financeai.feature.transaction.format.toResId
+import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toLabelResId
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -264,12 +264,12 @@ private fun CategorySelector(
             onExpandedChange = { expanded = it },
             options = categories,
             onOptionSelected = onCategorySelected,
-            itemLabel = { stringResource(it.toResId()) },
+            itemLabel = { stringResource(it.toLabelResId()) },
             trigger = {
                 Box(modifier = Modifier.fillMaxWidth().clickable { expanded = !expanded }) {
                     OutlinedTextField(
                         value =
-                            selectedCategory?.let { stringResource(it.toResId()) }
+                            selectedCategory?.let { stringResource(it.toLabelResId()) }
                                 ?: stringResource(R.string.choose_placeholder),
                         onValueChange = {},
                         readOnly = true,

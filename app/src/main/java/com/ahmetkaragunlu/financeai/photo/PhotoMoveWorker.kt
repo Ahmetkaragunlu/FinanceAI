@@ -8,7 +8,7 @@ import com.ahmetkaragunlu.financeai.core.database.FinanceDatabase
 import com.ahmetkaragunlu.financeai.core.media.PhotoRecordType
 import com.ahmetkaragunlu.financeai.core.media.work.PhotoWorkScheduler
 import com.ahmetkaragunlu.financeai.core.session.SessionCoordinator
-import com.ahmetkaragunlu.financeai.core.sync.SyncScheduler
+import com.ahmetkaragunlu.financeai.core.work.AccountWork
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.CancellationException
@@ -20,7 +20,7 @@ class PhotoMoveWorker @AssistedInject constructor(
     private val sessions: SessionCoordinator, private val database: FinanceDatabase, private val photos: PhotoWorkScheduler
 ) : CoroutineWorker(context, parameters) {
     override suspend fun doWork(): Result {
-        val owner = inputData.getString(SyncScheduler.OWNER_ID) ?: return Result.failure()
+        val owner = inputData.getString(AccountWork.OWNER_ID) ?: return Result.failure()
         val record = inputData.getString(KEY_TRANSACTION_ID) ?: return Result.failure()
         return try {
             sessions.prepare()

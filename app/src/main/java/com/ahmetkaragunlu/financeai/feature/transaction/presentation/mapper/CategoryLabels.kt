@@ -1,10 +1,11 @@
-package com.ahmetkaragunlu.financeai.feature.transaction.format
+package com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper
 
-
+import androidx.annotation.StringRes
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 
-fun CategoryType.toResId(): Int {
+@StringRes
+fun CategoryType.toLabelResId(): Int {
     return when (this) {
         CategoryType.FOOD -> R.string.category_food
         CategoryType.GROCERIES -> R.string.category_groceries

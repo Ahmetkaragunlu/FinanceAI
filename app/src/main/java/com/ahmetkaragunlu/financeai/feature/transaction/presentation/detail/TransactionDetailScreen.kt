@@ -71,6 +71,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.rememberAsyncImagePainter
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.core.format.formatRelativeDate
+import com.ahmetkaragunlu.financeai.core.media.local.CameraPhotoDrafts
+import com.ahmetkaragunlu.financeai.core.media.presentation.CameraCaptureLauncher
+import com.ahmetkaragunlu.financeai.core.media.presentation.PhotoSourceBottomSheet
 import com.ahmetkaragunlu.financeai.core.ui.component.EditAlertDialog
 import com.ahmetkaragunlu.financeai.core.ui.component.EditTextField
 import com.ahmetkaragunlu.financeai.core.ui.component.FinanceDropdownMenu
@@ -83,13 +86,10 @@ import com.ahmetkaragunlu.financeai.core.ui.theme.Spacing
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.Transaction
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
-import com.ahmetkaragunlu.financeai.feature.transaction.format.toResId
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.TransactionActionResult
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.TransactionResultEffect
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toIconResId
-import com.ahmetkaragunlu.financeai.core.media.presentation.CameraCaptureLauncher
-import com.ahmetkaragunlu.financeai.core.media.presentation.PhotoSourceBottomSheet
-import com.ahmetkaragunlu.financeai.core.media.local.CameraPhotoDrafts
+import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toLabelResId
 import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -421,7 +421,7 @@ private fun TransactionSummaryCard(
                 Spacer(modifier = modifier.width(16.dp))
                 Column {
                     Text(
-                        text = stringResource(tx.category.toResId()),
+                        text = stringResource(tx.category.toLabelResId()),
                         color = MaterialTheme.colorScheme.onPrimary,
                         style = MaterialTheme.typography.titleMedium,
                     )
@@ -570,10 +570,10 @@ private fun EditBottomSheet(
                     onCategoryChange(category)
                     onCategoryDropdownExpandedChange(false)
                 },
-                itemLabel = { category -> stringResource(category.toResId()) },
+                itemLabel = { category -> stringResource(category.toLabelResId()) },
                 trigger = {
                     OutlinedTextField(
-                        value = category?.let { stringResource(it.toResId()) } ?: "",
+                        value = category?.let { stringResource(it.toLabelResId()) } ?: "",
                         onValueChange = {},
                         readOnly = true,
                         placeholder = {

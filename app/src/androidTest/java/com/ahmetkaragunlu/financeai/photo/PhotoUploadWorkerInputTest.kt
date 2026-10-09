@@ -12,14 +12,14 @@ import com.ahmetkaragunlu.financeai.core.media.local.PhotoLocalStore
 import com.ahmetkaragunlu.financeai.core.media.local.entity.PhotoOperation
 import com.ahmetkaragunlu.financeai.core.media.remote.PhotoStorageManager
 import com.ahmetkaragunlu.financeai.core.session.SessionCoordinator
-import com.ahmetkaragunlu.financeai.core.sync.SyncScheduler
+import com.ahmetkaragunlu.financeai.core.work.AccountWork
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verifyNoInteractions
-import org.mockito.Mockito.`when`
 
 /** Wire compatibility only; upload orchestration is tested separately with its owning rules. */
 class PhotoUploadWorkerInputTest {
@@ -28,7 +28,7 @@ class PhotoUploadWorkerInputTest {
         val sessions = mock(SessionCoordinator::class.java)
         `when`(sessions.session).thenReturn(f.session)
         val files = mock(PhotoLocalStore::class.java)
-        val input = workDataOf(SyncScheduler.OWNER_ID to "A", PhotoUploadWorker.KEY_FIRESTORE_ID to "record",
+        val input = workDataOf(AccountWork.OWNER_ID to "A", PhotoUploadWorker.KEY_FIRESTORE_ID to "record",
             PhotoUploadWorker.KEY_LOCAL_PATH to "/test/IMG_wire.jpg")
         val data = Data.Builder().putAll(input).apply {
             if (kind != null) putString(PhotoUploadWorker.KEY_COLLECTION_TYPE, kind)

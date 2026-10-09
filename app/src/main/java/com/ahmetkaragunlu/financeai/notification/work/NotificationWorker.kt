@@ -5,8 +5,9 @@ import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.ahmetkaragunlu.financeai.core.session.SessionCoordinator
-import com.ahmetkaragunlu.financeai.core.sync.SyncScheduler
+import com.ahmetkaragunlu.financeai.core.work.AccountWork
 import com.ahmetkaragunlu.financeai.feature.schedule.data.reminder.ReminderCoordinator
+import com.ahmetkaragunlu.financeai.feature.schedule.domain.reminder.ReminderKeys
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.repository.ScheduledTransactionRepository
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
@@ -21,18 +22,13 @@ class NotificationWorker @AssistedInject constructor(
     private val reminders: ReminderCoordinator,
     private val repository: ScheduledTransactionRepository
 ) : CoroutineWorker(context, parameters) {
-    companion object {
-        const val CHANNEL_ID = "scheduled_transaction_channel"
-        const val TRANSACTION_ID_KEY = "transaction_id"
-        const val FIRESTORE_ID_KEY = "firestore_id"
-    }
     override suspend fun doWork(): Result {
-        val ownerId = inputData.getString(SyncScheduler.OWNER_ID) ?: return Result.failure()
+        val ownerId = inputData.getString(AccountWork.OWNER_ID) ?: return Result.failure()
         return try {
             sessions.prepare()
             val account = sessions.session.account.value?.takeIf { it.ownerId == ownerId } ?: return Result.success()
-            val remoteId = inputData.getString(FIRESTORE_ID_KEY)
-                ?: repository.getScheduledTransactionById(inputData.getLong(TRANSACTION_ID_KEY, -1))?.firestoreId
+            val remoteId = inputData.getString(ReminderKeys.REMOTE_ID)
+                ?: repository.getScheduledTransactionById(inputData.getLong(ReminderKeys.LOCAL_ID, -1))?.firestoreId
             if (remoteId != null) reminders.process(account, remoteId)
             else reminders.restoreCurrent()
             Result.success()

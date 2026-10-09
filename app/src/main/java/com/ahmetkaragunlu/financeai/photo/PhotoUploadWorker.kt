@@ -11,8 +11,8 @@ import com.ahmetkaragunlu.financeai.core.media.PhotoRecordType
 import com.ahmetkaragunlu.financeai.core.media.local.PhotoLocalStore
 import com.ahmetkaragunlu.financeai.core.media.remote.PhotoStorageManager
 import com.ahmetkaragunlu.financeai.core.session.SessionCoordinator
-import com.ahmetkaragunlu.financeai.core.sync.SyncScheduler
 import com.ahmetkaragunlu.financeai.core.sync.contract.SyncFields
+import com.ahmetkaragunlu.financeai.core.work.AccountWork
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.model.completedTransactionId
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.reminder.ScheduleCommandType
 import com.google.firebase.firestore.FirebaseFirestore
@@ -34,7 +34,7 @@ class PhotoUploadWorker @AssistedInject constructor(
     private val files: PhotoLocalStore
 ) : CoroutineWorker(context, parameters) {
     override suspend fun doWork(): Result {
-        val owner = inputData.getString(SyncScheduler.OWNER_ID) ?: return Result.failure()
+        val owner = inputData.getString(AccountWork.OWNER_ID) ?: return Result.failure()
         val path = inputData.getString(KEY_LOCAL_PATH) ?: return Result.failure()
         val record = inputData.getString(KEY_FIRESTORE_ID) ?: return Result.failure()
         val recordType = PhotoRecordType.fromWire(

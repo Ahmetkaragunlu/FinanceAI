@@ -50,10 +50,10 @@ import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.core.ui.component.EditAlertDialog
 import com.ahmetkaragunlu.financeai.core.ui.component.EditTextField
 import com.ahmetkaragunlu.financeai.core.ui.theme.FinanceColors
-import com.ahmetkaragunlu.financeai.feature.auth.presentation.component.AuthTextFieldStyles
 import com.ahmetkaragunlu.financeai.core.ui.theme.Spacing
 import com.ahmetkaragunlu.financeai.feature.auth.presentation.AuthState
 import com.ahmetkaragunlu.financeai.feature.auth.presentation.ResetPasswordFormState
+import com.ahmetkaragunlu.financeai.feature.auth.presentation.component.AuthTextFieldStyles
 import com.ahmetkaragunlu.financeai.feature.auth.presentation.component.PasswordVisibilityToggle
 
 @Composable
@@ -106,8 +106,8 @@ fun PasswordResetRoute(
             ResetPasswordFormState(
                 password = viewModel.inputNewPassword,
                 confirmation = viewModel.inputConfirmPassword,
-                passwordError = viewModel.newPasswordSupportingText(),
-                confirmationError = viewModel.confirmNewPasswordSupportingText(),
+                passwordError = viewModel.shouldShowNewPasswordError(),
+                confirmationError = viewModel.shouldShowConfirmNewPasswordError(),
             ),
         onPasswordChanged = viewModel::updateNewPassword,
         onConfirmationChanged = viewModel::updateConfirmPassword,

@@ -1,4 +1,4 @@
-package com.ahmetkaragunlu.financeai.feature.aichat.data.report
+package com.ahmetkaragunlu.financeai.feature.aichat.domain.report
 
 import com.ahmetkaragunlu.financeai.feature.aichat.domain.model.FinancialSnapshot
 import com.ahmetkaragunlu.financeai.feature.budget.domain.model.Budget
