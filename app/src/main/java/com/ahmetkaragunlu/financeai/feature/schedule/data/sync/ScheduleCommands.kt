@@ -131,31 +131,27 @@ class ScheduleCommands @Inject constructor(
         }
     }
 
-    private suspend fun markConflict(account: ActiveAccount, command: ScheduleCommand) {
-        val document = firestore.collection(FirestoreCollections.SCHEDULED_TRANSACTIONS).document(command.remoteId).get(Source.SERVER).await()
-        require(document.getString(SyncFields.USER_ID) == account.ownerId)
-        val payload = if (document.getBoolean(SyncFields.DELETED) == true) null
-            else SyncPayload.encode(schedules.normalize(document.data.orEmpty(), account))
-        session.withAccount { current ->
-            check(current == account)
-            database.withTransaction {
-                val record = database.syncRecordDao().get(account.ownerId, FirestoreCollections.SCHEDULED_TRANSACTIONS, command.remoteId) ?: return@withTransaction
-                database.syncRecordDao().save(record.copy(conflictPayload = payload, conflictRevision = document.getLong(SyncFields.REVISION) ?: 0))
-                database.scheduleCommandDao().fail(command.operationId, CommandOutcome.CONFLICT.wireValue)
-            }
-        }
-    }
+    private suspend fun markConflict(account: ActiveAccount, command: ScheduleCommand) =
+        recordConflict(account, command, FirestoreCollections.SCHEDULED_TRANSACTIONS, command.remoteId, schedules::normalize)
 
-    private suspend fun markFinancialConflict(account: ActiveAccount, command: ScheduleCommand) {
-        val id = completedTransactionId(command.remoteId)
-        val document = firestore.collection(FirestoreCollections.TRANSACTIONS).document(id).get(Source.SERVER).await()
+    private suspend fun markFinancialConflict(account: ActiveAccount, command: ScheduleCommand) =
+        recordConflict(account, command, FirestoreCollections.TRANSACTIONS, completedTransactionId(command.remoteId), transactions::normalize)
+
+    private suspend fun recordConflict(
+        account: ActiveAccount,
+        command: ScheduleCommand,
+        collection: String,
+        remoteId: String,
+        normalize: (Map<String, Any?>, ActiveAccount) -> Map<String, Any?>,
+    ) {
+        val document = firestore.collection(collection).document(remoteId).get(Source.SERVER).await()
         require(document.getString(SyncFields.USER_ID) == account.ownerId)
         val payload = if (document.getBoolean(SyncFields.DELETED) == true) null
-            else SyncPayload.encode(transactions.normalize(document.data.orEmpty(), account))
+            else SyncPayload.encode(normalize(document.data.orEmpty(), account))
         session.withAccount { current ->
             check(current == account)
             database.withTransaction {
-                val record = database.syncRecordDao().get(account.ownerId, FirestoreCollections.TRANSACTIONS, id) ?: return@withTransaction
+                val record = database.syncRecordDao().get(account.ownerId, collection, remoteId) ?: return@withTransaction
                 database.syncRecordDao().save(record.copy(conflictPayload = payload, conflictRevision = document.getLong(SyncFields.REVISION) ?: 0))
                 database.scheduleCommandDao().fail(command.operationId, CommandOutcome.CONFLICT.wireValue)
             }

@@ -32,7 +32,6 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withTimeout
 
@@ -67,14 +66,14 @@ class SessionCoordinator @Inject constructor(
         }
     }
 
-    suspend fun prepare() = session.mutex.withLock {
+    suspend fun prepare() = session.withStateLock {
         val user = auth.currentUser?.takeIf { it.isEmailVerified }
         if (user != null && user.uid == session.account.value?.ownerId) {
             if (accountJob?.isActive != true) startAccountJob(session.requireAccount())
-            return@withLock
+            return@withStateLock
         }
         stopAccount()
-        if (user == null) return@withLock
+        if (user == null) return@withStateLock
         val local = database.accountDao().get(user.uid)
         val preferences = local?.takeIf { it.timeZoneId != null } ?: withTimeout(15_000) {
             val proposed = MoneyAmounts.currencyForRegion(Locale.getDefault())
@@ -112,7 +111,12 @@ class SessionCoordinator @Inject constructor(
         }
     }
 
-    suspend fun signOut() = session.mutex.withLock {
+    suspend fun activeAccountFor(ownerId: String): ActiveAccount? {
+        prepare()
+        return session.account.value?.takeIf { it.ownerId == ownerId }
+    }
+
+    suspend fun signOut() = session.withStateLock {
         stopAccount()
         auth.signOut()
     }

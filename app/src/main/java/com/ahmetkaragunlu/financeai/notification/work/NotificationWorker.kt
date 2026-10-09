@@ -25,8 +25,7 @@ class NotificationWorker @AssistedInject constructor(
     override suspend fun doWork(): Result {
         val ownerId = inputData.getString(AccountWork.OWNER_ID) ?: return Result.failure()
         return try {
-            sessions.prepare()
-            val account = sessions.session.account.value?.takeIf { it.ownerId == ownerId } ?: return Result.success()
+            val account = sessions.activeAccountFor(ownerId) ?: return Result.success()
             val remoteId = inputData.getString(ReminderKeys.REMOTE_ID)
                 ?: repository.getScheduledTransactionById(inputData.getLong(ReminderKeys.LOCAL_ID, -1))?.firestoreId
             if (remoteId != null) reminders.process(account, remoteId)

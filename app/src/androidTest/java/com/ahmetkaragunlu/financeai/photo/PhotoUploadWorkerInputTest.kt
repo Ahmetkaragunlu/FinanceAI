@@ -23,10 +23,11 @@ import org.mockito.Mockito.verifyNoInteractions
 
 /** Wire compatibility only; upload orchestration is tested separately with its owning rules. */
 class PhotoUploadWorkerInputTest {
-    private fun worker(f: AccountDatabaseFixture, kind: String?, firestore: FirebaseFirestore,
+    private suspend fun worker(f: AccountDatabaseFixture, kind: String?, firestore: FirebaseFirestore,
         storage: PhotoStorageManager): PhotoUploadWorker {
         val sessions = mock(SessionCoordinator::class.java)
         `when`(sessions.session).thenReturn(f.session)
+        `when`(sessions.activeAccountFor("A")).thenAnswer { f.session.account.value?.takeIf { it.ownerId == "A" } }
         val files = mock(PhotoLocalStore::class.java)
         val input = workDataOf(AccountWork.OWNER_ID to "A", PhotoUploadWorker.KEY_FIRESTORE_ID to "record",
             PhotoUploadWorker.KEY_LOCAL_PATH to "/test/IMG_wire.jpg")

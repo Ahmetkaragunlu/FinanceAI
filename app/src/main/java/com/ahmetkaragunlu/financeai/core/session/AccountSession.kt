@@ -18,7 +18,7 @@ data class ActiveAccount(val ownerId: String, val currencyCode: String, val gene
 class AccountSession @Inject constructor() {
     private val mutableAccount = MutableStateFlow<ActiveAccount?>(null)
     val account = mutableAccount.asStateFlow()
-    val mutex = Mutex()
+    private val mutex = Mutex()
     private var generation = 0L
 
     fun requireAccount(): ActiveAccount = checkNotNull(account.value) { "Account not ready" }
@@ -28,7 +28,10 @@ class AccountSession @Inject constructor() {
     }
     internal fun deactivate() { generation++; mutableAccount.value = null }
 
-    suspend fun <T> withAccount(block: suspend (ActiveAccount) -> T): T = mutex.withLock {
+    /** Preparation/logout may use the same guard while no active account exists. */
+    internal suspend fun <T> withStateLock(block: suspend () -> T): T = mutex.withLock { block() }
+
+    suspend fun <T> withAccount(block: suspend (ActiveAccount) -> T): T = withStateLock {
         block(requireAccount())
     }
 

@@ -11,7 +11,6 @@ import com.ahmetkaragunlu.financeai.fcm.FCMTokenManager
 import com.ahmetkaragunlu.financeai.feature.schedule.data.reminder.ReminderScheduler
 import java.io.File
 import javax.inject.Inject
-import kotlinx.coroutines.flow.first
 
 /** Rebuilds disposable account work from retained local records; WorkManager is not the source of truth. */
 class AccountWorkRestorer @Inject constructor(
@@ -24,7 +23,7 @@ class AccountWorkRestorer @Inject constructor(
 ) : SessionWorkRestorer {
     override suspend fun restore(account: ActiveAccount) {
         val transactions = database.transactionDao().getAllTransactionsOneShot()
-        val schedules = database.scheduledTransactionDao().observeScheduledTransactions().first()
+        val schedules = database.scheduledTransactionDao().getScheduledTransactionsOneShot()
         transactions.filter { it.ownerId == account.ownerId }.forEach {
             upload(account, PhotoRecordType.TRANSACTION, it.firestoreId, it.photoUri)
         }

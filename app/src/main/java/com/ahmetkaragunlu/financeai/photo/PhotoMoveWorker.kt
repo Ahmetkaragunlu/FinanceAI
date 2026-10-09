@@ -23,8 +23,7 @@ class PhotoMoveWorker @AssistedInject constructor(
         val owner = inputData.getString(AccountWork.OWNER_ID) ?: return Result.failure()
         val record = inputData.getString(KEY_TRANSACTION_ID) ?: return Result.failure()
         return try {
-            sessions.prepare()
-            val account = sessions.session.account.value?.takeIf { it.ownerId == owner } ?: return Result.success()
+            val account = sessions.activeAccountFor(owner) ?: return Result.success()
             val row = database.transactionDao().getTransactionByFirestoreId(record) ?: return Result.success()
             if (sessions.session.isCurrent(account)) photos.upload(owner, PhotoRecordType.TRANSACTION, record, row.photoUri)
             Result.success()

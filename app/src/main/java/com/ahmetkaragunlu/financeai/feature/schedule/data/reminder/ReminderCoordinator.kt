@@ -16,7 +16,6 @@ import com.ahmetkaragunlu.financeai.feature.schedule.domain.reminder.ScheduleCom
 import java.time.Clock
 import java.time.ZoneId
 import javax.inject.Inject
-import kotlinx.coroutines.flow.first
 
 /** Local state + owner lock serialize local and FCM wake-ups; neither may bypass the policy. */
 class ReminderCoordinator @Inject constructor(
@@ -111,7 +110,7 @@ class ReminderCoordinator @Inject constructor(
     }
     suspend fun restoreCurrent() {
         val account = session.account.value ?: return
-        val plans = database.scheduledTransactionDao().observeScheduledTransactions().first()
+        val plans = database.scheduledTransactionDao().getScheduledTransactionsOneShot()
         if (session.isCurrent(account)) plans.filter { it.ownerId == account.ownerId }.forEach { scheduler.wake(account.ownerId, it.firestoreId) }
     }
 }

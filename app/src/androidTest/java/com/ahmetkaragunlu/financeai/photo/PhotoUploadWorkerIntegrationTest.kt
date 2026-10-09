@@ -63,6 +63,7 @@ class PhotoUploadWorkerIntegrationTest {
                 val storage = mock(PhotoStorageManager::class.java)
                 val sessions = mock(SessionCoordinator::class.java)
                 `when`(sessions.session).thenReturn(f.local.session)
+                `when`(sessions.activeAccountFor(owner)).thenAnswer { f.local.session.account.value?.takeIf { it.ownerId == owner } }
                 val deleted = mutableListOf<String>()
                 doAnswer {
                     if (changeIntent) runBlocking {

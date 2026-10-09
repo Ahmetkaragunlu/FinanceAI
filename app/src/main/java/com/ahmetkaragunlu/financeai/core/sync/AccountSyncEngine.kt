@@ -165,7 +165,7 @@ class AccountSyncEngine @Inject constructor(
         val revision = document.getLong(SyncFields.REVISION) ?: 0L
         ensureCurrent(account)
         val prepared = remote?.let { store.prepare(account, document.id, SyncPayload.decode(it)) }
-        session.mutex.withLock {
+        session.withStateLock {
             ensureCurrent(account)
             database.withTransaction {
                 val dao = database.syncRecordDao()
@@ -262,7 +262,7 @@ class AccountSyncEngine @Inject constructor(
                 SyncPayload.decode(it)
             )
         }
-        session.mutex.withLock {
+        session.withStateLock {
             ensureCurrent(account)
             database.withTransaction {
                 val dao = database.syncRecordDao()

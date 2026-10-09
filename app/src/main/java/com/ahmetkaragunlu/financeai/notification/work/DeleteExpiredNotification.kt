@@ -25,8 +25,7 @@ class DeleteExpiredNotification @AssistedInject constructor(
     override suspend fun doWork(): Result {
         val ownerId = inputData.getString(AccountWork.OWNER_ID) ?: return Result.failure()
         return try {
-            sessions.prepare()
-            val account = sessions.session.account.value?.takeIf { it.ownerId == ownerId } ?: return Result.success()
+            val account = sessions.activeAccountFor(ownerId) ?: return Result.success()
             val plan = repository.getScheduledTransactionById(inputData.getLong(ReminderKeys.LOCAL_ID, -1))
                 ?: return Result.success()
             reminders.process(account, plan.firestoreId)

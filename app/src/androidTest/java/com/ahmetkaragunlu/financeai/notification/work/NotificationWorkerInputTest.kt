@@ -30,7 +30,10 @@ class NotificationWorkerInputTest {
         val reminders = mock(ReminderCoordinator::class.java)
         val repository = mock(ScheduledTransactionRepository::class.java)
 
-        init { `when`(sessions.session).thenReturn(session) }
+        init {
+            `when`(sessions.session).thenReturn(session)
+            runBlocking { `when`(sessions.activeAccountFor("A")).thenAnswer { session.account.value?.takeIf { it.ownerId == "A" } } }
+        }
 
         fun worker(input: Data): NotificationWorker {
             val factory = object : WorkerFactory() {

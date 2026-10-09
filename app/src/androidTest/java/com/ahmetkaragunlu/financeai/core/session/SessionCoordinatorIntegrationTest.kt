@@ -57,6 +57,8 @@ class SessionCoordinatorIntegrationTest {
                 assertEquals("USD", account?.currencyCode)
                 assertEquals("Europe/Istanbul", account?.timeZoneId)
                 assertEquals("Europe/Istanbul", f.local.database.accountDao().get(owner)?.timeZoneId)
+                assertEquals(account, coordinator.activeAccountFor(owner))
+                assertNull(coordinator.activeAccountFor("other-synthetic-owner"))
                 while (!restored.contains(owner)) delay(10)
             }
         } finally {

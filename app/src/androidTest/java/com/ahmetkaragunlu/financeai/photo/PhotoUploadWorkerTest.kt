@@ -80,6 +80,7 @@ class PhotoUploadWorkerTest {
 
         init {
             `when`(sessions.session).thenReturn(local.session)
+            runBlocking { `when`(sessions.activeAccountFor(owner)).thenAnswer { local.session.account.value?.takeIf { it.ownerId == owner } } }
             `when`(firestore.collection(if (kind == PhotoRecordType.SCHEDULED) "scheduled_transactions" else "transactions")).thenReturn(collection)
             `when`(collection.document(record)).thenReturn(reference)
             doAnswer { readStarted.complete(Unit); read }.`when`(reference).get(Source.SERVER)

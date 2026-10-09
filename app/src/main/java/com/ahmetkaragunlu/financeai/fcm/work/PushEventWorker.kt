@@ -27,8 +27,7 @@ class PushEventWorker @AssistedInject constructor(
         val event = inputData.getString(EVENT) ?: return Result.failure()
         val type = inputData.getString(TYPE) ?: return Result.failure()
         return try {
-            sessions.prepare()
-            val account = sessions.session.account.value?.takeIf { it.ownerId == owner } ?: return Result.success()
+            val account = sessions.activeAccountFor(owner) ?: return Result.success()
             if (database.pushEventDao().get(owner, event)?.handled == true) return Result.success()
             sessions.session.withAccount { current ->
                 check(current == account)

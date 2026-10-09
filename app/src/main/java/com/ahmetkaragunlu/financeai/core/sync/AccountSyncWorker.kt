@@ -21,8 +21,7 @@ class AccountSyncWorker @AssistedInject constructor(
     override suspend fun doWork(): Result {
         val ownerId = inputData.getString(AccountWork.OWNER_ID) ?: return Result.failure()
         return try {
-            coordinator.prepare()
-            val account = coordinator.session.account.value?.takeIf { it.ownerId == ownerId } ?: return Result.success()
+            val account = coordinator.activeAccountFor(ownerId) ?: return Result.success()
             engine.synchronize(account)
             Result.success()
         } catch (e: CancellationException) { throw e }

@@ -26,8 +26,7 @@ class NotificationActionWorker @AssistedInject constructor(
         val owner = inputData.getString(AccountWork.OWNER_ID) ?: return Result.failure()
         val record = inputData.getString(ReminderKeys.REMOTE_ID) ?: return Result.failure()
         return try {
-            sessions.prepare()
-            val account = sessions.session.account.value?.takeIf { it.ownerId == owner } ?: return Result.success()
+            val account = sessions.activeAccountFor(owner) ?: return Result.success()
             when (inputData.getString(ReminderKeys.ACTION)) {
                 NotificationActions.ACTION_CONFIRM -> {
                     val plan = repository.getScheduledTransactionByFirestoreId(record)

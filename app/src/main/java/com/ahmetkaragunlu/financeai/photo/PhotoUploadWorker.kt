@@ -56,8 +56,7 @@ class PhotoUploadWorker @AssistedInject constructor(
             return Result.success()
         }
         return try {
-            sessions.prepare()
-            val account = sessions.session.account.value?.takeIf { it.ownerId == owner }
+            val account = sessions.activeAccountFor(owner)
                 ?: return Result.success()
             if (localPath() != path) return retire()
             val operation = database.photoOperationDao().forAccount(owner)
