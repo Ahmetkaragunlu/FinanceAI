@@ -32,7 +32,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -134,13 +133,14 @@ class BudgetViewModelTest {
         val summary = MutableStateFlow(FinancialSummary())
         val summaryRanges = mutableListOf<DateRange>()
         val expenseRanges = mutableListOf<DateRange>()
+        val expenses = MutableStateFlow(emptyList<CategoryExpense>())
         override fun observeFinancialSummary(startDate: Long, endDate: Long): Flow<FinancialSummary> {
             summaryRanges += DateRange(startDate, endDate)
             return summary
         }
         override fun observeCategoryExpensesByTypeAndDateRange(transactionType: TransactionType, startDate: Long, endDate: Long): Flow<List<CategoryExpense>> {
             expenseRanges += DateRange(startDate, endDate)
-            return flowOf(emptyList())
+            return expenses
         }
         override fun observeTransactionById(id: Int): Flow<Transaction?> = error("Unexpected query")
         override fun observeTransactions(): Flow<List<Transaction>> = error("Unexpected query")
@@ -246,6 +246,104 @@ class BudgetViewModelTest {
             queries.summary.value = FinancialSummary(200.0, 25.0)
             withTimeout(5_000) { vm.uiState.first { it.generalBudgetState?.spentAmount == 25.0 } }
             assertEquals(175.0, checkNotNull(vm.uiState.value.generalBudgetState).remainingAmount, 0.0)
+        } finally { scope.cancel() }
+    }
+
+    @Test fun invalidAmountPercentageAndMissingCategoryNeverReachSave() {
+        val vm = viewModel()
+        instrumentation.runOnMainSync {
+            vm.onEvent(BudgetEvent.OnAddBudgetClick)
+            vm.onEvent(BudgetEvent.OnAmountChange("10"))
+            vm.onEvent(BudgetEvent.OnSaveClick)
+            assertEquals(R.string.error_select_category, vm.formState.value.categoryErrorResId)
+            listOf("", "0", "-1", "NaN", "Infinity", "1.001").forEach {
+                vm.onEvent(BudgetEvent.OnCreateGeneralBudgetClick)
+                vm.onEvent(BudgetEvent.OnAmountChange(it))
+                vm.onEvent(BudgetEvent.OnSaveClick)
+                assertEquals(R.string.error_invalid_amount, vm.formState.value.amountErrorResId)
+            }
+            listOf("", "0", "-1", "NaN", "Infinity").forEach {
+                vm.onEvent(BudgetEvent.OnAddBudgetClick)
+                vm.onEvent(BudgetEvent.OnTypeChange(BudgetType.CATEGORY_PERCENTAGE))
+                vm.onEvent(BudgetEvent.OnCategoryChange(CategoryType.FOOD))
+                vm.onEvent(BudgetEvent.OnPercentageChange(it))
+                vm.onEvent(BudgetEvent.OnSaveClick)
+                assertEquals(R.string.error_enter_percent, vm.formState.value.amountErrorResId)
+            }
+        }
+        assertTrue(repository.saved.isEmpty())
+    }
+
+    @Test fun existingGeneralOrCategoryRulesProduceTheirSpecificConflictWithoutSaving() {
+        repository.rules = listOf(
+            Budget(id = 1, budgetType = BudgetType.GENERAL_MONTHLY, amount = 100.0),
+            Budget(id = 2, budgetType = BudgetType.CATEGORY_AMOUNT, category = CategoryType.FOOD, amount = 10.0))
+        val vm = viewModel()
+        submit(vm)
+        assertEquals(R.string.error_conflict_general, vm.formState.value.conflictErrorResId)
+        instrumentation.runOnMainSync {
+            vm.onEvent(BudgetEvent.OnAddBudgetClick)
+            vm.onEvent(BudgetEvent.OnCategoryChange(CategoryType.FOOD))
+            vm.onEvent(BudgetEvent.OnAmountChange("20"))
+            vm.onEvent(BudgetEvent.OnSaveClick)
+        }
+        assertEquals(R.string.error_conflict_category, vm.formState.value.conflictErrorResId)
+        assertTrue(vm.formState.value.isConflictDialogOpen)
+        assertTrue(repository.saved.isEmpty())
+    }
+
+    @Test fun changingAnExistingCategoryRuleTypeKeepsItsIdentityAndDoesNotConflictWithItself() {
+        repository.rules = listOf(Budget(id = 2, firestoreId = "food", ownerId = "A", currencyCode = "USD",
+            budgetType = BudgetType.CATEGORY_AMOUNT, category = CategoryType.FOOD, amount = 20.0))
+        val vm = viewModel()
+        instrumentation.runOnMainSync {
+            vm.onEvent(BudgetEvent.OnEditCategoryClick(CategoryBudgetState(2, CategoryType.FOOD,
+                BudgetType.CATEGORY_AMOUNT, 20.0, 0.0, null, 0f, false, 0)))
+            vm.onEvent(BudgetEvent.OnTypeChange(BudgetType.CATEGORY_PERCENTAGE))
+            vm.onEvent(BudgetEvent.OnPercentageChange("125,5"))
+            vm.onEvent(BudgetEvent.OnSaveClick)
+        }
+        val saved = repository.saved.single()
+        assertEquals(2, saved.id)
+        assertEquals("food", saved.firestoreId)
+        assertEquals(BudgetType.CATEGORY_PERCENTAGE, saved.budgetType)
+        // Existing percentage validation has no new 100-percent cap.
+        assertEquals(125.5, checkNotNull(saved.limitPercentage), 0.0)
+        assertFalse(vm.formState.value.isConflictDialogOpen)
+    }
+
+    @Test fun categoryProgressSortingAndWarningsPreserveKnownAndUnknownCategorySpending() = runBlocking {
+        val queries = FinanceQueries().apply {
+            summary.value = FinancialSummary(200.0, 80.0)
+            expenses.value = listOf(CategoryExpense(CategoryType.FOOD, 21.0), CategoryExpense(CategoryType.GROCERIES, 31.0),
+                CategoryExpense(CategoryType.OTHER, 5.0), CategoryExpense(null, 12.0), CategoryExpense(CategoryType.TRANSPORT, 11.0))
+        }
+        repository.rules = listOf(Budget(id = 1, budgetType = BudgetType.GENERAL_MONTHLY, amount = 100.0),
+            Budget(id = 2, budgetType = BudgetType.CATEGORY_PERCENTAGE, category = CategoryType.FOOD, limitPercentage = 25.0),
+            Budget(id = 3, budgetType = BudgetType.CATEGORY_AMOUNT, category = CategoryType.GROCERIES, amount = 20.0),
+            Budget(id = 4, budgetType = BudgetType.CATEGORY_AMOUNT, category = CategoryType.OTHER, amount = 10.0),
+            Budget(id = 5, budgetType = BudgetType.CATEGORY_AMOUNT, category = null, amount = 1.0))
+        val vm = viewModel(queries = queries)
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+        try {
+            scope.launch { vm.uiState.collect() }
+            withTimeout(5_000) { vm.uiState.first { !it.isLoading } }
+            val state = vm.uiState.value
+            assertEquals(listOf(3, 2, 4, 5), state.categoryBudgetStates.map { it.id })
+            val grocery = state.categoryBudgetStates.first()
+            assertEquals(155, grocery.percentageUsed)
+            assertEquals(1f, grocery.progress)
+            assertTrue(grocery.isOverBudget)
+            assertEquals(5.0, state.categoryBudgetStates.single { it.id == 4 }.spentAmount, 0.0)
+            assertEquals(0.0, state.categoryBudgetStates.single { it.id == 5 }.spentAmount, 0.0)
+            assertEquals(BudgetWarning.CategoryExceeded(CategoryType.GROCERIES), state.warning)
+            queries.expenses.value = emptyList()
+            queries.summary.value = FinancialSummary(200.0, 79.99)
+            withTimeout(5_000) { vm.uiState.first { it.generalBudgetState?.spentAmount == 79.99 && it.categoryBudgetStates.all { row -> row.spentAmount == 0.0 } } }
+            assertNull(vm.uiState.value.warning)
+            queries.summary.value = FinancialSummary(200.0, 80.0)
+            withTimeout(5_000) { vm.uiState.first { it.generalBudgetState?.spentAmount == 80.0 } }
+            assertEquals(BudgetWarning.GeneralNearLimit, vm.uiState.value.warning)
         } finally { scope.cancel() }
     }
 }

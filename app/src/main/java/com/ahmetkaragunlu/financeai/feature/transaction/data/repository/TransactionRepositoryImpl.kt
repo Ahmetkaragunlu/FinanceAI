@@ -171,7 +171,7 @@ class TransactionRepositoryImpl @Inject constructor(
     ): Flow<List<CategoryExpense>> =
         session.observe(emptyList()) { account ->
             transactionDao.observeCategoryExpensesByTypeAndDateRange(transactionType, startDate, endDate)
-                .map { rows -> rows.map { CategoryExpense(it.category, MoneyAmounts.toMajor(it.totalMinor, account.currencyCode)) } }
+                .map { rows -> rows.map { it.toDomain(account.currencyCode) } }
                 .distinctUntilChanged()
         }
 

@@ -3,8 +3,8 @@ package com.ahmetkaragunlu.financeai.feature.transaction.presentation.history
 import androidx.lifecycle.ViewModelStore
 import com.ahmetkaragunlu.financeai.core.coroutines.testing.MainDispatcherRule
 import com.ahmetkaragunlu.financeai.core.time.DateFilter
-import com.ahmetkaragunlu.financeai.core.time.FinancePeriods
 import com.ahmetkaragunlu.financeai.core.time.FinanceCalendar
+import com.ahmetkaragunlu.financeai.core.time.FinancePeriods
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryExpense
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.FinancialSummary
@@ -34,6 +34,28 @@ import org.junit.Test
 class TransactionHistoryViewModelTest {
     @get:Rule val main = MainDispatcherRule()
     private val clock = Clock.fixed(Instant.parse("2026-10-08T12:00:00Z"), ZoneOffset.UTC)
+
+    @Test fun reselectingTheSameTypeKeepsCategoryPriorityAndItsCurrentDateRange() = runTest {
+        val repository = RecordingRepository()
+        val model = TransactionHistoryViewModel(repository, FinanceCalendar(clock))
+        val store = ViewModelStore().apply { put("history", model) }
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { model.transactions.collect() }
+        try {
+            model.onTypeSelected(TransactionType.EXPENSE)
+            model.onCategorySelected(CategoryType.FOOD)
+            model.onDateSelected(DateFilter.TODAY)
+            runCurrent()
+            val original = repository.last
+            model.onTypeSelected(TransactionType.EXPENSE); runCurrent()
+            assertEquals(CategoryType.FOOD, model.filters.value.category)
+            assertEquals(original, repository.last)
+            assertNull(repository.last.type)
+            model.onCategorySelected(null); runCurrent()
+            assertEquals(TransactionType.EXPENSE, repository.last.type)
+            assertEquals(original.start, repository.last.start)
+            assertEquals(original.end, repository.last.end)
+        } finally { store.clear() }
+    }
 
     @Test
     fun changingTypeClearsCategoryAndUpdatesTheQueryFromOneFilterSnapshot() = runTest {

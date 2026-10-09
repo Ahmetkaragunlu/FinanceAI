@@ -147,7 +147,7 @@ class TransactionRepositoryImplTest {
         assertEquals(100.0, summary.income, 0.0)
         assertEquals(25.0, summary.expense, 0.0)
         assertEquals(75.0, summary.remainingBalance, 0.0)
-        assertEquals(listOf(CategoryExpense("FOOD", 25.0)), repository.observeCategoryExpensesByTypeAndDateRange(
+        assertEquals(listOf(CategoryExpense(CategoryType.FOOD, 25.0)), repository.observeCategoryExpensesByTypeAndDateRange(
             TransactionType.EXPENSE, range.start, range.endExclusive).first())
     }
 

@@ -41,9 +41,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.core.ui.component.formatAsAccountCurrency
+import com.ahmetkaragunlu.financeai.core.ui.component.formatAsUiPercentage
 import com.ahmetkaragunlu.financeai.core.ui.theme.FinanceColors
 import com.ahmetkaragunlu.financeai.core.ui.theme.FinanceGradients
 import com.ahmetkaragunlu.financeai.core.ui.theme.Spacing
+import com.ahmetkaragunlu.financeai.feature.budget.domain.calculation.BudgetWarningThreshold
 import com.ahmetkaragunlu.financeai.feature.budget.presentation.BudgetEvent
 import com.ahmetkaragunlu.financeai.feature.budget.presentation.BudgetUiState
 import com.ahmetkaragunlu.financeai.feature.budget.presentation.CategoryBudgetState
@@ -285,7 +287,7 @@ private fun GeneralBudgetCard(
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
-                        text = stringResource(R.string.spent_percent_format, realPercentage),
+                        text = stringResource(R.string.spent_percent_format, realPercentage.formatAsUiPercentage()),
                         style = MaterialTheme.typography.labelLarge,
                         color = percentageTextColor,
                         fontWeight = FontWeight.Bold,
@@ -378,7 +380,7 @@ private fun CategoryBudgetCard(
     val progressColor =
         when {
             state.isOverBudget -> FinanceColors.expenseMuted
-            state.progress > 0.8f -> FinanceColors.warning
+            state.progress > BudgetWarningThreshold.progress -> FinanceColors.warning
             else -> FinanceColors.success
         }
 
@@ -386,7 +388,7 @@ private fun CategoryBudgetCard(
         if (state.limitPercentage != null && state.limitPercentage > 0) {
             stringResource(
                 R.string.limit_percent_format,
-                state.limitPercentage.toInt(),
+                state.limitPercentage.toInt().formatAsUiPercentage(),
                 state.limitAmount.formatAsAccountCurrency(),
             )
         } else {
@@ -496,7 +498,7 @@ private fun CategoryBudgetCard(
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = stringResource(R.string.percent_format, state.percentageUsed),
+                            text = state.percentageUsed.formatAsUiPercentage(),
                             style = MaterialTheme.typography.labelLarge,
                             color = progressColor,
                             fontWeight = FontWeight.Bold,

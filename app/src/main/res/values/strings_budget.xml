@@ -18,15 +18,14 @@
     <string name="percentage_label">Yüzde</string>
     <string name="amount_label">Tutar</string>
     <string name="error_enter_percent">Lütfen bir yüzde girin</string>
-    <string name="error_enter_valid_amount">Lütfen geçerli bir tutar girin</string>
     <string name="error_conflict_general">Genel bütçe için zaten bir plan var!</string>
     <string name="error_conflict_category">Bu kategori için zaten bir plan var!</string>
     <string name="budget_type_category">Kategori</string>
     <string name="budget_type_percentage">Yüzde</string>
     <string name="set_limit_label">Belirlenen Limit</string>
     <string name="expense_format">Gider: -%1$s</string>
-    <string name="spent_percent_format">%%%1$d Harcandı</string>
-    <string name="limit_percent_format">Limit: %%%1$d (%2$s)</string>
+    <string name="spent_percent_format">%1$s Harcandı</string>
+    <string name="limit_percent_format">Limit: %1$s (%2$s)</string>
     <string name="limit_amount_format">Limit: %1$s</string>
     <string name="spent_vs_limit_format">%1$s / %2$s</string>
     <string name="warning_budget_exceeded">Harcama limitinizi aştınız!</string>

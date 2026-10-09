@@ -11,7 +11,6 @@
     <string name="cancel">İptal</string>
     <string name="something_went_wrong">Bir şeyler ters gitti</string>
     <string name="failure">Başarısız</string>
-    <string name="save_button">Kaydet</string>
     <string name="edit">Düzenle</string>
     <string name="delete">Sil</string>
     <string name="save">Kaydet</string>
@@ -28,5 +27,4 @@
     <string name="percent_symbol">%</string>
     <string name="yes">Evet</string>
     <string name="no">Hayır</string>
-    <string name="percent_format">%%%1$d</string>
 </resources>

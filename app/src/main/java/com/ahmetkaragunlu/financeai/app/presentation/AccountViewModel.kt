@@ -28,7 +28,7 @@ class AccountViewModel @Inject constructor(
                     if (current != null) {
                         val name = authRepository.getUserName()
                         if (session.isCurrent(current)) {
-                            emit(name?.lowercase()?.replaceFirstChar { it.uppercase() }.orEmpty())
+                            emit(name.orEmpty())
                         }
                     }
                 }

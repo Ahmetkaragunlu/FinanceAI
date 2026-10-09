@@ -2,6 +2,7 @@ package com.ahmetkaragunlu.financeai.feature.home.presentation
 
 import androidx.lifecycle.ViewModelStore
 import com.ahmetkaragunlu.financeai.core.coroutines.testing.MainDispatcherRule
+import com.ahmetkaragunlu.financeai.core.format.formatAsCurrency
 import com.ahmetkaragunlu.financeai.core.session.AccountSession
 import com.ahmetkaragunlu.financeai.core.time.DateRange
 import com.ahmetkaragunlu.financeai.core.time.FinanceCalendar
@@ -34,6 +35,25 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModelTest {
     @get:Rule val main = MainDispatcherRule()
+
+    @Test fun accountCurrencyControlsFormattedAmountsWithoutChangingTheFinancialSummary() = runTest {
+        val session = AccountSession().apply { activate("A", "USD") }
+        val finance = Finance().apply { summary.value = FinancialSummary(200.50, 25.25) }
+        val model = HomeViewModel(FinanceCalendar(Clock.systemUTC()), session, finance, Budgets())
+        val store = ViewModelStore().apply { put("home", model) }
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { model.homeUiState.collect() }
+        try {
+            runCurrent()
+            assertEquals(200.50.formatAsCurrency("USD"), model.homeUiState.value.totalIncome)
+            assertEquals(25.25.formatAsCurrency("USD"), model.homeUiState.value.totalExpense)
+            session.activate("B", "EUR"); runCurrent()
+            assertEquals(200.50.formatAsCurrency("EUR"), model.homeUiState.value.totalIncome)
+            assertEquals(175.25.formatAsCurrency("EUR"), model.homeUiState.value.remainingBalanceFormatted)
+            assertEquals(175.25, model.homeUiState.value.remainingBalance, 0.0)
+            session.deactivate(); runCurrent()
+            assertEquals(HomeUiState(), model.homeUiState.value)
+        } finally { store.clear() }
+    }
 
     private class MutableClock(var now: Instant) : Clock() {
         override fun instant() = now

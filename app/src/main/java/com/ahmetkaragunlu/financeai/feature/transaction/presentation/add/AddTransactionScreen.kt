@@ -323,7 +323,7 @@ fun AddTransactionScreen(
                     stringResource(
                         id =
                             if (state.reminderEnabled) R.string.create_reminder_button
-                            else R.string.save_button
+                            else R.string.save
                     ),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onPrimary,

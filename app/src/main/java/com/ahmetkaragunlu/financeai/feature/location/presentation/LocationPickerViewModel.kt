@@ -1,16 +1,12 @@
 package com.ahmetkaragunlu.financeai.feature.location.presentation
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.feature.location.domain.AddressResolver
 import com.ahmetkaragunlu.financeai.feature.location.domain.Coordinates
 import com.ahmetkaragunlu.financeai.feature.location.domain.LocationGateway
 import com.ahmetkaragunlu.financeai.feature.location.domain.error.LocationFailure
-import com.google.android.gms.maps.model.LatLng
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -22,7 +18,6 @@ import kotlinx.coroutines.launch
 class LocationPickerViewModel
 @Inject
 constructor(
-    @ApplicationContext private val context: Context,
     private val locations: LocationGateway,
     private val addresses: AddressResolver,
 ) : ViewModel() {
@@ -90,10 +85,10 @@ constructor(
             }
     }
 
-    fun selectLocation(value: LatLng) {
+    fun selectLocation(value: Coordinates) {
         val id = begin()
         requestJob =
-            viewModelScope.launch { resolve(Coordinates(value.latitude, value.longitude), id) }
+            viewModelScope.launch { resolve(value, id) }
     }
 
     fun search() {
@@ -121,7 +116,7 @@ constructor(
 
     private suspend fun resolve(coordinate: Coordinates, id: Long) {
         if (id != requestId) return
-        val selected = LatLng(coordinate.latitude, coordinate.longitude)
+        val selected = coordinate.normalizedForMap()
         mutableState.value =
             mutableState.value.copy(
                 selectedLocation = selected,
@@ -134,13 +129,8 @@ constructor(
             if (id == requestId)
                 mutableState.value =
                     mutableState.value.copy(
-                        addressText =
-                            address?.addressFull
-                                ?: context.getString(
-                                    R.string.location_coordinates,
-                                    coordinate.latitude,
-                                    coordinate.longitude,
-                                ),
+                        addressText = address?.addressFull,
+                        fallbackCoordinates = coordinate.takeIf { address == null },
                         error = if (address == null) LocationFailure.AddressNotFound else null,
                         isLoading = false,
                     )
@@ -150,12 +140,8 @@ constructor(
             if (id == requestId)
                 mutableState.value =
                     mutableState.value.copy(
-                        addressText =
-                            context.getString(
-                                R.string.location_coordinates,
-                                coordinate.latitude,
-                                coordinate.longitude,
-                            ),
+                        addressText = null,
+                        fallbackCoordinates = coordinate,
                         error = LocationFailure.AddressNotFound,
                         isLoading = false,
                     )

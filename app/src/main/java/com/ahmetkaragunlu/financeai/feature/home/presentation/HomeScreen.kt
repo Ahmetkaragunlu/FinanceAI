@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ahmetkaragunlu.financeai.R
+import com.ahmetkaragunlu.financeai.core.ui.component.formatAsUiPercentage
 import com.ahmetkaragunlu.financeai.core.ui.theme.FinanceColors
 import com.ahmetkaragunlu.financeai.core.ui.theme.FinanceGradients
 import com.ahmetkaragunlu.financeai.core.ui.theme.Spacing
@@ -88,7 +89,7 @@ fun HomeScreen(
 @Composable
 fun FinanceProgressBar(remainingIncomeRatio: Double, modifier: Modifier = Modifier) {
     val progressValue = if (remainingIncomeRatio < 0) 1f else remainingIncomeRatio.toFloat()
-    val percentageText = String.format("%.0f%%", remainingIncomeRatio * 100)
+    val percentageText = (remainingIncomeRatio * 100).formatAsUiPercentage()
 
     Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         LinearProgressIndicator(

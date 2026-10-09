@@ -192,6 +192,7 @@ private fun HistoryContent(
                     EditButton(
                         modifier = Modifier.fillMaxWidth(),
                         label = filters.date.labelRes(),
+                        textTopPadding = if (filters.date == DateFilter.ALL) 3.dp else 0.dp,
                         icon = R.drawable.calendar,
                         onClick = { isDateMenuOpen = true },
                     )

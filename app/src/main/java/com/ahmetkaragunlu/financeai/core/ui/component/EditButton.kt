@@ -17,8 +17,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.core.ui.theme.FinanceColors
 
 @Composable
@@ -27,6 +27,7 @@ fun EditButton(
     @StringRes label: Int,
     @DrawableRes icon: Int,
     onClick: () -> Unit,
+    textTopPadding: Dp = 0.dp,
 ) {
     Button(
         onClick = onClick,
@@ -42,12 +43,7 @@ fun EditButton(
             color = MaterialTheme.colorScheme.onPrimary,
             style = MaterialTheme.typography.labelLarge,
             maxLines = 1,
-            modifier =
-                if (label == R.string.date) {
-                    Modifier.padding(top = 3.dp)
-                } else {
-                    Modifier
-                },
+            modifier = Modifier.padding(top = textTopPadding),
         )
     }
 }

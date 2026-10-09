@@ -8,6 +8,12 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class AiSuggestionPolicyTest {
+    @Test fun unknownCategorySpendingDoesNotBecomeAnOtherCategoryBudgetWarning() {
+        val budgets = listOf(Budget(budgetType = BudgetType.CATEGORY_AMOUNT, category = CategoryType.OTHER, amount = 10.0))
+        assertEquals(AiSuggestionState.Healthy, buildAiSuggestion(budgets, 20.0, listOf(CategoryExpense(null, 20.0))))
+        assertEquals(AiSuggestionState.CategoryNearLimit(CategoryType.OTHER, 80),
+            buildAiSuggestion(budgets, 8.0, listOf(CategoryExpense(CategoryType.OTHER, 8.0))))
+    }
     @Test
     fun noBudgetUsesActualSpendingOrPlanningWithoutInventingExpenses() {
         assertEquals(AiSuggestionState.Planning, buildAiSuggestion(emptyList(), 0.0, emptyList()))
@@ -48,7 +54,7 @@ class AiSuggestionPolicyTest {
             )
         assertEquals(
             AiSuggestionState.GeneralNearLimit(85),
-            buildAiSuggestion(budgets, 85.0, listOf(CategoryExpense(CategoryType.FOOD.name, 30.0))),
+            buildAiSuggestion(budgets, 85.0, listOf(CategoryExpense(CategoryType.FOOD, 30.0))),
         )
     }
 
@@ -65,7 +71,7 @@ class AiSuggestionPolicyTest {
             )
         assertEquals(
             AiSuggestionState.CategoryExceeded(CategoryType.FOOD, 20.0, 25.0),
-            buildAiSuggestion(budgets, 25.0, listOf(CategoryExpense(CategoryType.FOOD.name, 25.0))),
+            buildAiSuggestion(budgets, 25.0, listOf(CategoryExpense(CategoryType.FOOD, 25.0))),
         )
     }
 }

@@ -23,6 +23,7 @@ import com.ahmetkaragunlu.financeai.feature.transaction.presentation.Transaction
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.transactionFailure
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.io.File
+import java.math.BigDecimal
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.NonCancellable
@@ -193,7 +194,7 @@ constructor(
 
     fun prepareEdit(): Boolean {
         val tx = uiState.value.transaction ?: return false
-        editAmount = tx.amount.toString()
+        editAmount = BigDecimal.valueOf(tx.amount).stripTrailingZeros().toPlainString()
         editNote = tx.note
         editCategory = tx.category
         return true
@@ -219,7 +220,7 @@ constructor(
             return
         }
         if (editCategory == null) {
-            actionResult = TransactionActionResult.Failure(R.string.select_category_error)
+            actionResult = TransactionActionResult.Failure(R.string.error_select_category)
             return
         }
         val note = editNote

@@ -150,7 +150,7 @@ class BudgetViewModel @Inject constructor(
             }
         } else {
             if (MoneyAmounts.parse(currentState.amountInput, session.requireAccount().currencyCode) == null) {
-                _formState.update { it.copy(amountErrorResId = R.string.error_enter_valid_amount) }
+                _formState.update { it.copy(amountErrorResId = R.string.error_invalid_amount) }
                 hasError = true
             }
         }
@@ -310,9 +310,9 @@ class BudgetViewModel @Inject constructor(
         }
         val categoryBudgetStates = rules.filter { it.budgetType != BudgetType.GENERAL_MONTHLY }
             .map { rule ->
-                val categoryName = rule.category?.name
-                val spent =
-                    categoryExpenses.find { it.category == categoryName }?.totalAmount ?: 0.0
+                val spent = rule.category?.let { category ->
+                    categoryExpenses.find { it.category == category }?.totalAmount
+                } ?: 0.0
                 val limit = calculateCategoryBudgetLimit(rule, generalRule)
                 val progress = if (limit > 0) (spent / limit).toFloat() else 0f
                 CategoryBudgetState(

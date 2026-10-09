@@ -60,7 +60,6 @@
     <string name="error_transaction_save_failed">İşlem kaydedilemedi: %1$s</string>
     <string name="updated_successfully">Başarıyla güncellendi</string>
     <string name="invalid_amount">Geçersiz tutar</string>
-    <string name="select_category_error">Lütfen bir kategori seçin</string>
     <string name="update_failed">Güncelleme başarısız: %1$s</string>
     <string name="delete_failed">Silme başarısız: %1$s</string>
     <string name="no_scheduled_transactions">Planlanmış işlem bulunamadı</string>

@@ -35,8 +35,9 @@ class BudgetWarningTest {
 
     @Test fun nearLimitThresholdAndHealthyOrMissingBudgetDoNotChange() {
         assertNull(budgetWarning(emptyList(), null))
-        assertNull(budgetWarning(listOf(category(CategoryType.FOOD, false)), general(15.0, 0.85f)))
-        assertEquals(BudgetWarning.GeneralNearLimit, budgetWarning(emptyList(), general(14.0, 0.86f)))
+        assertNull(budgetWarning(listOf(category(CategoryType.FOOD, false)), general(20.01, 0.7999f)))
+        assertEquals(BudgetWarning.GeneralNearLimit, budgetWarning(emptyList(), general(20.0, 0.8f)))
+        assertEquals(BudgetWarning.GeneralNearLimit, budgetWarning(emptyList(), general(19.99, 0.8001f)))
         assertNull(budgetWarning(emptyList(), general(0.0, 0.5f)))
     }
 }

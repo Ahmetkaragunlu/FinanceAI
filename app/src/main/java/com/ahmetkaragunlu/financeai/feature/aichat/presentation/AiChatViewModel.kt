@@ -5,9 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.core.session.AccountSession
-import com.ahmetkaragunlu.financeai.feature.aichat.domain.error.AiException
 import com.ahmetkaragunlu.financeai.feature.aichat.domain.model.AiMessage
 import com.ahmetkaragunlu.financeai.feature.aichat.domain.model.AiRequest
 import com.ahmetkaragunlu.financeai.feature.aichat.domain.repository.AiRepository
@@ -86,19 +84,7 @@ constructor(private val aiRepository: AiRepository, private val session: Account
                     if (session.isCurrent(account)) {
                         failedRequest = request
                         if (textState.isBlank()) textState = text
-                        mutableError.value =
-                            when (e) {
-                                is AiException.RateLimited -> R.string.error_rate_limited
-                                is AiException.ResponseRejected -> R.string.ai_request_rejected
-                                is AiException.Configuration -> R.string.ai_configuration_error
-                                is AiException.EmptyResponse -> R.string.ai_response_error_empty
-                                is AiException.AccessVerification ->
-                                    R.string.ai_access_verification_failed
-                                is AiException.TimedOut -> R.string.ai_request_timed_out
-                                is AiException.NetworkUnavailable -> R.string.ai_network_unavailable
-                                is AiException.ServiceUnavailable -> R.string.ai_service_unavailable
-                                else -> R.string.ai_request_failed
-                            }
+                        mutableError.value = aiErrorMessageRes(e)
                     }
                 } finally {
                     if (session.isCurrent(account)) isLoading = false

@@ -34,7 +34,6 @@ import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryTyp
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toLabelResId
 import kotlin.math.cos
 import kotlin.math.sin
-import kotlinx.coroutines.CancellationException
 
 @Composable
 fun ExpensePieChart(categoryExpenses: List<CategoryExpense>, modifier: Modifier = Modifier) {
@@ -44,10 +43,10 @@ fun ExpensePieChart(categoryExpenses: List<CategoryExpense>, modifier: Modifier 
     val displayData =
         categoryExpenses.ifEmpty {
             listOf(
-                CategoryExpense(CategoryType.FOOD.name, 0.0),
-                CategoryExpense(CategoryType.TRANSPORT.name, 0.0),
-                CategoryExpense(CategoryType.GROCERIES.name, 0.0),
-                CategoryExpense(CategoryType.ENTERTAINMENT.name, 0.0),
+                CategoryExpense(CategoryType.FOOD, 0.0),
+                CategoryExpense(CategoryType.TRANSPORT, 0.0),
+                CategoryExpense(CategoryType.GROCERIES, 0.0),
+                CategoryExpense(CategoryType.ENTERTAINMENT, 0.0),
             )
         }
 
@@ -56,13 +55,7 @@ fun ExpensePieChart(categoryExpenses: List<CategoryExpense>, modifier: Modifier 
     val categoryData =
         remember(displayData) {
             displayData.mapIndexed { index, expense ->
-                val categoryType =
-                    try {
-                        CategoryType.valueOf(expense.category)
-                    } catch (e: Exception) {
-                        if (e is CancellationException) throw e
-                        CategoryType.OTHER
-                    }
+                val categoryType = expense.category ?: CategoryType.OTHER
                 Triple(categoryType, expense.totalAmount, getCategoryColor(index))
             }
         }

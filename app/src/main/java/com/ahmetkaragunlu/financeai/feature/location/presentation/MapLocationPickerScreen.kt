@@ -62,6 +62,7 @@ import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.core.ui.effect.ToastMessageEffect
 import com.ahmetkaragunlu.financeai.core.ui.theme.FinanceColors
 import com.ahmetkaragunlu.financeai.core.ui.theme.Spacing
+import com.ahmetkaragunlu.financeai.feature.location.domain.Coordinates
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
@@ -81,7 +82,6 @@ fun MapLocationPickerRoute(
     viewModel: LocationPickerViewModel = hiltViewModel(),
 ) {
     BackHandler { onDismiss() }
-    val context = LocalContext.current
     var showLocationSettingsDialog by rememberSaveable { mutableStateOf(false) }
     val requestCurrentLocation: () -> Unit = {
         viewModel.getCurrentLocation(onSettingsRequired = { showLocationSettingsDialog = true })
@@ -153,7 +153,7 @@ fun MapLocationPickerScreen(
     requestCurrentLocation: () -> Unit,
     onQueryChanged: (String) -> Unit,
     onSearch: () -> Unit,
-    onPositionSelected: (LatLng) -> Unit,
+    onPositionSelected: (Coordinates) -> Unit,
     onLocationSelected: (Double, Double) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -218,7 +218,7 @@ fun MapLocationPickerScreen(
             val cameraPositionState = rememberCameraPositionState {
                 position =
                     CameraPosition.fromLatLngZoom(
-                        uiState.currentLocation ?: LatLng(41.0082, 28.9784),
+                        uiState.currentLocation?.let { LatLng(it.latitude, it.longitude) } ?: LatLng(41.0082, 28.9784),
                         15f,
                     )
             }
@@ -226,7 +226,7 @@ fun MapLocationPickerScreen(
             LaunchedEffect(uiState.selectedLocation) {
                 uiState.selectedLocation?.let { location ->
                     cameraPositionState.animate(
-                        update = CameraUpdateFactory.newLatLngZoom(location, 16f)
+                        update = CameraUpdateFactory.newLatLngZoom(LatLng(location.latitude, location.longitude), 16f)
                     )
                 }
             }
@@ -236,25 +236,26 @@ fun MapLocationPickerScreen(
                 properties = MapProperties(isMyLocationEnabled = uiState.hasLocationPermission),
                 uiSettings =
                     MapUiSettings(zoomControlsEnabled = true, myLocationButtonEnabled = false),
-                onMapClick = { latLng -> onPositionSelected(latLng) },
+                onMapClick = { latLng -> onPositionSelected(Coordinates(latLng.latitude, latLng.longitude)) },
             ) {
                 uiState.selectedLocation?.let { location ->
-                    val markerState = rememberMarkerState(position = location)
+                    val mapPosition = LatLng(location.latitude, location.longitude)
+                    val markerState = rememberMarkerState(position = mapPosition)
 
                     LaunchedEffect(location) {
                         if (
                             markerState.dragState == DragState.END &&
-                                markerState.position != location
+                                markerState.position != mapPosition
                         )
-                            markerState.position = location
+                            markerState.position = mapPosition
                     }
 
                     LaunchedEffect(markerState.dragState) {
                         if (
                             markerState.dragState == DragState.END &&
-                                markerState.position != uiState.selectedLocation
+                                markerState.position != mapPosition
                         ) {
-                            onPositionSelected(markerState.position)
+                            onPositionSelected(Coordinates(markerState.position.latitude, markerState.position.longitude))
                         }
                     }
 
@@ -270,7 +271,8 @@ fun MapLocationPickerScreen(
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             }
 
-            uiState.addressText?.let { address ->
+            val addressText = uiState.addressDisplayText()
+            addressText?.let { address ->
                 Card(
                     modifier =
                         Modifier.align(Alignment.TopCenter)

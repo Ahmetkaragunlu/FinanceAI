@@ -1,5 +1,6 @@
 package com.ahmetkaragunlu.financeai.feature.budget.presentation
 
+import com.ahmetkaragunlu.financeai.feature.budget.domain.calculation.BudgetWarningThreshold
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 
 sealed interface BudgetWarning {
@@ -20,7 +21,7 @@ internal fun budgetWarning(categories: List<CategoryBudgetState>, general: Gener
         generalOver -> BudgetWarning.GeneralExceeded
         over.size == 1 -> BudgetWarning.CategoryExceeded(over.single().category)
         over.size > 1 -> BudgetWarning.CategoriesExceeded(over.size)
-        general != null && general.progress > 0.85f -> BudgetWarning.GeneralNearLimit
+        general != null && general.progress >= BudgetWarningThreshold.progress -> BudgetWarning.GeneralNearLimit
         else -> null
     }
 }
