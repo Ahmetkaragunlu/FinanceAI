@@ -87,6 +87,8 @@ kotlin {
 
 ksp { arg("room.schemaLocation", "$projectDir/schemas") }
 
+android.sourceSets.getByName("androidTest").assets.srcDir("$projectDir/schemas")
+
 dependencies {
     implementation(libs.gson)
     implementation(platform(libs.firebase.bom))

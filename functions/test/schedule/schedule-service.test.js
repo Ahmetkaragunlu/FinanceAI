@@ -148,3 +148,85 @@ test('an unknown command remains an invalid retained receipt with no schedule or
     assert.equal(db.values.has('transactions/completed_p1'), false);
     assert.equal(db.values.has('schedule_states/p1'), false);
 });
+
+test('refresh ignores missing plans and invalid account zones or dates without creating state or events', async () => {
+    for (const kind of ['missing', 'zone', 'date']) {
+        const db = fixture({});
+        if (kind === 'missing') db.values.delete('scheduled_transactions/p1');
+        if (kind === 'zone') db.values.set('users/A', { currencyCode: 'TRY', timeZoneId: 'not/a-zone' });
+        if (kind === 'date') db.values.set('scheduled_transactions/p1', { ...plan, scheduledDate: 'invalid' });
+        await scheduleService(db, () => date + 12 * HOUR).refresh('p1');
+        assert.deepEqual(db.writes, []);
+        assert.equal(db.values.has('schedule_states/p1'), false);
+    }
+});
+
+test('refresh preserves same-date progress and advances revision with exactly the matching event', async () => {
+    const old = { ...initialState(plan, 'Europe/Istanbul'), automaticSlots: 1,
+        snoozeAt: date + 11 * HOUR, dueAt: date + 11 * HOUR, revision: 7 };
+    const db = fixture({}, { 'schedule_states/p1': old });
+    await scheduleService(db, () => date + 10 * HOUR).refresh('p1');
+    assert.deepEqual(db.values.get('schedule_states/p1'), { ...old, revision: 8 });
+    assert.deepEqual(db.values.get('notification_events/p1_8'), {
+        userId: 'A', transactionId: 'p1', revision: 8, createdAt: date + 10 * HOUR, sent: false
+    });
+    assert.equal([...db.values.keys()].filter(key => key.startsWith('notification_events/')).length, 1);
+});
+
+test('refresh resets a rescheduled day but preserves monotonic revision', async () => {
+    const changed = { ...plan, scheduledDate: date + 24 * HOUR };
+    const db = fixture({}, { 'scheduled_transactions/p1': changed,
+        'schedule_states/p1': { ...initialState(plan, 'Europe/Istanbul'), revision: 5, automaticSlots: 3 } });
+    await scheduleService(db, () => date + 12 * HOUR).refresh('p1');
+    assert.deepEqual(db.values.get('schedule_states/p1'), { ...initialState(changed, 'Europe/Istanbul'), revision: 6 });
+});
+
+test('refresh distinguishes deleted and completed tombstones and clears their pending snooze', async () => {
+    for (const completed of [false, true]) {
+        const old = { ...initialState(plan, 'Europe/Istanbul'), snoozeAt: date + HOUR, revision: 2 };
+        const db = fixture({}, { 'scheduled_transactions/p1': { ...plan, deleted: true,
+            ...(completed ? { completedFrom: 'completed_p1' } : {}) }, 'schedule_states/p1': old });
+        await scheduleService(db, () => date + 12 * HOUR).refresh('p1');
+        const state = db.values.get('schedule_states/p1');
+        assert.equal(state.status, completed ? 'completed' : 'deleted');
+        assert.equal(state.snoozeAt, null);
+        assert.equal(state.dueAt, null);
+        assert.equal(state.revision, 3);
+    }
+});
+
+test('refresh never reopens a completed financial operation but a deleted plan gets a new activation boundary', async () => {
+    const now = date + 12 * HOUR;
+    for (const status of ['completed', 'deleted']) {
+        const old = { ...initialState(plan, 'Europe/Istanbul'), status, automaticSlots: 3,
+            expirationAcceptedAt: now - HOUR, deleteAt: now + HOUR, revision: 4 };
+        const db = fixture({}, { 'schedule_states/p1': old });
+        await scheduleService(db, () => now).refresh('p1');
+        if (status === 'completed') {
+            assert.deepEqual(db.values.get('schedule_states/p1'), old);
+            assert.deepEqual(db.writes, []);
+        } else {
+            assert.deepEqual(db.values.get('schedule_states/p1'), {
+                ...initialState(plan, 'Europe/Istanbul'), reactivatedAt: now, revision: 5
+            });
+        }
+    }
+});
+
+test('completion requested before reactivation or for a different scheduled date retains conflict without money', async () => {
+    const now = date + 12 * HOUR;
+    for (const staleDate of [false, true]) {
+        const db = fixture({ 'schedule_commands/c1': { ...command('complete'),
+            ...(staleDate ? { scheduledDate: date - 24 * HOUR } : {}) } },
+        { 'schedule_states/p1': { ...initialState(plan, 'Europe/Istanbul'),
+            ...(staleDate ? {} : { reactivatedAt: date + 11 * HOUR }), revision: 4 } });
+        const original = structuredClone(db.values.get('schedule_states/p1'));
+        await scheduleService(db, () => now).processCommand('c1');
+        assert.equal(db.values.get('schedule_commands/c1').outcome, 'conflict');
+        assert.equal(db.values.get('schedule_commands/c1').processed, true);
+        assert.deepEqual(db.values.get('schedule_states/p1'), original);
+        assert.deepEqual(db.values.get('scheduled_transactions/p1'), plan);
+        assert.equal(db.values.has('transactions/completed_p1'), false);
+        assert.equal([...db.values.keys()].some(key => key.startsWith('notification_events/')), false);
+    }
+});

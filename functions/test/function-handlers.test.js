@@ -198,3 +198,185 @@ test('an unregistered token is removed while valid devices complete without a tr
     assert.equal(fixture.event.delivered.length, 1);
     assert.deepEqual(fixture.sent.map(message => message.token), ['dead-device', 'valid-device']);
 });
+
+const handlerPlan = { userId: 'A', scheduledDate: handlerNow, amountMinor: 1250, currencyCode: 'USD',
+    type: 'EXPENSE', category: 'FOOD', note: 'fixture', revision: 2, deleted: false };
+function handlerMemory(t, seed = {}) {
+    const memory = firestoreMemory({ 'users/A': { currencyCode: 'USD', timeZoneId: 'UTC', fcmTokens: [] }, ...seed });
+    t.mock.method(db, 'collection', memory.collection);
+    t.mock.method(db, 'runTransaction', memory.runTransaction);
+    return memory;
+}
+
+test('invalid event bodies are acknowledged as invalid without accessing users or sending FCM', async () => {
+    for (const event of [{ userId: 1, transactionId: 'p1', revision: 1 },
+        { userId: 'A', transactionId: null, revision: 1 }, { userId: 'A', transactionId: 'p1', revision: 1.5 }]) {
+        const updates = [];
+        const ref = { get: async () => ({ exists: true, data: () => event }), update: async patch => updates.push(patch) };
+        await handlers.onNotificationEvent.run({ ref });
+        assert.deepEqual(updates, [{ sent: true, failure: 'invalid_event' }]);
+    }
+});
+
+test('missing event snapshots are safe no-ops', async () => {
+    await handlers.onNotificationEvent.run({ ref: {
+        get: async () => ({ exists: false }), update: async () => assert.fail('Missing event must not be updated')
+    } });
+});
+
+test('plan creation and command exports dispatch the actual refresh and atomic completion bodies', async t => {
+    const memory = handlerMemory(t, { 'scheduled_transactions/p1': handlerPlan,
+        'schedule_commands/c1': { userId: 'A', transactionId: 'p1', type: 'complete', scheduledDate: handlerNow,
+            requestedAt: handlerNow, processed: false, plan: handlerPlan } });
+    await handlers.sendScheduledNotification.run({}, { params: { transactionId: 'p1' } });
+    assert.equal(memory.values.get('schedule_states/p1').revision, 1);
+    await handlers.onScheduleCommand.run({}, { params: { commandId: 'c1' } });
+    assert.equal(memory.values.get('schedule_commands/c1').outcome, 'applied');
+    assert.equal(memory.values.get('transactions/completed_p1').mutationId, 'c1');
+    assert.equal(memory.values.get('schedule_states/p1').status, 'completed');
+});
+
+test('plan update export refreshes only the existing deleted or scheduled-date transitions', async t => {
+    const memory = handlerMemory(t);
+    const context = { params: { transactionId: 'p1' } };
+    for (const patch of [{ note: 'changed' }, { amountMinor: 5000 },
+        { scheduledDate: handlerNow + 86400000 }, { deleted: true }]) {
+        const after = { ...handlerPlan, ...patch };
+        memory.values.set('scheduled_transactions/p1', after);
+        memory.values.delete('schedule_states/p1');
+        memory.writes.length = 0;
+        await handlers.onScheduledTransactionChanged.run({ before: { data: () => handlerPlan },
+            after: { data: () => after } }, context);
+        if (Object.hasOwn(patch, 'note') || Object.hasOwn(patch, 'amountMinor')) assert.deepEqual(memory.writes, []);
+        else {
+            assert.equal(memory.values.get('schedule_states/p1').scheduledDate, after.scheduledDate);
+            assert.equal(memory.values.get('schedule_states/p1').status, after.deleted ? 'deleted' : 'active');
+            assert.equal(memory.writes.filter(path => path.startsWith('notification_events/')).length, 1);
+        }
+    }
+});
+
+test('delete export creates a monotonic tombstone and matching event without deleting completed money', async t => {
+    const financial = { userId: 'A', amountMinor: 1250, currencyCode: 'USD', date: handlerNow };
+    const memory = handlerMemory(t, { 'transactions/completed_p1': financial });
+    for (const previous of [null, { userId: 'A', scheduledDate: handlerNow, status: 'active', revision: 7,
+        snoozeAt: handlerNow + 3600000, dueAt: handlerNow + 3600000 }]) {
+        if (previous) memory.values.set('schedule_states/p1', previous);
+        else memory.values.delete('schedule_states/p1');
+        await handlers.onScheduledTransactionDelete.run({ data: () => handlerPlan }, { params: { transactionId: 'p1' } });
+        const revision = previous ? 8 : 1;
+        assert.deepEqual(memory.values.get('schedule_states/p1'), { ...(previous || {}), userId: 'A',
+            scheduledDate: handlerNow, status: 'deleted', dueAt: null, snoozeAt: null, revision });
+        assert.deepEqual(memory.values.get('notification_events/p1_' + revision), {
+            userId: 'A', transactionId: 'p1', revision, createdAt: handlerNow, sent: false
+        });
+        assert.deepEqual(memory.values.get('transactions/completed_p1'), financial);
+    }
+});
+
+test('cron processes bounded due and unsent batches and leaves the next page and future rows untouched', async t => {
+    const seed = {};
+    for (let i = 0; i < 101; i++) {
+        const id = 'p' + String(i).padStart(3, '0');
+        seed['scheduled_transactions/' + id] = handlerPlan;
+        seed['schedule_states/' + id] = { userId: 'A', scheduledDate: handlerNow, status: 'active',
+            automaticSlots: 0, revision: 0, dueAt: handlerNow - 1, snoozeAt: null, deleteAt: null };
+    }
+    seed['schedule_states/future'] = { dueAt: handlerNow + 3600000 };
+    const memory = handlerMemory(t, seed);
+    await handlers.checkExpiredReminders.run({});
+    assert.deepEqual(memory.queries.map(({ name, maximum, filters }) => ({ name, maximum, filters })), [
+        { name: 'schedule_states', maximum: 100, filters: [['dueAt', '<=', handlerNow]] },
+        { name: 'notification_events', maximum: 100, filters: [['sent', '==', false]] }
+    ]);
+    assert.equal(memory.values.get('schedule_states/p100').revision, 0);
+    assert.equal(memory.values.get('schedule_states/future').dueAt, handlerNow + 3600000);
+    assert.equal([...memory.values.entries()].filter(([path, value]) => path.startsWith('notification_events/') && value.sent).length, 100);
+    assert.equal([...memory.values.keys()].some(path => path.startsWith('transactions/')), false);
+});
+
+test('cron retains a failed fan-out event for retry and later acknowledges the same event', async t => {
+    const memory = handlerMemory(t, { 'users/A': { timeZoneId: 'UTC', fcmTokens: ['synthetic-token'] },
+        'notification_events/e1': { userId: 'A', transactionId: 'p1', revision: 1, sent: false } });
+    let unavailable = true, calls = 0;
+    t.mock.method(admin.firestore.FieldValue, 'arrayUnion', (...values) => values);
+    t.mock.getter(admin, 'messaging', () => () => ({ send: async () => {
+        calls++;
+        if (unavailable) throw Object.assign(new Error('temporary'), { code: 'messaging/server-unavailable' });
+        return 'message';
+    } }));
+    await assert.rejects(handlers.checkExpiredReminders.run({}), error => error.code === ScheduleErrorCode.FCM_TRANSIENT_FAILURE);
+    assert.equal(memory.values.get('notification_events/e1').sent, false);
+    unavailable = false;
+    await handlers.checkExpiredReminders.run({});
+    assert.equal(calls, 2);
+    assert.equal(memory.values.get('notification_events/e1').sent, true);
+    assert.equal(memory.values.get('notification_events/e1').delivered.length, 1);
+});
+
+test('both restore callable exports page only the authenticated account and skip deleted plans', async t => {
+    const memory = handlerMemory(t, {
+        'users/A': { currencyCode: 'USD', timeZoneId: 'UTC', fcmTokens: ['synthetic-token'] },
+        'scheduled_transactions/a-plan': handlerPlan,
+        'scheduled_transactions/b-deleted': { ...handlerPlan, deleted: true },
+        'scheduled_transactions/c-foreign': { ...handlerPlan, userId: 'B' }
+    });
+    for (const name of ['sendPendingNotifications', 'restoreScheduleState']) {
+        assert.deepEqual(await handlers[name].run({ deviceToken: 'synthetic-token' }, { auth: { uid: 'A' } }),
+            { success: true, count: 2, nextCursor: null });
+        assert.deepEqual(await handlers[name].run({ deviceToken: 'synthetic-token', cursor: 'a-plan' }, { auth: { uid: 'A' } }),
+            { success: true, count: 1, nextCursor: null });
+    }
+    assert.equal(memory.values.has('schedule_states/a-plan'), true);
+    assert.equal(memory.values.has('schedule_states/b-deleted'), false);
+    assert.equal(memory.values.has('schedule_states/c-foreign'), false);
+});
+
+test('legacy manual adapter refreshes only a live owned plan and consumes its old trigger', async t => {
+    const memory = handlerMemory(t);
+    for (const kind of ['owned', 'foreign', 'deleted', 'missing']) {
+        memory.values.delete('scheduled_transactions/p1');
+        if (kind !== 'missing') memory.values.set('scheduled_transactions/p1', { ...handlerPlan, deleted: kind === 'deleted' });
+        memory.values.delete('schedule_states/p1');
+        let deleted = 0;
+        const snap = { data: () => ({ transactionId: 'p1', userId: kind === 'foreign' ? 'B' : 'A' }),
+            ref: { delete: async () => { deleted++; } } };
+        await handlers.manualSendToAllDevices.run(snap);
+        assert.equal(deleted, 1);
+        assert.equal(memory.values.has('schedule_states/p1'), kind === 'owned');
+    }
+});
+
+test('legacy reminder adapter creates one idempotent snooze command and dismiss adapter only consumes its trigger', async t => {
+    const memory = handlerMemory(t, { 'scheduled_transactions/p1': handlerPlan });
+    let deleted = 0;
+    const snap = { id: 'old-reminder', data: () => ({ transactionId: 'p1', userId: 'A' }),
+        ref: { delete: async () => { deleted++; } } };
+    await handlers.scheduleReminderTask.run(snap);
+    const command = structuredClone(memory.values.get('schedule_commands/legacy_old-reminder'));
+    assert.equal(command.type, 'snooze');
+    assert.equal(command.outcome, 'applied');
+    assert.equal(command.processed, true);
+    await handlers.scheduleReminderTask.run(snap);
+    assert.deepEqual(memory.values.get('schedule_commands/legacy_old-reminder'), command);
+    assert.equal([...memory.values.keys()].filter(path => path.startsWith('schedule_commands/')).length, 1);
+    assert.equal(memory.values.get('schedule_states/p1').snoozeAt, handlerNow + 3600000);
+    await handlers.onNotificationDismissed.run(snap);
+    assert.equal(deleted, 3);
+    assert.equal([...memory.values.keys()].some(path => path.startsWith('transactions/')), false);
+});
+
+test('legacy reminder adapter consumes missing deleted or foreign triggers without creating commands', async t => {
+    const memory = handlerMemory(t);
+    for (const kind of ['missing', 'deleted', 'foreign']) {
+        memory.values.delete('scheduled_transactions/p1');
+        if (kind !== 'missing') memory.values.set('scheduled_transactions/p1', { ...handlerPlan, deleted: kind === 'deleted' });
+        let deleted = 0;
+        await handlers.scheduleReminderTask.run({ id: 'blocked-' + kind,
+            data: () => ({ transactionId: 'p1', userId: kind === 'foreign' ? 'B' : 'A' }),
+            ref: { delete: async () => { deleted++; } } });
+        assert.equal(deleted, 1);
+        assert.equal([...memory.values.keys()].some(path => path.startsWith('schedule_commands/')), false);
+        assert.equal(memory.values.has('schedule_states/p1'), false);
+    }
+});

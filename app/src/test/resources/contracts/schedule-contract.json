@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "collections": {"plans": "scheduled_transactions", "states": "schedule_states", "commands": "schedule_commands", "financial": "transactions"},
+  "fields": {"amountMinor": "amountMinor", "currencyCode": "currencyCode", "scheduledDate": "scheduledDate", "type": "type", "userId": "userId", "remoteId": "transactionId", "requestedAt": "requestedAt", "outcome": "outcome", "status": "status", "snoozeAt": "snoozeAt", "deleteAt": "deleteAt"},
+  "photoMetadata": ["photoStorageUrl", "photoRemoved", "photoVersion", "photoIntent"],
+  "commandTypes": ["complete", "snooze", "expiration_shown"],
+  "statuses": ["active", "completed", "deleted"],
+  "outcomes": [
+    {"wire": "applied", "androidKnown": true, "acknowledged": true},
+    {"wire": "already_applied", "androidKnown": true, "acknowledged": true},
+    {"wire": "stale", "androidKnown": true, "acknowledged": true},
+    {"wire": "terminal", "androidKnown": true, "acknowledged": true},
+    {"wire": "expired", "androidKnown": true, "acknowledged": true},
+    {"wire": "early", "androidKnown": true, "acknowledged": true},
+    {"wire": "invalid", "androidKnown": false, "acknowledged": false},
+    {"wire": "missing", "androidKnown": false, "acknowledged": false},
+    {"wire": "forbidden", "androidKnown": false, "acknowledged": false},
+    {"wire": "conflict", "androidKnown": true, "acknowledged": false},
+    {"wire": "invalid_money", "androidKnown": false, "acknowledged": false}
+  ],
+  "identity": {"plan": "fixture-plan", "completed": "completed_fixture-plan"},
+  "snoozeMillis": 3600000,
+  "retentionMillis": 86400000,
+  "days": [
+    {"zone": "Europe/Istanbul", "date": "2026-10-04T21:00:00Z", "morning": "2026-10-05T06:00:00Z", "evening": "2026-10-05T15:00:00Z", "end": "2026-10-05T21:00:00Z"},
+    {"zone": "Europe/Berlin", "date": "2026-03-28T23:00:00Z", "morning": "2026-03-29T07:00:00Z", "evening": "2026-03-29T16:00:00Z", "end": "2026-03-29T22:00:00Z"},
+    {"zone": "Europe/Berlin", "date": "2026-10-24T22:00:00Z", "morning": "2026-10-25T08:00:00Z", "evening": "2026-10-25T17:00:00Z", "end": "2026-10-25T23:00:00Z"}
+  ],
+  "checks": [
+    {"time": "morning", "offsetMillis": -1, "progressSlots": 0, "dueBefore": "morning", "androidKind": "WAIT", "androidUntil": "morning", "serverSlots": null},
+    {"time": "morning", "offsetMillis": 0, "progressSlots": 0, "dueBefore": "morning", "androidKind": "MORNING", "slots": 1, "serverSlots": 1, "serverDue": "evening"},
+    {"time": "morning", "offsetMillis": 10800000, "progressSlots": 1, "dueBefore": "evening", "androidKind": "WAIT", "androidUntil": "evening", "serverSlots": null},
+    {"time": "evening", "offsetMillis": 0, "progressSlots": 1, "dueBefore": "evening", "androidKind": "EVENING", "slots": 3, "serverSlots": 3, "serverDue": "end"},
+    {"time": "end", "offsetMillis": 0, "progressSlots": 3, "dueBefore": "end", "androidKind": "EXPIRED", "slots": 3, "serverSlots": 3, "serverDue": null}
+  ],
+  "snooze": {"requested": "2026-10-05T07:00:00Z", "reconnected": "2026-10-05T09:00:00Z", "due": "2026-10-05T08:00:00Z", "slots": 1},
+  "expiration": {"shown": "2026-10-05T21:00:00Z", "accepted": "2026-10-06T09:00:00Z", "deadline": "2026-10-07T09:00:00Z"}
+}
