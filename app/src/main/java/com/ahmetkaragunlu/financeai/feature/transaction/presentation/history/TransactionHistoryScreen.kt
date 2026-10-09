@@ -57,7 +57,7 @@ import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryTyp
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.Transaction
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toIconResId
-import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toLabelResId
+import com.ahmetkaragunlu.financeai.feature.transaction.localization.toLabelResId
 
 @Composable
 fun TransactionHistoryRoute(

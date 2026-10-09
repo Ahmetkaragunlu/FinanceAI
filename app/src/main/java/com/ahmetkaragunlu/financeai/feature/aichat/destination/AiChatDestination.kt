@@ -1,4 +1,4 @@
-package com.ahmetkaragunlu.financeai.feature.aichat.navigation
+package com.ahmetkaragunlu.financeai.feature.aichat.destination
 
 import kotlinx.serialization.Serializable
 

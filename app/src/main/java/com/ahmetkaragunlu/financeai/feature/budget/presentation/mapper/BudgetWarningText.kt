@@ -4,7 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.feature.budget.presentation.BudgetWarning
-import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toLabelResId
+import com.ahmetkaragunlu.financeai.feature.transaction.localization.toLabelResId
 
 @Composable
 internal fun BudgetWarning.localizedText(): String = when (this) {

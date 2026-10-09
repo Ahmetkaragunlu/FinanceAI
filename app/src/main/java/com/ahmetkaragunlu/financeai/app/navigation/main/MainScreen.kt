@@ -6,12 +6,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hasRoute
 import com.ahmetkaragunlu.financeai.R
-import com.ahmetkaragunlu.financeai.feature.aichat.navigation.AiChatDestination
-import com.ahmetkaragunlu.financeai.feature.budget.navigation.BudgetDestination
-import com.ahmetkaragunlu.financeai.feature.schedule.navigation.ScheduledTransactionsDestination
-import com.ahmetkaragunlu.financeai.feature.transaction.navigation.AddTransactionDestination
-import com.ahmetkaragunlu.financeai.feature.transaction.navigation.TransactionDetailDestination
-import com.ahmetkaragunlu.financeai.feature.transaction.navigation.TransactionHistoryDestination
+import com.ahmetkaragunlu.financeai.feature.aichat.destination.AiChatDestination
+import com.ahmetkaragunlu.financeai.feature.budget.destination.BudgetDestination
+import com.ahmetkaragunlu.financeai.feature.schedule.destination.ScheduledTransactionsDestination
+import com.ahmetkaragunlu.financeai.feature.transaction.destination.AddTransactionDestination
+import com.ahmetkaragunlu.financeai.feature.transaction.destination.TransactionDetailDestination
+import com.ahmetkaragunlu.financeai.feature.transaction.destination.TransactionHistoryDestination
 
 /** Shell presentation metadata; route arguments remain owned by each feature's destination. */
 enum class MainScreen(@StringRes val title: Int) {

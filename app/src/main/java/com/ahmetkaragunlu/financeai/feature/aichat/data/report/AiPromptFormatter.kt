@@ -6,7 +6,7 @@ import com.ahmetkaragunlu.financeai.feature.aichat.domain.model.FinancialSnapsho
 import com.ahmetkaragunlu.financeai.feature.aichat.domain.report.CategorySpending
 import com.ahmetkaragunlu.financeai.feature.aichat.domain.report.calculateReport
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
-import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toLabelResId
+import com.ahmetkaragunlu.financeai.feature.transaction.localization.toLabelResId
 import com.google.gson.Gson
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.Instant

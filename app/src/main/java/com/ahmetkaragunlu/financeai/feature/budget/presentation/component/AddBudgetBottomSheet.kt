@@ -50,7 +50,7 @@ import com.ahmetkaragunlu.financeai.feature.budget.presentation.BudgetEvent
 import com.ahmetkaragunlu.financeai.feature.budget.presentation.BudgetFormState
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
-import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toLabelResId
+import com.ahmetkaragunlu.financeai.feature.transaction.localization.toLabelResId
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

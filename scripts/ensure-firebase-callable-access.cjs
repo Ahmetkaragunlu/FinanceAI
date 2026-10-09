@@ -61,5 +61,9 @@ async function main(args) {
 
 module.exports = { publicInvokerPolicy };
 if (require.main === module) {
-    main(process.argv.slice(2)).catch(error => { console.error(error.message); process.exitCode = 1; });
+    main(process.argv.slice(2)).catch(() => {
+        // SDK errors may contain private account/request details; do not dump their messages.
+        console.error('Callable access operation failed. Check CLI authentication, arguments and IAM permissions.');
+        process.exitCode = 1;
+    });
 }

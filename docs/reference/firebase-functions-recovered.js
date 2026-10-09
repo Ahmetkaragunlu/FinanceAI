@@ -9,7 +9,6 @@ admin.initializeApp();
 exports.sendScheduledNotification = functions.firestore
     .document('scheduled_transactions/{transactionId}')
     .onCreate(async (snap, context) => {
-        console.log('🔥 FUNCTION: sendScheduledNotification (onCreate)');
 
         const transactionId = context.params.transactionId;
         const transaction = snap.data();
@@ -18,23 +17,19 @@ exports.sendScheduledNotification = functions.firestore
         const currentTime = Date.now();
 
         if (scheduledDate < currentTime) {
-            console.log('⏭️ Scheduled date in the past, skipping');
             return null;
         }
 
         const userDoc = await admin.firestore().collection('users').doc(userId).get();
         if (!userDoc.exists) {
-            console.log('⚠️ User not found');
             return null;
         }
 
         const fcmTokens = userDoc.data().fcmTokens || [];
         if (fcmTokens.length === 0) {
-            console.log('⚠️ No FCM tokens (user not logged in on any device)');
             return null;
         }
 
-        console.log(`📡 Sending to ${fcmTokens.length} devices`);
 
         const sendPromises = fcmTokens.map(async (token) => {
             try {
@@ -69,10 +64,8 @@ exports.sendScheduledNotification = functions.firestore
             await admin.firestore().collection('users').doc(userId).update({
                 fcmTokens: admin.firestore.FieldValue.arrayRemove(...tokensToRemove)
             });
-            console.log(`🗑️ Removed ${tokensToRemove.length} invalid tokens`);
         }
 
-        console.log('✅ Initial notifications sent');
         return null;
     });
 
@@ -82,7 +75,6 @@ exports.sendScheduledNotification = functions.firestore
 exports.manualSendToAllDevices = functions.firestore
     .document('notification_triggers/{triggerId}')
     .onCreate(async (snap, context) => {
-        console.log('🔥 FUNCTION: manualSendToAllDevices');
 
         const triggerData = snap.data();
         const transactionId = triggerData.transactionId;
@@ -94,7 +86,6 @@ exports.manualSendToAllDevices = functions.firestore
                 .get();
 
             if (!scheduledDoc.exists) {
-                console.log('⚠️ Transaction not found, deleting trigger');
                 await snap.ref.delete();
                 return null;
             }
@@ -108,19 +99,16 @@ exports.manualSendToAllDevices = functions.firestore
                 .get();
 
             if (!userDoc.exists) {
-                console.log('⚠️ User not found');
                 await snap.ref.delete();
                 return null;
             }
 
             const fcmTokens = userDoc.data().fcmTokens || [];
             if (fcmTokens.length === 0) {
-                console.log('⚠️ No FCM tokens');
                 await snap.ref.delete();
                 return null;
             }
 
-            console.log(`📡 Sending to ${fcmTokens.length} devices`);
 
             const sendPromises = fcmTokens.map(async (token) => {
                 try {
@@ -140,7 +128,7 @@ exports.manualSendToAllDevices = functions.firestore
                     });
                     return { success: true };
                 } catch (error) {
-                    console.error('Error sending to token:', error);
+                    console.error('Notification send failed');
                     return { success: false };
                 }
             });
@@ -148,10 +136,9 @@ exports.manualSendToAllDevices = functions.firestore
             await Promise.all(sendPromises);
             await snap.ref.delete();
             
-            console.log('✅ Notifications sent to all devices');
             return null;
         } catch (error) {
-            console.error('Error:', error);
+            console.error('Manual notification processing failed');
             await snap.ref.delete();
             return null;
         }
@@ -163,7 +150,6 @@ exports.manualSendToAllDevices = functions.firestore
 exports.onScheduledTransactionDelete = functions.firestore
     .document('scheduled_transactions/{transactionId}')
     .onDelete(async (snap, context) => {
-        console.log('🔥 FUNCTION: onScheduledTransactionDelete');
 
         const transactionId = context.params.transactionId;
         const transaction = snap.data();
@@ -171,17 +157,14 @@ exports.onScheduledTransactionDelete = functions.firestore
 
         const userDoc = await admin.firestore().collection('users').doc(userId).get();
         if (!userDoc.exists) {
-            console.log('⚠️ User not found');
             return null;
         }
 
         const fcmTokens = userDoc.data().fcmTokens || [];
         if (fcmTokens.length === 0) {
-            console.log('⚠️ No FCM tokens');
             return null;
         }
 
-        console.log(`📡 Sending CANCEL to ${fcmTokens.length} devices`);
 
         const sendPromises = fcmTokens.map(async (token) => {
             try {
@@ -201,7 +184,6 @@ exports.onScheduledTransactionDelete = functions.firestore
         });
 
         await Promise.all(sendPromises);
-        console.log('✅ CANCEL sent to all devices');
         return null;
     });
 
@@ -211,7 +193,6 @@ exports.onScheduledTransactionDelete = functions.firestore
 exports.onNotificationDismissed = functions.firestore
     .document('notification_dismissals/{dismissalId}')
     .onCreate(async (snap, context) => {
-        console.log('⚠️ FUNCTION: onNotificationDismissed (DEPRECATED)');
         await snap.ref.delete();
         return null;
     });
@@ -222,38 +203,28 @@ exports.onNotificationDismissed = functions.firestore
 exports.scheduleReminderTask = functions.firestore
     .document('notification_reminders/{reminderId}')
     .onCreate(async (snap, context) => {
-        console.log('🔥 FUNCTION: scheduleReminderTask (HAYIR tıklandı)');
         
         const reminderData = snap.data();
         const transactionId = reminderData.transactionId;
         const userId = reminderData.userId;
-        const triggerTime = reminderData.triggerTime;
 
-        if (triggerTime) {
-            console.log(`⏰ Reminder will trigger at: ${new Date(triggerTime).toISOString()}`);
-            console.log(`⏰ Time to wait: ${Math.round((triggerTime - Date.now()) / 1000 / 60)} minutes`);
-        }
         
         try {
             if (!userId || !transactionId) {
-                console.log('⚠️ UserID or TransactionID not found');
                 return null;
             }
 
             // DISMISS mesajı gönder (tüm cihazlarda bildirimi kapat)
             const userDoc = await admin.firestore().collection('users').doc(userId).get();
             if (!userDoc.exists) {
-                console.log('⚠️ User not found');
                 return null;
             }
 
             const fcmTokens = userDoc.data().fcmTokens || [];
             if (fcmTokens.length === 0) {
-                console.log('⚠️ No FCM tokens');
                 return null;
             }
 
-            console.log(`📡 Sending DISMISS to ${fcmTokens.length} devices`);
 
             const sendPromises = fcmTokens.map(async (token) => {
                 try {
@@ -273,13 +244,11 @@ exports.scheduleReminderTask = functions.firestore
             });
 
             await Promise.all(sendPromises);
-            console.log('✅ DISMISS sent to all devices');
-            console.log('✅ Reminder document KEPT for Function 6');
             
             return null;
 
         } catch (error) {
-            console.error('Error in scheduleReminderTask:', error);
+            console.error('Reminder scheduling failed');
             return null;
         }
     });
@@ -289,8 +258,6 @@ exports.scheduleReminderTask = functions.firestore
 //    🔥 ÖNEMLİ: WAITING reminder'lı işlemler ATLANIR
 // ============================================
 exports.sendPendingNotifications = functions.https.onCall(async (data, context) => {
-    console.log('🔥 FUNCTION: sendPendingNotifications (v3 - Fixed)');
-    console.log('═══════════════════════════════════════════════════');
 
     if (!context.auth) {
         throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated');
@@ -305,9 +272,6 @@ exports.sendPendingNotifications = functions.https.onCall(async (data, context) 
     }
 
     try {
-        console.log(`👤 User: ${userId}`);
-        console.log(`📱 Device: ${currentDeviceToken.substring(0, 10)}...`);
-        console.log(`⏰ Current: ${new Date(currentTime).toISOString()}`);
 
         // ============================================================
         // 1) REMINDER KONTROLÜ
@@ -327,7 +291,6 @@ exports.sendPendingNotifications = functions.https.onCall(async (data, context) 
             const transactionId = r.transactionId;
 
             if (!triggerTime) {
-                console.log(`⚠️ Reminder ${doc.id} has no triggerTime - will be deleted`);
                 remindersToDelete.push(doc.ref);
                 return;
             }
@@ -335,14 +298,12 @@ exports.sendPendingNotifications = functions.https.onCall(async (data, context) 
             if (triggerTime > currentTime) {
                 // ⏳ WAITING: Kullanıcı HAYIR dedi ve 15dk henüz dolmadı
                 transactionReminderStatus.set(transactionId, { status: 'WAITING' });
-                console.log(`⏳ Transaction ${transactionId}: WAITING (${Math.round((triggerTime - currentTime) / 1000 / 60)} min left)`);
             } else {
                 // ⏱ EXPIRED: 15dk doldu, reschedule gerekli
                 transactionReminderStatus.set(transactionId, { status: 'EXPIRED' });
                 remindersToDelete.push(doc.ref);
                 if (!transactionsToReschedule.has(transactionId)) {
                     transactionsToReschedule.set(transactionId, { transactionId, userId });
-                    console.log(`🔄 Transaction ${transactionId}: MARKED FOR RESCHEDULE`);
                 }
             }
         });
@@ -358,7 +319,6 @@ exports.sendPendingNotifications = functions.https.onCall(async (data, context) 
             }
 
             if (allUserTokens.length > 0) {
-                console.log(`📡 Sending RESCHEDULE for ${transactionsToReschedule.size} txns to ${allUserTokens.length} devices`);
                 
                 const rescheduleList = Array.from(transactionsToReschedule.values());
                 
@@ -375,11 +335,10 @@ exports.sendPendingNotifications = functions.https.onCall(async (data, context) 
                                 android: { priority: 'high' }
                             });
                         } catch (error) {
-                            console.error('Error sending reschedule to token:', error);
+                            console.error('Reschedule send failed');
                         }
                     }
                 }
-                console.log('✅ RESCHEDULE sent to all devices');
             }
         }
         
@@ -387,11 +346,9 @@ exports.sendPendingNotifications = functions.https.onCall(async (data, context) 
         // 3) ESKİ REMINDER'LARI SİL
         // ============================================================
         if (remindersToDelete.length > 0) {
-            console.log(`🗑️ Deleting ${remindersToDelete.length} expired/invalid reminders...`);
             const batch = admin.firestore().batch();
             remindersToDelete.forEach(ref => batch.delete(ref));
             await batch.commit();
-            console.log('🗑️ Reminders deleted');
         }
 
         // ============================================================
@@ -403,7 +360,6 @@ exports.sendPendingNotifications = functions.https.onCall(async (data, context) 
             .where('userId', '==', userId)
             .get();
 
-        console.log(`📋 Found ${scheduledSnapshot.size} total scheduled transactions`);
 
         const pendingTransactions = [];
 
@@ -418,7 +374,6 @@ exports.sendPendingNotifications = functions.https.onCall(async (data, context) 
             const isNotExpired = currentTime <= endOfDay.getTime();
 
             if (!isNotExpired) {
-                console.log(`❌ Transaction ${transactionId}: DAY EXPIRED`);
                 continue;
             }
 
@@ -427,14 +382,11 @@ exports.sendPendingNotifications = functions.https.onCall(async (data, context) 
 
             if (!reminderStatus) {
                 // ✅ Reminder yok → BİLDİRİM GÖNDERİLEBİLİR
-                console.log(`✅ Transaction ${transactionId}: NO REMINDER - CAN SEND`);
                 pendingTransactions.push({ doc, data: d });
             } else if (reminderStatus.status === 'WAITING') {
                 // 🔥 ÇÖZÜM: WAITING reminder varsa BİLDİRİM GÖNDERİLMEZ!
-                console.log(`🚫 Transaction ${transactionId}: REMINDER WAITING - BLOCKED FROM SENDING`);
             } else if (reminderStatus.status === 'EXPIRED') {
                 // ⏭️ EXPIRED: RESCHEDULE zaten gönderildi, bildirim gerekmez
-                console.log(`⏭️ Transaction ${transactionId}: REMINDER EXPIRED - SKIP (Reschedule sent)`);
             }
         }
 
@@ -442,12 +394,9 @@ exports.sendPendingNotifications = functions.https.onCall(async (data, context) 
         // 5) BİLDİRİM GÖNDER (SADECE BU CİHAZA)
         // ============================================================
         if (pendingTransactions.length === 0) {
-            console.log('✅ No pending notifications to send to this device');
-            console.log('═══════════════════════════════════════════════════');
             return { success: true, count: 0 };
         }
 
-        console.log(`📤 Sending ${pendingTransactions.length} pending notifications to THIS DEVICE`);
 
         let sent = 0;
         for (const { doc, data: d } of pendingTransactions) {
@@ -468,17 +417,15 @@ exports.sendPendingNotifications = functions.https.onCall(async (data, context) 
                     android: { priority: 'high' }
                 });
                 sent++;
-                console.log(`✅ Sent notification for ${transactionId} to current device`);
             } catch (err) {
-                console.error(`❌ Failed to send for ${transactionId}:`, err.message);
+                console.error('Pending notification send failed');
             }
         }
 
-        console.log('═══════════════════════════════════════════════════');
         return { success: true, count: sent };
 
     } catch (error) {
-        console.error('❌ Error:', error);
+        console.error('Pending notification processing failed');
         throw new functions.https.HttpsError('internal', 'Error sending notifications');
     }
 });
@@ -488,7 +435,6 @@ exports.sendPendingNotifications = functions.https.onCall(async (data, context) 
 // ============================================
 exports.checkExpiredReminders = functions.pubsub.schedule('every 5 minutes')
     .onRun(async (context) => {
-        console.log('🔥 FUNCTION: checkExpiredReminders (Cron Job)');
         const currentTime = Date.now();
 
         try {
@@ -498,11 +444,9 @@ exports.checkExpiredReminders = functions.pubsub.schedule('every 5 minutes')
                 .get();
 
             if (expiredRemindersSnapshot.isEmpty) {
-                console.log('✅ No expired reminders found.');
                 return null;
             }
 
-            console.log(`⏱ Found ${expiredRemindersSnapshot.size} expired reminders.`);
 
             const remindersToDelete = [];
             const reschedulesByUser = new Map();
@@ -524,7 +468,6 @@ exports.checkExpiredReminders = functions.pubsub.schedule('every 5 minutes')
 
             // RESCHEDULE gönder
             for (const [userId, transactionIds] of reschedulesByUser.entries()) {
-                console.log(`🔄 Rescheduling ${transactionIds.length} tasks for user: ${userId}`);
                 
                 const userDoc = await admin.firestore().collection('users').doc(userId).get();
                 if (!userDoc.exists) continue;
@@ -545,26 +488,23 @@ exports.checkExpiredReminders = functions.pubsub.schedule('every 5 minutes')
                                 android: { priority: 'high' }
                             });
                         } catch (error) {
-                            console.error('Error sending RESCHEDULE:', error);
+                            console.error('Reschedule send failed');
                         }
                     }
                 }
-                console.log(`✅ RESCHEDULE sent for user: ${userId}`);
             }
 
             // Reminder'ları sil
             if (remindersToDelete.length > 0) {
-                console.log(`🗑️ Deleting ${remindersToDelete.length} processed reminders...`);
                 const batch = admin.firestore().batch();
                 remindersToDelete.forEach(ref => batch.delete(ref));
                 await batch.commit();
-                console.log('🗑️ Processed reminders deleted');
             }
 
             return null;
 
         } catch (error) {
-            console.error('❌ Error in checkExpiredReminders:', error);
+            console.error('Expired reminder processing failed');
             return null;
         }
     });

@@ -21,7 +21,7 @@ import com.ahmetkaragunlu.financeai.feature.schedule.domain.reminder.ReminderKey
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.reminder.ReminderKind
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.reminder.ReminderPresenter
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
-import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toLabelResId
+import com.ahmetkaragunlu.financeai.feature.transaction.localization.toLabelResId
 import com.ahmetkaragunlu.financeai.notification.NotificationChannels
 import com.ahmetkaragunlu.financeai.notification.action.NotificationActionReceiver
 import com.ahmetkaragunlu.financeai.notification.action.NotificationActions

@@ -78,7 +78,7 @@ import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryTyp
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.TransactionActionResult
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.TransactionResultEffect
-import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toLabelResId
+import com.ahmetkaragunlu.financeai.feature.transaction.localization.toLabelResId
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

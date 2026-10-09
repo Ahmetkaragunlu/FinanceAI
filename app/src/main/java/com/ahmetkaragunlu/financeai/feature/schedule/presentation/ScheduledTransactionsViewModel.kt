@@ -1,6 +1,5 @@
 package com.ahmetkaragunlu.financeai.feature.schedule.presentation
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ahmetkaragunlu.financeai.R
@@ -64,10 +63,6 @@ constructor(
             } catch (e: Exception) {
                 if (session.isCurrent(account))
                     mutableErrorResId.value = dataErrorMessageRes(e) ?: R.string.error_operation_retry
-                Log.w(
-                    "ScheduledTransactionsViewModel",
-                    "Scheduled completion failed (${e.javaClass.simpleName})",
-                )
             }
         }
     }

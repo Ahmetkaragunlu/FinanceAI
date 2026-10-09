@@ -52,7 +52,7 @@ import com.ahmetkaragunlu.financeai.feature.budget.presentation.CategoryBudgetSt
 import com.ahmetkaragunlu.financeai.feature.budget.presentation.GeneralBudgetState
 import com.ahmetkaragunlu.financeai.feature.budget.presentation.mapper.localizedText
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toIconResId
-import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toLabelResId
+import com.ahmetkaragunlu.financeai.feature.transaction.localization.toLabelResId
 
 @Composable
 fun FilledBudgetContent(

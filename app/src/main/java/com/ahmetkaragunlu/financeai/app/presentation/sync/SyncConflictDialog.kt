@@ -20,7 +20,7 @@ import com.ahmetkaragunlu.financeai.feature.budget.data.remote.BudgetFields
 import com.ahmetkaragunlu.financeai.feature.schedule.data.remote.contract.ScheduleFields
 import com.ahmetkaragunlu.financeai.feature.transaction.data.remote.TransactionFields
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
-import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toLabelResId
+import com.ahmetkaragunlu.financeai.feature.transaction.localization.toLabelResId
 
 @Composable
 fun SyncConflictDialog(viewModel: SyncConflictViewModel = hiltViewModel()) {

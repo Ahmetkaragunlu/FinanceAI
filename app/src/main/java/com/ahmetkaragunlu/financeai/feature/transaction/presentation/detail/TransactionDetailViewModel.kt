@@ -18,7 +18,7 @@ import com.ahmetkaragunlu.financeai.core.ui.error.dataErrorMessageRes
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.Transaction
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.repository.TransactionRepository
-import com.ahmetkaragunlu.financeai.feature.transaction.navigation.TransactionDetailDestination
+import com.ahmetkaragunlu.financeai.feature.transaction.destination.TransactionDetailDestination
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.TransactionActionResult
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.transactionFailure
 import dagger.hilt.android.lifecycle.HiltViewModel

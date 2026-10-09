@@ -100,6 +100,10 @@ class AiPromptFormatterTest {
                 assertEquals(20.55, data["expense"].asDouble, 0.0)
                 assertEquals(-20.55, data["balance"].asDouble, 0.0)
                 assertEquals(20.55, data["topSpendingCategories"].asJsonArray[0].asJsonObject["amount"].asDouble, 0.0)
+                val food = context.getString(R.string.category_food)
+                assertEquals(food, data["transactions"].asJsonArray[0].asJsonObject["category"].asString)
+                assertEquals(food, data["categorySpending"].asJsonArray[0].asJsonObject["category"].asString)
+                assertEquals(food, data["topSpendingCategories"].asJsonArray[0].asJsonObject["category"].asString)
             }
         }
     }

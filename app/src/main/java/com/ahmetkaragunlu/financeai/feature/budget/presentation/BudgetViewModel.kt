@@ -1,6 +1,5 @@
 package com.ahmetkaragunlu.financeai.feature.budget.presentation
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ahmetkaragunlu.financeai.R
@@ -214,7 +213,6 @@ class BudgetViewModel @Inject constructor(
                             R.string.error_conflict_general else R.string.error_conflict_category
                     ) else it.copy(amountErrorResId = budgetErrorMessageRes(e))
                 }
-                Log.w("BudgetViewModel", "Budget save failed (${e.javaClass.simpleName})")
             } finally { isSaving = false }
         }
     }
@@ -282,7 +280,6 @@ class BudgetViewModel @Inject constructor(
             } catch (e: CancellationException) { throw e }
             catch (e: Exception) {
                 if (session.isCurrent(account)) mutableErrorResId.value = budgetErrorMessageRes(e)
-                Log.w("BudgetViewModel", "Budget delete failed (${e.javaClass.simpleName})")
             }
         }
     }

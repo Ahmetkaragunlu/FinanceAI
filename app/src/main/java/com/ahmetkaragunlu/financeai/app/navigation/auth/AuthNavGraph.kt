@@ -7,10 +7,10 @@ import androidx.navigation.toRoute
 import com.ahmetkaragunlu.financeai.app.navigation.MainDestination
 import com.ahmetkaragunlu.financeai.app.navigation.navigateSingleTopClear
 import com.ahmetkaragunlu.financeai.app.navigation.switchRoot
-import com.ahmetkaragunlu.financeai.feature.auth.navigation.PasswordResetDestination
-import com.ahmetkaragunlu.financeai.feature.auth.navigation.PasswordResetRequestDestination
-import com.ahmetkaragunlu.financeai.feature.auth.navigation.SignInDestination
-import com.ahmetkaragunlu.financeai.feature.auth.navigation.SignUpDestination
+import com.ahmetkaragunlu.financeai.feature.auth.destination.PasswordResetDestination
+import com.ahmetkaragunlu.financeai.feature.auth.destination.PasswordResetRequestDestination
+import com.ahmetkaragunlu.financeai.feature.auth.destination.SignInDestination
+import com.ahmetkaragunlu.financeai.feature.auth.destination.SignUpDestination
 import com.ahmetkaragunlu.financeai.feature.auth.presentation.passwordreset.PasswordResetRequestRoute
 import com.ahmetkaragunlu.financeai.feature.auth.presentation.passwordreset.PasswordResetRoute
 import com.ahmetkaragunlu.financeai.feature.auth.presentation.signin.SignInRoute

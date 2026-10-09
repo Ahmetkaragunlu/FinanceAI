@@ -31,7 +31,7 @@ import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.core.ui.component.formatAsAccountCurrency
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryExpense
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
-import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toLabelResId
+import com.ahmetkaragunlu.financeai.feature.transaction.localization.toLabelResId
 import kotlin.math.cos
 import kotlin.math.sin
 

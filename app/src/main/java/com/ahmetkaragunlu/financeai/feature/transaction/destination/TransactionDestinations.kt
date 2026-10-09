@@ -1,4 +1,4 @@
-package com.ahmetkaragunlu.financeai.feature.transaction.navigation
+package com.ahmetkaragunlu.financeai.feature.transaction.destination
 
 import kotlinx.serialization.Serializable
 

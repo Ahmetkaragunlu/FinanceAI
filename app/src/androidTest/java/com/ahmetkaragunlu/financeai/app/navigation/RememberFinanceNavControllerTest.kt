@@ -1,6 +1,7 @@
 package com.ahmetkaragunlu.financeai.app.navigation
 
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -12,8 +13,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
-import com.ahmetkaragunlu.financeai.feature.home.navigation.HomeDestination
-import com.ahmetkaragunlu.financeai.feature.transaction.navigation.TransactionDetailDestination
+import com.ahmetkaragunlu.financeai.feature.home.destination.HomeDestination
+import com.ahmetkaragunlu.financeai.feature.transaction.destination.TransactionDetailDestination
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.junit.Assert.assertEquals
@@ -86,6 +87,55 @@ class RememberFinanceNavControllerTest {
             assertEquals(77, retainedValue)
         }
     }
+
+    @Test
+    fun previousFeaturePackagesStartFreshWithoutClearingUnrelatedSavedState() {
+        lateinit var controller: NavHostController
+        var previousPackages = true
+        var retainedValue = 0
+        lateinit var updateRetainedValue: () -> Unit
+        val restoration = StateRestorationTester(compose)
+        restoration.setContent {
+            var value by rememberSaveable { mutableIntStateOf(42) }
+            retainedValue = value
+            updateRetainedValue = { value = 77 }
+            controller =
+                if (previousPackages) key("typed-navigation-v2") { rememberNavController() }
+                else rememberFinanceNavController()
+            if (previousPackages) {
+                NavHost(controller, startDestination = PreviousHome) {
+                    composable<PreviousHome> {}
+                    composable<PreviousDetail> {}
+                }
+            } else {
+                NavHost(controller, startDestination = HomeDestination) {
+                    composable<HomeDestination> {}
+                    composable<TransactionDetailDestination> {}
+                }
+            }
+        }
+        compose.runOnIdle {
+            controller.navigate(PreviousDetail(42))
+            updateRetainedValue()
+        }
+        // Only the recreated composition switches to the renamed feature packages.
+        previousPackages = false
+        restoration.emulateSavedInstanceStateRestore()
+        compose.runOnIdle {
+            assertTrue(controller.currentDestination!!.hasRoute<HomeDestination>())
+            assertNull(controller.previousBackStackEntry)
+            assertEquals(77, retainedValue)
+        }
+    }
+
+    // Test-only replicas of the previous serializers, not production route aliases.
+    @Serializable
+    @SerialName("com.ahmetkaragunlu.financeai.feature.home.navigation.HomeDestination")
+    private data object PreviousHome
+
+    @Serializable
+    @SerialName("com.ahmetkaragunlu.financeai.feature.transaction.navigation.TransactionDetailDestination")
+    private data class PreviousDetail(val transactionId: Int)
 
     @Serializable @SerialName("HomeScreen") private data object LegacyHome
 

@@ -25,8 +25,8 @@ import com.ahmetkaragunlu.financeai.app.presentation.splash.SplashRoute
 import com.ahmetkaragunlu.financeai.app.presentation.sync.SyncConflictDialog
 import com.ahmetkaragunlu.financeai.core.money.UNSPECIFIED_CURRENCY
 import com.ahmetkaragunlu.financeai.core.ui.component.LocalAccountCurrency
-import com.ahmetkaragunlu.financeai.feature.auth.navigation.PasswordResetDestination
-import com.ahmetkaragunlu.financeai.feature.auth.navigation.SignInDestination
+import com.ahmetkaragunlu.financeai.feature.auth.destination.PasswordResetDestination
+import com.ahmetkaragunlu.financeai.feature.auth.destination.SignInDestination
 import com.ahmetkaragunlu.financeai.feature.auth.presentation.session.SessionViewModel
 
 @Composable

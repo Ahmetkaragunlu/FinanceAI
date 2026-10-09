@@ -1,4 +1,4 @@
-package com.ahmetkaragunlu.financeai.feature.home.navigation
+package com.ahmetkaragunlu.financeai.feature.home.destination
 
 import kotlinx.serialization.Serializable
 

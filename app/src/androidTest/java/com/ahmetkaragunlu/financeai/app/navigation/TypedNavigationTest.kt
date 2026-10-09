@@ -14,11 +14,11 @@ import androidx.navigation.toRoute
 import androidx.test.core.app.ApplicationProvider
 import com.ahmetkaragunlu.financeai.app.navigation.main.MainScreen
 import com.ahmetkaragunlu.financeai.app.navigation.main.mainScreen
-import com.ahmetkaragunlu.financeai.feature.auth.navigation.PasswordResetDestination
-import com.ahmetkaragunlu.financeai.feature.auth.navigation.SignInDestination
-import com.ahmetkaragunlu.financeai.feature.home.navigation.HomeDestination
-import com.ahmetkaragunlu.financeai.feature.transaction.navigation.TransactionDetailDestination
-import com.ahmetkaragunlu.financeai.feature.transaction.navigation.TransactionHistoryDestination
+import com.ahmetkaragunlu.financeai.feature.auth.destination.PasswordResetDestination
+import com.ahmetkaragunlu.financeai.feature.auth.destination.SignInDestination
+import com.ahmetkaragunlu.financeai.feature.home.destination.HomeDestination
+import com.ahmetkaragunlu.financeai.feature.transaction.destination.TransactionDetailDestination
+import com.ahmetkaragunlu.financeai.feature.transaction.destination.TransactionHistoryDestination
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals

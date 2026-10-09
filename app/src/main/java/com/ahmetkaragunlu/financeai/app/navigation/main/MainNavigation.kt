@@ -21,12 +21,12 @@ import com.ahmetkaragunlu.financeai.app.navigation.navigateSingleTopClear
 import com.ahmetkaragunlu.financeai.app.navigation.rememberFinanceNavController
 import com.ahmetkaragunlu.financeai.core.ui.component.EditAlertDialog
 import com.ahmetkaragunlu.financeai.core.ui.theme.FinanceColors
-import com.ahmetkaragunlu.financeai.feature.aichat.navigation.AiChatDestination
-import com.ahmetkaragunlu.financeai.feature.budget.navigation.BudgetDestination
-import com.ahmetkaragunlu.financeai.feature.home.navigation.HomeDestination
-import com.ahmetkaragunlu.financeai.feature.schedule.navigation.ScheduledTransactionsDestination
-import com.ahmetkaragunlu.financeai.feature.transaction.navigation.AddTransactionDestination
-import com.ahmetkaragunlu.financeai.feature.transaction.navigation.TransactionHistoryDestination
+import com.ahmetkaragunlu.financeai.feature.aichat.destination.AiChatDestination
+import com.ahmetkaragunlu.financeai.feature.budget.destination.BudgetDestination
+import com.ahmetkaragunlu.financeai.feature.home.destination.HomeDestination
+import com.ahmetkaragunlu.financeai.feature.schedule.destination.ScheduledTransactionsDestination
+import com.ahmetkaragunlu.financeai.feature.transaction.destination.AddTransactionDestination
+import com.ahmetkaragunlu.financeai.feature.transaction.destination.TransactionHistoryDestination
 
 @Composable
 fun MainNavigation(

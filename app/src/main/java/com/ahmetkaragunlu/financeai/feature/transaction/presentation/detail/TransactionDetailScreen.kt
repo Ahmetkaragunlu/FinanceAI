@@ -89,7 +89,7 @@ import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.Transaction
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.TransactionActionResult
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.TransactionResultEffect
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toIconResId
-import com.ahmetkaragunlu.financeai.feature.transaction.presentation.mapper.toLabelResId
+import com.ahmetkaragunlu.financeai.feature.transaction.localization.toLabelResId
 import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
