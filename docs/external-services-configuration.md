@@ -17,7 +17,11 @@ AI_FIREBASE_APP_ID=your-ai-firebase-android-app-id
 AI_FIREBASE_API_KEY=your-restricted-ai-firebase-client-key
 ```
 
-Maps ve AI alanları environment → Gradle property → `local.properties` önceliğiyle okunur. Eksik alanın adı Android Studio sync/Gradle yapılandırması sırasında hata mesajında gösterilir. CI aynı alanları güvenli değişkenlerden sağlar ve ana Firebase JSON'unu Git dışındaki CI yapılandırmasından `app/google-services.json` konumuna yerleştirir. Gerçek değerler build loglarına veya artifact olarak yayımlanan kaynak dosyalarına yazılmamalıdır.
+Maps ve AI alanları environment → Gradle property → `local.properties` önceliğiyle okunur. Eksik alanın adı Android Studio sync/Gradle yapılandırması sırasında hata mesajında gösterilir. Gerçek değerler build loglarına veya artifact olarak yayımlanan kaynak dosyalarına yazılmamalıdır.
+
+GitHub Actions başlangıç CI'ı gerçek servis yapılandırması veya secret istemez. `scripts/ci/prepare-android-config.cjs`, yalnız CI ortamındaki temiz checkout'ta sahte `app/google-services.json` oluşturur; derleme için gerekli web OAuth client kaydını da içerir. Maps/AI alanları workflow'daki sahte değerlerden gelir. Script mevcut JSON veya `local.properties` dosyasını ezmez; yerel geliştirici kurulumu yerine kullanılmamalıdır.
+
+CI, Java 21 ile Android JVM testlerini ve Node 22/pnpm ile mevcut Functions unit/syntax komutlarını çalıştırır. Rules, cihaz/Compose, SDK ve gerçek Firestore eşzamanlılık kontrolleri başlangıç CI kapsamına dahil değildir; ayrıca yerel demo emülatörlerinde çalıştırılır. Workflow deploy, gerçek AI/FCM çağrısı veya APK dağıtımı yapmaz. `.github/workflows/ci.yml` en düşük gerekli izinlerle ve sabit action commit'leriyle tanımlıdır. README hazırlanırken bu kurulum ve doğrulama ayrımı korunmalıdır.
 
 Anahtar değişikliğinden sonra temiz derleme alın. Kotlin'in BuildConfig sabitlerini kullanan sınıflarında artımlı derleme eski değerleri tutabilir:
 

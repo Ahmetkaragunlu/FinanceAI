@@ -56,11 +56,6 @@ Profesyonel seviye çok test değil; doğru riski yakalayan, okunabilir ve sürd
 
 
 
-### Part 8 — CI ve genel kapanış
-
-- **H12 — GitHub Actions ile güvenli başlangıç CI'ı:** Push/PR için başlangıçta JVM testleri ve backend unit/syntax kontrolleri çalıştırılacak; gerçek anahtarlar veya geliştiricinin local.properties/google-services.json dosyası paylaşılmadan sentetik build yapılandırması üretilecek. CI JSON'u package/app/project biçimlerini ve default_web_client_id gibi derleme kaynaklarını sağlayacak; örnek JSON'u eksik OAuth alanıyla körlemesine kopyalamak yeterli sayılmayacak. Minimal izinler kullanılacak; deployment, canlı Firebase/AI/FCM çağrısı, kullanıcı hesabı/e-postası/tokeni ve force-push yapılmayacak. Mevcut test:rules/test:integration/check scriptleri yokmuş gibi yeniden oluşturulmayacak. Rules/SDK entegrasyonları başlangıç CI kapsamına alınmıyorsa açık raporlanacak; CI'ın varlığı bunların geçtiği sayılmayacak. Rules dosya yollarının çalışma klasörüne bağımlılığı uygun yerde giderilip yalnız izole demo emülatörü kullanılacak; gerekli komutlar README'nin ilerideki test/kurulum bölümüne aktarılabilecek.
-
-**Bu partın test/aynalama kapsamı:** Güvenli sentetik CI yapılandırması hazırlanacak. Bütün partların testleri, uygun JVM/cihaz/backend/rules/entegrasyon kontrolleri, debug/release build, lint ve git diff --check toplu doğrulanacak; çalıştırılamayan kontrol başarılı sayılmayacak. Paket aynalaması, boşa çıkan kod/import/loglar ve onaylı değişikliklerin karşılanması son kez kontrol edilecek.
 
 ### Bütün partlar için ortak kapsam sınırları
 

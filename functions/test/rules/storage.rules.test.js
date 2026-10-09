@@ -2,6 +2,7 @@
 
 const { before, beforeEach, after, test } = require('node:test');
 const { readFileSync } = require('node:fs');
+const path = require('node:path');
 const { strict: assert } = require('node:assert');
 const { initializeTestEnvironment, assertSucceeds, assertFails } = require('@firebase/rules-unit-testing');
 const { ref, uploadBytes, getBytes, getMetadata, getDownloadURL, updateMetadata, deleteObject, listAll } = require('firebase/storage');
@@ -16,7 +17,7 @@ let environment;
 before(async () => {
     if (!process.env.FIREBASE_STORAGE_EMULATOR_HOST) throw new Error('LOCAL_STORAGE_EMULATOR_REQUIRED');
     environment = await initializeTestEnvironment({ projectId: 'demo-financeai',
-        storage: { rules: readFileSync('../storage.rules', 'utf8') } });
+        storage: { rules: readFileSync(path.resolve(__dirname, '../../../storage.rules'), 'utf8') } });
 });
 beforeEach(async () => {
     await environment.clearStorage();

@@ -2,13 +2,14 @@
 
 const { before, beforeEach, after, test } = require('node:test');
 const fs = require('node:fs');
+const path = require('node:path');
 const { initializeTestEnvironment, assertSucceeds, assertFails } = require('@firebase/rules-unit-testing');
 const { doc, setDoc, updateDoc, getDoc, getDocs, collection, query, where } = require('firebase/firestore');
 let environment;
 before(async () => {
     if (!process.env.FIRESTORE_EMULATOR_HOST) throw new Error('LOCAL_EMULATOR_REQUIRED');
     environment = await initializeTestEnvironment({ projectId: 'demo-financeai',
-        firestore: { rules: fs.readFileSync('../firestore.rules', 'utf8') } });
+        firestore: { rules: fs.readFileSync(path.resolve(__dirname, '../../../firestore.rules'), 'utf8') } });
 });
 beforeEach(async () => {
     await environment.clearFirestore();
