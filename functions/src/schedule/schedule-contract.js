@@ -20,6 +20,9 @@ const PlanFields = Object.freeze({
     EXPIRATION_NOTIFICATION_SENT: 'expirationNotificationSent'
 });
 
+// Persisted financial record identity; keep in sync with Android's schedule contract.
+const completedTransactionId = planId => 'completed_' + planId;
+
 // Deliberate business allowlists. Never replace them with Object.values(FinancialFields).
 const COMPLETABLE_PLAN_FIELDS = Object.freeze([
     F.AMOUNT_MINOR, F.CURRENCY_CODE, F.LEGACY_AMOUNT, PlanFields.TYPE, F.CATEGORY, F.NOTE,
@@ -31,4 +34,4 @@ const COMPLETED_PLAN_EDIT_FIELDS = Object.freeze(
 );
 
 module.exports = { ScheduleCommandType, ScheduleStatus, CommandOutcome, ScheduleCollections,
-    PlanFields, COMPLETABLE_PLAN_FIELDS, COMPLETED_PLAN_EDIT_FIELDS };
+    PlanFields, completedTransactionId, COMPLETABLE_PLAN_FIELDS, COMPLETED_PLAN_EDIT_FIELDS };

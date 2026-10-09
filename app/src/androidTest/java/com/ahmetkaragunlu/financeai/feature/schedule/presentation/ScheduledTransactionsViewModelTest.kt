@@ -16,7 +16,8 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import org.junit.After
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class ScheduledTransactionsViewModelTest {
@@ -62,7 +63,6 @@ class ScheduledTransactionsViewModelTest {
     private class Plans : ScheduledTransactionRepository {
         override fun observeScheduledTransactions() = flowOf(emptyList<ScheduledTransaction>())
         override suspend fun insertScheduledTransaction(transaction: ScheduledTransaction): Long = error("Unexpected insert")
-        override suspend fun updateScheduledTransaction(transaction: ScheduledTransaction): Unit = error("Unexpected update")
         override suspend fun deleteScheduledTransaction(transaction: ScheduledTransaction): Unit = error("Unexpected delete")
         override suspend fun getScheduledTransactionByFirestoreId(firestoreId: String): ScheduledTransaction? = error("Unexpected query")
         override suspend fun getScheduledTransactionById(localId: Long): ScheduledTransaction? = error("Unexpected query")

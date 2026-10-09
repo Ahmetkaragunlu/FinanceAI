@@ -1,8 +1,7 @@
 package com.ahmetkaragunlu.financeai.core.media.remote
 
-import com.ahmetkaragunlu.financeai.core.firebase.FirestoreCollections
-
 import android.net.Uri
+import com.ahmetkaragunlu.financeai.core.media.PhotoRecordType
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageException
@@ -14,14 +13,14 @@ import kotlinx.coroutines.tasks.await
 
 @Singleton
 class PhotoStorageManager @Inject constructor(private val storage: FirebaseStorage, private val auth: FirebaseAuth) {
-    suspend fun uploadPhoto(path: String, remoteId: String, collection: String, ownerId: String, version: String): String {
+    suspend fun uploadPhoto(path: String, remoteId: String, recordType: PhotoRecordType, ownerId: String, version: String): String {
         require(auth.currentUser?.uid == ownerId)
-        require(collection in setOf(FirestoreCollections.TRANSACTIONS, "scheduled") && remoteId.isNotBlank() && '/' !in remoteId)
+        require(remoteId.isNotBlank() && '/' !in remoteId)
         require(version.isNotBlank() && '/' !in version)
         val file = File(path)
         check(file.isFile)
         // Immutable version paths prevent a late upload from overwriting newer image content.
-        val ref = storage.reference.child("users/$ownerId/$collection/$remoteId/$version.jpg")
+        val ref = storage.reference.child("users/$ownerId/${recordType.wireValue}/$remoteId/$version.jpg")
         val upload = ref.putFile(Uri.fromFile(file))
         try { upload.await() } catch (e: CancellationException) { upload.cancel(); throw e }
         require(auth.currentUser?.uid == ownerId)

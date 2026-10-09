@@ -1,10 +1,5 @@
 package com.ahmetkaragunlu.financeai.core.session
 
-import com.ahmetkaragunlu.financeai.core.firebase.FirestoreCollections
-
-import com.ahmetkaragunlu.financeai.core.session.local.entity.AccountPreferences
-import com.ahmetkaragunlu.financeai.core.session.local.entity.ActiveAccountRow
-
 import android.app.NotificationManager
 import android.content.Context
 import android.util.Log
@@ -12,25 +7,34 @@ import androidx.room.withTransaction
 import androidx.work.WorkManager
 import com.ahmetkaragunlu.financeai.core.coroutines.di.ApplicationScope
 import com.ahmetkaragunlu.financeai.core.database.FinanceDatabase
+import com.ahmetkaragunlu.financeai.core.firebase.FirestoreCollections
+import com.ahmetkaragunlu.financeai.core.firebase.UserFields
 import com.ahmetkaragunlu.financeai.core.money.MoneyAmounts
-import com.ahmetkaragunlu.financeai.core.sync.contract.FinancialFields
+import com.ahmetkaragunlu.financeai.core.session.local.entity.AccountPreferences
+import com.ahmetkaragunlu.financeai.core.session.local.entity.ActiveAccountRow
 import com.ahmetkaragunlu.financeai.core.sync.AccountSyncEngine
 import com.ahmetkaragunlu.financeai.core.sync.SyncScheduler
+import com.ahmetkaragunlu.financeai.core.sync.contract.FinancialFields
+import com.ahmetkaragunlu.financeai.core.work.AccountWork
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
 import dagger.Lazy
 import dagger.hilt.android.qualifiers.ApplicationContext
-import java.util.Locale
 import java.time.ZoneId
+import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withTimeout
 
 @Singleton
 class SessionCoordinator @Inject constructor(
@@ -80,9 +84,9 @@ class SessionCoordinator @Inject constructor(
                 val currency = document.getString(FinancialFields.CURRENCY_CODE) ?: local?.currencyCode
                     ?: checkNotNull(proposed) { "Device region has no currency" }
                 require(MoneyAmounts.scale(currency) >= 0)
-                val zone = document.getString("timeZoneId") ?: ZoneId.systemDefault().id
+                val zone = document.getString(UserFields.TIME_ZONE_ID) ?: ZoneId.systemDefault().id
                 ZoneId.of(zone)
-                transaction.set(ref, mapOf(FinancialFields.CURRENCY_CODE to currency, "timeZoneId" to zone), SetOptions.merge())
+                transaction.set(ref, mapOf(FinancialFields.CURRENCY_CODE to currency, UserFields.TIME_ZONE_ID to zone), SetOptions.merge())
                 AccountPreferences(user.uid, currency, zone)
             }.await()
         }
@@ -122,7 +126,7 @@ class SessionCoordinator @Inject constructor(
         database.accountDao().clearActive()
         if (old != null) {
             scheduler.stop(old.ownerId)
-            workManager.cancelAllWorkByTag("account_${old.ownerId}")
+            workManager.cancelAllWorkByTag(AccountWork.tag(old.ownerId))
             (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).cancelAll()
         }
     }

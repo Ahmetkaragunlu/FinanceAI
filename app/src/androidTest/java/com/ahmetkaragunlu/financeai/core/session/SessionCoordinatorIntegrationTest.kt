@@ -4,14 +4,27 @@ import com.ahmetkaragunlu.financeai.core.media.remote.PhotoRemoteCache
 import com.ahmetkaragunlu.financeai.core.sync.testing.EmulatorAccountFixture
 import com.ahmetkaragunlu.financeai.feature.transaction.data.remote.TransactionRemoteStore
 import com.ahmetkaragunlu.financeai.feature.transaction.data.repository.TransactionRepositoryImpl
-import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.*
+import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
+import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.Transaction
+import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
 import dagger.Lazy
 import java.util.UUID
 import java.util.concurrent.CopyOnWriteArrayList
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.tasks.await
-import org.junit.Assert.*
+import kotlinx.coroutines.withTimeout
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SessionCoordinatorIntegrationTest {

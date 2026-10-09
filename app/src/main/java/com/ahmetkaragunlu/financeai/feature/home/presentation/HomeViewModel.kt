@@ -39,7 +39,7 @@ constructor(
     val homeUiState: StateFlow<HomeUiState> =
         combine(summary, session.account) { value, account ->
                 if (value == null || account == null) return@combine HomeUiState()
-                val currency = account?.currencyCode ?: "XXX"
+                val currency = account.currencyCode
                 HomeUiState(
                     totalIncome = value.income.formatAsCurrency(currency),
                     totalExpense = value.expense.formatAsCurrency(currency),

@@ -1,21 +1,27 @@
 package com.ahmetkaragunlu.financeai.feature.schedule.data.sync
 
-import com.ahmetkaragunlu.financeai.core.sync.contract.SyncPayload
-import com.ahmetkaragunlu.financeai.core.sync.local.PendingChanges
-import com.ahmetkaragunlu.financeai.feature.schedule.data.reminder.ReminderScheduler
-import com.ahmetkaragunlu.financeai.core.session.local.entity.AccountPreferences
-import com.ahmetkaragunlu.financeai.core.session.local.entity.ActiveAccountRow
-import com.ahmetkaragunlu.financeai.core.sync.local.entity.SyncRecord
 import android.content.Context
 import androidx.room.Room
 import androidx.room.withTransaction
 import androidx.test.core.app.ApplicationProvider
-import androidx.work.*
+import androidx.work.Configuration
+import androidx.work.ListenableWorker
+import androidx.work.WorkManager
+import androidx.work.Worker
+import androidx.work.WorkerFactory
+import androidx.work.WorkerParameters
 import androidx.work.testing.WorkManagerTestInitHelper
 import com.ahmetkaragunlu.financeai.core.database.FinanceDatabase
 import com.ahmetkaragunlu.financeai.core.media.remote.PhotoRemoteCache
-import com.ahmetkaragunlu.financeai.core.session.*
-import com.ahmetkaragunlu.financeai.core.sync.*
+import com.ahmetkaragunlu.financeai.core.media.work.PhotoWorkScheduler
+import com.ahmetkaragunlu.financeai.core.session.AccountSession
+import com.ahmetkaragunlu.financeai.core.session.local.entity.AccountPreferences
+import com.ahmetkaragunlu.financeai.core.session.local.entity.ActiveAccountRow
+import com.ahmetkaragunlu.financeai.core.sync.SyncScheduler
+import com.ahmetkaragunlu.financeai.core.sync.contract.SyncPayload
+import com.ahmetkaragunlu.financeai.core.sync.local.PendingChanges
+import com.ahmetkaragunlu.financeai.core.sync.local.entity.SyncRecord
+import com.ahmetkaragunlu.financeai.feature.schedule.data.reminder.ReminderScheduler
 import com.ahmetkaragunlu.financeai.feature.schedule.data.remote.ScheduledTransactionRemoteStore
 import com.ahmetkaragunlu.financeai.feature.schedule.data.repository.ScheduledTransactionRepositoryImpl
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.model.ScheduledTransaction
@@ -24,13 +30,15 @@ import com.ahmetkaragunlu.financeai.feature.transaction.data.remote.TransactionR
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
 import com.ahmetkaragunlu.financeai.notification.presentation.ReminderPresenter
-import com.ahmetkaragunlu.financeai.core.media.work.PhotoWorkScheduler
 import dagger.Lazy
 import java.time.Clock
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
-import org.junit.*
-import org.junit.Assert.*
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Before
+import org.junit.Test
 
 class CompletedPlanEditResolutionTest {
     private lateinit var database: FinanceDatabase
@@ -69,7 +77,7 @@ class CompletedPlanEditResolutionTest {
         schedules.insertScheduledTransaction(ScheduledTransaction(firestoreId = "p1", amount = 50.0,
             type = TransactionType.EXPENSE, category = CategoryType.FOOD, note = "before", scheduledDate = 100))
         val before = database.syncRecordDao().get("A", "scheduled_transactions", "p1")!!.pendingPayload
-        schedules.updateScheduledTransaction(schedules.getScheduledTransactionByFirestoreId("p1")!!.copy(amount = 75.0, note = "local"))
+        schedules.insertScheduledTransaction(schedules.getScheduledTransactionByFirestoreId("p1")!!.copy(amount = 75.0, note = "local"))
         val row = database.syncRecordDao().get("A", "scheduled_transactions", "p1")!!
         val conflict = row.copy(basePayload = before, conflictPayload = null, conflictRevision = 8)
         database.syncRecordDao().save(conflict)

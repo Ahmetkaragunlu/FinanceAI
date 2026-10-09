@@ -19,10 +19,19 @@ import com.ahmetkaragunlu.financeai.feature.transaction.presentation.Transaction
 import com.ahmetkaragunlu.financeai.feature.transaction.testing.RecordingTransactionRepository
 import java.io.File
 import java.util.UUID
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.yield
 import org.junit.After
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -37,7 +46,6 @@ class AddTransactionViewModelTest {
     private class Plans : ScheduledTransactionRepository {
         val inserted = mutableListOf<ScheduledTransaction>()
         override suspend fun insertScheduledTransaction(transaction: ScheduledTransaction): Long { inserted += transaction; return 1 }
-        override suspend fun updateScheduledTransaction(transaction: ScheduledTransaction): Unit = unused()
         override suspend fun deleteScheduledTransaction(transaction: ScheduledTransaction): Unit = unused()
         override fun observeScheduledTransactions(): Flow<List<ScheduledTransaction>> = unused()
         override suspend fun getScheduledTransactionByFirestoreId(firestoreId: String): ScheduledTransaction? = unused()

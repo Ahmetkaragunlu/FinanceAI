@@ -16,7 +16,9 @@ import com.ahmetkaragunlu.financeai.feature.home.navigation.HomeDestination
 import com.ahmetkaragunlu.financeai.feature.transaction.navigation.TransactionDetailDestination
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 

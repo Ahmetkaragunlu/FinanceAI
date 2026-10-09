@@ -15,18 +15,14 @@ val localConfiguration = Properties().apply {
     val configurationFile = rootProject.file("local.properties")
     if (configurationFile.exists()) configurationFile.inputStream().use(::load)
 }
-val mapsApiKey = providers.environmentVariable("MAPS_API_KEY")
-    .orElse(providers.gradleProperty("MAPS_API_KEY"))
-    .orElse(localConfiguration.getProperty("MAPS_API_KEY", ""))
-val aiFirebaseProjectId = providers.environmentVariable("AI_FIREBASE_PROJECT_ID")
-    .orElse(providers.gradleProperty("AI_FIREBASE_PROJECT_ID"))
-    .orElse(localConfiguration.getProperty("AI_FIREBASE_PROJECT_ID", ""))
-val aiFirebaseAppId = providers.environmentVariable("AI_FIREBASE_APP_ID")
-    .orElse(providers.gradleProperty("AI_FIREBASE_APP_ID"))
-    .orElse(localConfiguration.getProperty("AI_FIREBASE_APP_ID", ""))
-val aiFirebaseApiKey = providers.environmentVariable("AI_FIREBASE_API_KEY")
-    .orElse(providers.gradleProperty("AI_FIREBASE_API_KEY"))
-    .orElse(localConfiguration.getProperty("AI_FIREBASE_API_KEY", ""))
+fun localServiceProperty(name: String) = providers.environmentVariable(name)
+    .orElse(providers.gradleProperty(name))
+    .orElse(localConfiguration.getProperty(name, ""))
+
+val mapsApiKey = localServiceProperty("MAPS_API_KEY")
+val aiFirebaseProjectId = localServiceProperty("AI_FIREBASE_PROJECT_ID")
+val aiFirebaseAppId = localServiceProperty("AI_FIREBASE_APP_ID")
+val aiFirebaseApiKey = localServiceProperty("AI_FIREBASE_API_KEY")
 
 fun buildConfigString(value: String): String =
     "\"${value.replace("\\", "\\\\").replace("\"", "\\\"")}\""
@@ -54,7 +50,7 @@ android {
     defaultConfig {
         applicationId = "com.ahmetkaragunlu.financeai"
         minSdk = 30
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "com.ahmetkaragunlu.financeai.FinanceTestRunner"

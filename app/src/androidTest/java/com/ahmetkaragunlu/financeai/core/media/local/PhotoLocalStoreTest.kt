@@ -1,7 +1,5 @@
 package com.ahmetkaragunlu.financeai.core.media.local
 
-import com.ahmetkaragunlu.financeai.core.media.local.entity.PhotoOperation
-
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -10,19 +8,25 @@ import android.net.Uri
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.ahmetkaragunlu.financeai.core.database.FinanceDatabase
+import com.ahmetkaragunlu.financeai.core.media.local.entity.PhotoOperation
+import com.ahmetkaragunlu.financeai.feature.schedule.data.local.entity.ScheduledTransactionEntity
+import com.ahmetkaragunlu.financeai.feature.transaction.data.local.entity.TransactionEntity
+import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
+import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
 import java.io.File
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
-import com.ahmetkaragunlu.financeai.feature.transaction.data.local.entity.TransactionEntity
-import com.ahmetkaragunlu.financeai.feature.schedule.data.local.entity.ScheduledTransactionEntity
-import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
-import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
-import org.junit.*
-import org.junit.Assert.*
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Test
 
 class PhotoLocalStoreTest {
     private lateinit var context: Context

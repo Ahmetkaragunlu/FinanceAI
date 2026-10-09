@@ -3,6 +3,7 @@ package com.ahmetkaragunlu.financeai.feature.transaction.data.local.entity
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.ahmetkaragunlu.financeai.core.money.UNSPECIFIED_CURRENCY
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
 
@@ -22,6 +23,6 @@ data class TransactionEntity(
     val latitude: Double? = null,
     val longitude: Double? = null,
     val ownerId: String = "",
-    val currencyCode: String = "XXX",
+    val currencyCode: String = UNSPECIFIED_CURRENCY,
     val syncedToFirebase: Boolean = false
 )

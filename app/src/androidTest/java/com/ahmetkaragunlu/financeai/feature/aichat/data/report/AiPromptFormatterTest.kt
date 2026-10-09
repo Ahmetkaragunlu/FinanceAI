@@ -1,6 +1,7 @@
 package com.ahmetkaragunlu.financeai.feature.aichat.data.report
 
 import android.content.Context
+import android.content.res.Configuration
 import androidx.test.core.app.ApplicationProvider
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.feature.aichat.domain.model.FinancialSnapshot
@@ -8,11 +9,12 @@ import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryTyp
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.Transaction
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
 import com.google.gson.JsonParser
-import org.junit.Assert.*
-import org.junit.Test
 import java.time.Instant
-import android.content.res.Configuration
 import java.util.Locale
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Test
 
 class AiPromptFormatterTest {
     @Test fun notesAndQuestionRemainJsonDataAndDoNotEnterSystemInstruction() {

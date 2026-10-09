@@ -1,28 +1,29 @@
 package com.ahmetkaragunlu.financeai.feature.schedule.data.repository
 
+import androidx.room.withTransaction
+import com.ahmetkaragunlu.financeai.core.database.FinanceDatabase
+import com.ahmetkaragunlu.financeai.core.error.DataAccessException
 import com.ahmetkaragunlu.financeai.core.firebase.FirestoreCollections
 import com.ahmetkaragunlu.financeai.core.media.PhotoFields
-import androidx.room.withTransaction
-import com.ahmetkaragunlu.financeai.core.error.DataAccessException
-import com.ahmetkaragunlu.financeai.core.database.FinanceDatabase
 import com.ahmetkaragunlu.financeai.core.money.MoneyAmounts
+import com.ahmetkaragunlu.financeai.core.money.UNSPECIFIED_CURRENCY
 import com.ahmetkaragunlu.financeai.core.session.AccountSession
-import com.ahmetkaragunlu.financeai.core.sync.local.PendingChanges
 import com.ahmetkaragunlu.financeai.core.sync.SyncScheduler
+import com.ahmetkaragunlu.financeai.core.sync.local.PendingChanges
 import com.ahmetkaragunlu.financeai.feature.schedule.data.local.dao.ScheduledTransactionDao
 import com.ahmetkaragunlu.financeai.feature.schedule.data.mapper.toDomain
 import com.ahmetkaragunlu.financeai.feature.schedule.data.mapper.toEntity
+import com.ahmetkaragunlu.financeai.feature.schedule.data.reminder.ReminderScheduler
 import com.ahmetkaragunlu.financeai.feature.schedule.data.remote.toFirebaseMap
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.model.ScheduledTransaction
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.repository.ScheduledTransactionRepository
-import java.util.UUID
+import com.ahmetkaragunlu.financeai.notification.presentation.ReminderPresenter
 import java.io.File
+import java.util.UUID
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
-import com.ahmetkaragunlu.financeai.feature.schedule.data.reminder.ReminderScheduler
-import com.ahmetkaragunlu.financeai.notification.presentation.ReminderPresenter
 
 class ScheduledTransactionRepositoryImpl @Inject constructor(
     private val scheduledTransactionDao: ScheduledTransactionDao,
@@ -37,7 +38,7 @@ class ScheduledTransactionRepositoryImpl @Inject constructor(
 
     private suspend fun save(value: ScheduledTransaction): Long = session.withAccount { account ->
         require(value.ownerId.isEmpty() || value.ownerId == account.ownerId)
-        require(value.currencyCode == "XXX" || value.currencyCode == account.currencyCode)
+        require(value.currencyCode == UNSPECIFIED_CURRENCY || value.currencyCode == account.currencyCode)
         require(MoneyAmounts.toMinor(value.amount, account.currencyCode) > 0)
         val prepared = value.copy(ownerId = account.ownerId, currencyCode = account.currencyCode,
             firestoreId = value.firestoreId.ifBlank { UUID.randomUUID().toString() }, syncedToFirebase = false)
@@ -57,7 +58,6 @@ class ScheduledTransactionRepositoryImpl @Inject constructor(
         id
     }
 
-    override suspend fun updateScheduledTransaction(transaction: ScheduledTransaction) { save(transaction) }
 
     override suspend fun deleteScheduledTransaction(transaction: ScheduledTransaction) {
         session.withAccount { account ->
@@ -74,7 +74,7 @@ class ScheduledTransactionRepositoryImpl @Inject constructor(
     }
 
     override fun observeScheduledTransactions(): Flow<List<ScheduledTransaction>> =
-        session.observe<List<ScheduledTransaction>>(emptyList<ScheduledTransaction>()) { account ->
+        session.observe(emptyList()) { _ ->
             scheduledTransactionDao.observeScheduledTransactions()
                 .map { rows -> rows.map { it.toDomain() } }
                 .distinctUntilChanged()

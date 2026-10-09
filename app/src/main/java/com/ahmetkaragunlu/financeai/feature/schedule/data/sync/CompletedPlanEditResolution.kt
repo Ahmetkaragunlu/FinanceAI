@@ -2,14 +2,15 @@ package com.ahmetkaragunlu.financeai.feature.schedule.data.sync
 
 import com.ahmetkaragunlu.financeai.core.database.FinanceDatabase
 import com.ahmetkaragunlu.financeai.core.media.PhotoFields
+import com.ahmetkaragunlu.financeai.core.media.PhotoRecordType
+import com.ahmetkaragunlu.financeai.core.media.work.PhotoWorkScheduler
 import com.ahmetkaragunlu.financeai.core.session.ActiveAccount
-import com.ahmetkaragunlu.financeai.core.sync.local.PendingChanges
-import com.ahmetkaragunlu.financeai.core.sync.reconciliation.Reconciliation
 import com.ahmetkaragunlu.financeai.core.sync.contract.SyncPayload
+import com.ahmetkaragunlu.financeai.core.sync.local.PendingChanges
 import com.ahmetkaragunlu.financeai.core.sync.local.entity.SyncRecord
+import com.ahmetkaragunlu.financeai.core.sync.reconciliation.Reconciliation
 import com.ahmetkaragunlu.financeai.feature.schedule.data.remote.ScheduledTransactionRemoteStore
 import com.ahmetkaragunlu.financeai.feature.transaction.data.remote.TransactionRemoteStore
-import com.ahmetkaragunlu.financeai.core.media.work.PhotoWorkScheduler
 import javax.inject.Inject
 
 internal data class CompletedFinancialSnapshot(val remoteId: String, val payload: String?, val revision: Long,
@@ -50,7 +51,7 @@ class CompletedPlanEditResolution @Inject constructor(
                 dao.save(queued.copy(conflictPayload = remote, conflictRevision = financial.revision))
             }
             val row = database.transactionDao().getTransactionByFirestoreId(financial.remoteId)
-            photos.upload(account.ownerId, "transactions", financial.remoteId, row?.photoUri)
+            photos.upload(account.ownerId, PhotoRecordType.TRANSACTION, financial.remoteId, row?.photoUri)
         } else {
             val old = database.syncRecordDao().get(account.ownerId, "transactions", financial.remoteId)
             if (old?.mutationId == null) {

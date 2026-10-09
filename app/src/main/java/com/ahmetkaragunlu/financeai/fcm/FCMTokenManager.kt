@@ -1,8 +1,5 @@
 package com.ahmetkaragunlu.financeai.fcm
 
-import com.ahmetkaragunlu.financeai.core.firebase.FirestoreCollections
-import com.ahmetkaragunlu.financeai.core.error.DataAccessException
-
 import androidx.work.Constraints
 import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
@@ -10,14 +7,18 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.workDataOf
 import com.ahmetkaragunlu.financeai.core.database.FinanceDatabase
+import com.ahmetkaragunlu.financeai.core.error.DataAccessException
+import com.ahmetkaragunlu.financeai.core.firebase.FirestoreCollections
+import com.ahmetkaragunlu.financeai.core.firebase.UserFields
 import com.ahmetkaragunlu.financeai.core.sync.SyncScheduler
+import com.ahmetkaragunlu.financeai.core.work.AccountWork
 import com.ahmetkaragunlu.financeai.fcm.data.local.entity.TokenOperation
 import com.ahmetkaragunlu.financeai.fcm.work.TokenRegistrationWorker
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.functions.FirebaseFunctions
+import com.google.firebase.messaging.FirebaseMessaging
 import java.time.Clock
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -53,7 +54,7 @@ class FCMTokenManager @Inject constructor(
         val work = OneTimeWorkRequestBuilder<TokenRegistrationWorker>()
             .setInputData(workDataOf(SyncScheduler.OWNER_ID to owner, TokenRegistrationWorker.FETCH_CURRENT to true))
             .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
-            .addTag("account_$owner").build()
+            .addTag(AccountWork.tag(owner)).build()
         workManager.enqueueUniqueWork("token_restore_$owner", ExistingWorkPolicy.KEEP, work)
     }
     suspend fun restorePlans(owner: String) {
@@ -76,13 +77,13 @@ class FCMTokenManager @Inject constructor(
         val work = OneTimeWorkRequestBuilder<TokenRegistrationWorker>()
             .setInputData(workDataOf(SyncScheduler.OWNER_ID to owner))
             .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
-            .addTag("account_$owner").build()
+            .addTag(AccountWork.tag(owner)).build()
         workManager.enqueueUniqueWork("token_registration_$owner", ExistingWorkPolicy.APPEND_OR_REPLACE, work)
     }
     suspend fun flush(owner: String) {
         for (operation in database.tokenOperationDao().pending(owner)) {
             if (auth.currentUser?.uid != owner) return
-            firestore.collection(FirestoreCollections.USERS).document(owner).update("fcmTokens",
+            firestore.collection(FirestoreCollections.USERS).document(owner).update(UserFields.FCM_TOKENS,
                 if (operation.remove) FieldValue.arrayRemove(operation.token) else FieldValue.arrayUnion(operation.token)).await()
             if (auth.currentUser?.uid != owner) return
             database.tokenOperationDao().acknowledge(owner, operation.token, operation.createdAt, operation.remove)

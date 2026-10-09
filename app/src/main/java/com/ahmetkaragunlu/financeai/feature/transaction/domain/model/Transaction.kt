@@ -1,5 +1,7 @@
 package com.ahmetkaragunlu.financeai.feature.transaction.domain.model
 
+import com.ahmetkaragunlu.financeai.core.money.UNSPECIFIED_CURRENCY
+
 data class Transaction(
     val id: Int = 0,
     val firestoreId: String = "",
@@ -14,6 +16,6 @@ data class Transaction(
     val latitude: Double? = null,
     val longitude: Double? = null,
     val ownerId: String = "",
-    val currencyCode: String = "XXX",
+    val currencyCode: String = UNSPECIFIED_CURRENCY,
     val syncedToFirebase: Boolean = false
 )

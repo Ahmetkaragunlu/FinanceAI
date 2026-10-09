@@ -5,6 +5,7 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.workDataOf
 import com.ahmetkaragunlu.financeai.core.sync.SyncScheduler
+import com.ahmetkaragunlu.financeai.core.work.AccountWork
 import com.ahmetkaragunlu.financeai.notification.work.NotificationWorker
 import java.time.Clock
 import java.util.concurrent.TimeUnit
@@ -15,7 +16,7 @@ class ReminderScheduler @Inject constructor(private val workManager: WorkManager
         val request = OneTimeWorkRequestBuilder<NotificationWorker>()
             .setInputData(workDataOf(SyncScheduler.OWNER_ID to ownerId, NotificationWorker.FIRESTORE_ID_KEY to remoteId))
             .setInitialDelay((at - clock.millis()).coerceAtLeast(0), TimeUnit.MILLISECONDS)
-            .addTag(tag(ownerId, remoteId)).addTag("account_$ownerId").build()
+            .addTag(tag(ownerId, remoteId)).addTag(AccountWork.tag(ownerId)).build()
         // Different due times cannot cancel their currently running predecessor.
         workManager.enqueueUniqueWork("${tag(ownerId, remoteId)}_$at", ExistingWorkPolicy.KEEP, request)
     }

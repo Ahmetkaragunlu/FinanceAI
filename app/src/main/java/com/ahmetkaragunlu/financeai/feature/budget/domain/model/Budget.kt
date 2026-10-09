@@ -1,5 +1,6 @@
 package com.ahmetkaragunlu.financeai.feature.budget.domain.model
 
+import com.ahmetkaragunlu.financeai.core.money.UNSPECIFIED_CURRENCY
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 
 data class Budget(
@@ -10,6 +11,6 @@ data class Budget(
     val amount: Double = 0.0,
     val limitPercentage: Double? = null,
     val ownerId: String = "",
-    val currencyCode: String = "XXX",
+    val currencyCode: String = UNSPECIFIED_CURRENCY,
     val syncedToFirebase: Boolean = false
 )

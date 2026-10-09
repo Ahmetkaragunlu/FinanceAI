@@ -2,14 +2,16 @@ package com.ahmetkaragunlu.financeai.feature.aichat.data.remote
 
 import com.ahmetkaragunlu.financeai.feature.aichat.domain.error.AiException
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.awaitCancellation
-import kotlinx.coroutines.async
-import kotlinx.coroutines.test.runCurrent
-import kotlinx.coroutines.test.advanceTimeBy
-import kotlinx.coroutines.test.runTest
-import org.junit.Assert.*
-import org.junit.Test
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
+import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AiRequestExecutorTest {

@@ -5,7 +5,6 @@ import kotlinx.coroutines.flow.Flow
 
 interface ScheduledTransactionRepository {
     suspend fun insertScheduledTransaction(transaction: ScheduledTransaction): Long
-    suspend fun updateScheduledTransaction(transaction: ScheduledTransaction)
     suspend fun deleteScheduledTransaction(transaction: ScheduledTransaction)
     fun observeScheduledTransactions(): Flow<List<ScheduledTransaction>>
     suspend fun getScheduledTransactionByFirestoreId(firestoreId: String): ScheduledTransaction?

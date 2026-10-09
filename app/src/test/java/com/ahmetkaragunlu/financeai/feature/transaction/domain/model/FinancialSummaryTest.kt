@@ -1,6 +1,6 @@
 package com.ahmetkaragunlu.financeai.feature.transaction.domain.model
 
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class FinancialSummaryTest {

@@ -1,8 +1,5 @@
 package com.ahmetkaragunlu.financeai.notification.action
 
-import com.ahmetkaragunlu.financeai.notification.work.NotificationActionWorker
-import com.ahmetkaragunlu.financeai.notification.work.NotificationWorker
-
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -11,6 +8,9 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.workDataOf
 import com.ahmetkaragunlu.financeai.core.sync.SyncScheduler
+import com.ahmetkaragunlu.financeai.core.work.AccountWork
+import com.ahmetkaragunlu.financeai.notification.work.NotificationActionWorker
+import com.ahmetkaragunlu.financeai.notification.work.NotificationWorker
 import dagger.hilt.android.AndroidEntryPoint
 import java.time.Clock
 import javax.inject.Inject
@@ -27,7 +27,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
         val work = OneTimeWorkRequestBuilder<NotificationActionWorker>().setInputData(workDataOf(
             SyncScheduler.OWNER_ID to owner, NotificationWorker.FIRESTORE_ID_KEY to record,
             NotificationActionWorker.ACTION to action, NotificationActionWorker.REQUESTED_AT to at))
-            .addTag("account_$owner").build()
+            .addTag(AccountWork.tag(owner)).build()
         workManager.enqueueUniqueWork("reminder_action_${owner}_${record}_${action}_$at", ExistingWorkPolicy.KEEP, work)
     }
 }

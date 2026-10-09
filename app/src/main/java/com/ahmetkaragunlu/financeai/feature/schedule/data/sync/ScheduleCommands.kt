@@ -1,31 +1,33 @@
 package com.ahmetkaragunlu.financeai.feature.schedule.data.sync
 
-import com.ahmetkaragunlu.financeai.core.firebase.FirestoreCollections
-import com.ahmetkaragunlu.financeai.core.sync.contract.SyncFields
-import com.ahmetkaragunlu.financeai.core.media.PhotoFields
-import com.ahmetkaragunlu.financeai.feature.transaction.data.remote.TransactionFields
-import com.ahmetkaragunlu.financeai.feature.schedule.data.remote.contract.ScheduleFields
-import com.ahmetkaragunlu.financeai.feature.schedule.data.remote.contract.ScheduleCommandFields
-import com.ahmetkaragunlu.financeai.feature.schedule.data.local.entity.ScheduleCommand
 import androidx.room.withTransaction
 import com.ahmetkaragunlu.financeai.core.database.FinanceDatabase
+import com.ahmetkaragunlu.financeai.core.firebase.FirestoreCollections
+import com.ahmetkaragunlu.financeai.core.media.PhotoFields
 import com.ahmetkaragunlu.financeai.core.session.AccountSession
 import com.ahmetkaragunlu.financeai.core.session.ActiveAccount
 import com.ahmetkaragunlu.financeai.core.sync.contract.AccountSyncParticipant
+import com.ahmetkaragunlu.financeai.core.sync.contract.LocalConflictResolution
+import com.ahmetkaragunlu.financeai.core.sync.contract.SyncFields
 import com.ahmetkaragunlu.financeai.core.sync.contract.SyncPayload
 import com.ahmetkaragunlu.financeai.core.sync.local.entity.SyncRecord
-import com.ahmetkaragunlu.financeai.core.sync.contract.LocalConflictResolution
+import com.ahmetkaragunlu.financeai.feature.schedule.data.local.entity.ScheduleCommand
 import com.ahmetkaragunlu.financeai.feature.schedule.data.remote.ScheduledTransactionRemoteStore
+import com.ahmetkaragunlu.financeai.feature.schedule.data.remote.contract.CommandOutcome
+import com.ahmetkaragunlu.financeai.feature.schedule.data.remote.contract.ScheduleCommandFields
+import com.ahmetkaragunlu.financeai.feature.schedule.data.remote.contract.ScheduleFields
+import com.ahmetkaragunlu.financeai.feature.schedule.domain.error.ScheduleException
+import com.ahmetkaragunlu.financeai.feature.schedule.domain.model.completedTransactionId
+import com.ahmetkaragunlu.financeai.feature.schedule.domain.model.planIdOf
+import com.ahmetkaragunlu.financeai.feature.schedule.domain.reminder.ScheduleCommandType
+import com.ahmetkaragunlu.financeai.feature.transaction.data.remote.TransactionFields
 import com.ahmetkaragunlu.financeai.feature.transaction.data.remote.TransactionRemoteStore
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.ahmetkaragunlu.financeai.feature.schedule.domain.error.ScheduleException
-import com.ahmetkaragunlu.financeai.feature.schedule.domain.reminder.ScheduleCommandType
-import com.ahmetkaragunlu.financeai.feature.schedule.data.remote.contract.CommandOutcome
 import com.google.firebase.firestore.Source
-import javax.inject.Inject
-import java.util.UUID
 import java.time.Clock
+import java.util.UUID
+import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.tasks.await
 
@@ -41,12 +43,12 @@ class ScheduleCommands @Inject constructor(
 ) : AccountSyncParticipant {
     override suspend fun heldRecords(account: ActiveAccount): Set<Pair<String, String>> =
         database.scheduleCommandDao().forAccount(account.ownerId).filter { ScheduleCommandType.fromWire(it.type) == ScheduleCommandType.COMPLETE }
-            .flatMap { listOf(FirestoreCollections.SCHEDULED_TRANSACTIONS to it.remoteId, FirestoreCollections.TRANSACTIONS to "completed_${it.remoteId}") }.toSet()
+            .flatMap { listOf(FirestoreCollections.SCHEDULED_TRANSACTIONS to it.remoteId, FirestoreCollections.TRANSACTIONS to completedTransactionId(it.remoteId)) }.toSet()
 
     override suspend fun prepareResolution(account: ActiveAccount, conflict: SyncRecord, keepLocal: Boolean,
         remoteDocument: Map<String, Any?>): LocalConflictResolution? {
         if (conflict.collection != FirestoreCollections.SCHEDULED_TRANSACTIONS || conflict.pendingDelete || remoteDocument[SyncFields.DELETED] != true) return null
-        val id = "completed_${conflict.remoteId}"
+        val id = completedTransactionId(conflict.remoteId)
         val document = firestore.collection(FirestoreCollections.TRANSACTIONS).document(id).get(Source.SERVER).await()
         ensureCurrent(account)
         if (!document.exists() && remoteDocument[ScheduleFields.COMPLETED_FROM] == null) return null
@@ -100,7 +102,7 @@ class ScheduleCommands @Inject constructor(
     }
 
     private suspend fun acknowledgeCompletion(account: ActiveAccount, command: ScheduleCommand) {
-        val id = "completed_${command.remoteId}"
+        val id = completedTransactionId(command.remoteId)
         val document = firestore.collection(FirestoreCollections.TRANSACTIONS).document(id).get(Source.SERVER).await()
         val accepted = document.exists() && document.getString(SyncFields.USER_ID) == account.ownerId
         val payload = if (accepted && document.getBoolean(SyncFields.DELETED) != true)
@@ -145,7 +147,7 @@ class ScheduleCommands @Inject constructor(
     }
 
     private suspend fun markFinancialConflict(account: ActiveAccount, command: ScheduleCommand) {
-        val id = "completed_${command.remoteId}"
+        val id = completedTransactionId(command.remoteId)
         val document = firestore.collection(FirestoreCollections.TRANSACTIONS).document(id).get(Source.SERVER).await()
         require(document.getString(SyncFields.USER_ID) == account.ownerId)
         val payload = if (document.getBoolean(SyncFields.DELETED) == true) null
@@ -162,8 +164,8 @@ class ScheduleCommands @Inject constructor(
 
     override suspend fun resolve(account: ActiveAccount, conflict: SyncRecord, keepLocal: Boolean,
         remotePayload: String?, prepared: Map<String, Any?>?, revision: Long): Boolean {
-        if (conflict.collection == FirestoreCollections.TRANSACTIONS && conflict.remoteId.startsWith("completed_")) {
-            val planId = conflict.remoteId.removePrefix("completed_")
+        val planId = planIdOf(conflict.remoteId)
+        if (conflict.collection == FirestoreCollections.TRANSACTIONS && planId != null) {
             val command = database.scheduleCommandDao().forRecord(account.ownerId, planId)
                 .firstOrNull { ScheduleCommandType.fromWire(it.type) == ScheduleCommandType.COMPLETE && CommandOutcome.fromWire(it.failure) == CommandOutcome.CONFLICT } ?: return false
             if (keepLocal) {
@@ -196,7 +198,7 @@ class ScheduleCommands @Inject constructor(
             database.syncRecordDao().save(conflict.copy(basePayload = remotePayload, baseRevision = revision,
                 conflictPayload = null, conflictRevision = null))
         } else {
-            val id = "completed_${command.remoteId}"
+            val id = completedTransactionId(command.remoteId)
             transactions.apply(account, id, null)
             database.syncRecordDao().save(SyncRecord(account.ownerId, FirestoreCollections.TRANSACTIONS, id))
             schedules.apply(account, command.remoteId, prepared)

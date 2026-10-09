@@ -1,9 +1,5 @@
 package com.ahmetkaragunlu.financeai.feature.transaction.data.repository
 
-import com.ahmetkaragunlu.financeai.core.sync.contract.SyncPayload
-import com.ahmetkaragunlu.financeai.core.sync.local.PendingChanges
-import com.ahmetkaragunlu.financeai.core.session.local.entity.AccountPreferences
-import com.ahmetkaragunlu.financeai.core.session.local.entity.ActiveAccountRow
 import android.content.Context
 import android.database.sqlite.SQLiteException
 import androidx.room.Room
@@ -13,24 +9,37 @@ import androidx.work.Configuration
 import androidx.work.WorkManager
 import androidx.work.testing.WorkManagerTestInitHelper
 import com.ahmetkaragunlu.financeai.core.database.FinanceDatabase
+import com.ahmetkaragunlu.financeai.core.error.DataAccessException
 import com.ahmetkaragunlu.financeai.core.media.remote.PhotoRemoteCache
-import com.ahmetkaragunlu.financeai.core.session.*
-import com.ahmetkaragunlu.financeai.core.sync.*
+import com.ahmetkaragunlu.financeai.core.session.AccountSession
+import com.ahmetkaragunlu.financeai.core.session.local.entity.AccountPreferences
+import com.ahmetkaragunlu.financeai.core.session.local.entity.ActiveAccountRow
+import com.ahmetkaragunlu.financeai.core.sync.SyncScheduler
+import com.ahmetkaragunlu.financeai.core.sync.contract.SyncPayload
+import com.ahmetkaragunlu.financeai.core.sync.local.PendingChanges
 import com.ahmetkaragunlu.financeai.core.time.FinancePeriods
 import com.ahmetkaragunlu.financeai.feature.transaction.data.remote.TransactionRemoteStore
-import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.*
+import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryExpense
+import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
+import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.Transaction
+import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
 import dagger.Lazy
 import java.time.Clock
 import java.time.LocalDate
 import java.time.ZoneId
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
-import com.ahmetkaragunlu.financeai.core.error.DataAccessException
-import org.junit.*
-import org.junit.Assert.*
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
+import org.junit.Before
+import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)

@@ -15,5 +15,6 @@ class FirestoreAiMessageMapperTest {
             mapOf("text" to "Saved message", "isAi" to true, "timestamp" to 1_750_000_000_125L),
             message.toFirebaseMap()
         )
+        assertEquals(false, message.copy(isAi = false).toFirebaseMap()["isAi"])
     }
 }

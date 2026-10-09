@@ -1,7 +1,7 @@
 package com.ahmetkaragunlu.financeai.core.sync.reconciliation
 
 import com.ahmetkaragunlu.financeai.core.sync.contract.SyncPayload
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class ReconciliationTest {

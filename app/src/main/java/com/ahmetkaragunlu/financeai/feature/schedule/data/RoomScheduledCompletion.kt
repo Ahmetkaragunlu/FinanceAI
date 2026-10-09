@@ -1,19 +1,20 @@
 package com.ahmetkaragunlu.financeai.feature.schedule.data
 
-import com.ahmetkaragunlu.financeai.core.firebase.FirestoreCollections
-import com.ahmetkaragunlu.financeai.core.sync.contract.SyncFields
-import com.ahmetkaragunlu.financeai.core.media.PhotoFields
 import androidx.room.withTransaction
-import com.ahmetkaragunlu.financeai.feature.schedule.domain.reminder.ScheduleCommandType
 import com.ahmetkaragunlu.financeai.core.database.FinanceDatabase
+import com.ahmetkaragunlu.financeai.core.firebase.FirestoreCollections
+import com.ahmetkaragunlu.financeai.core.media.PhotoFields
 import com.ahmetkaragunlu.financeai.core.session.AccountSession
-import com.ahmetkaragunlu.financeai.core.sync.local.PendingChanges
-import com.ahmetkaragunlu.financeai.core.sync.contract.SyncPayload
 import com.ahmetkaragunlu.financeai.core.sync.SyncScheduler
+import com.ahmetkaragunlu.financeai.core.sync.contract.SyncFields
+import com.ahmetkaragunlu.financeai.core.sync.contract.SyncPayload
+import com.ahmetkaragunlu.financeai.core.sync.local.PendingChanges
 import com.ahmetkaragunlu.financeai.feature.schedule.data.mapper.toDomain
 import com.ahmetkaragunlu.financeai.feature.schedule.data.remote.toFirebaseMap as scheduledToFirebaseMap
 import com.ahmetkaragunlu.financeai.feature.schedule.data.sync.ScheduleCommandQueue
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.model.ScheduledTransaction
+import com.ahmetkaragunlu.financeai.feature.schedule.domain.model.completedTransactionId
+import com.ahmetkaragunlu.financeai.feature.schedule.domain.reminder.ScheduleCommandType
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.usecase.CompleteScheduledTransaction
 import com.ahmetkaragunlu.financeai.feature.transaction.data.mapper.toEntity
 import com.ahmetkaragunlu.financeai.feature.transaction.data.remote.toFirebaseMap as transactionToFirebaseMap
@@ -38,7 +39,7 @@ class RoomScheduledCompletion @Inject constructor(
             if (scheduled.firestoreId != value.firestoreId) return@withTransaction null
             if (database.reminderStateDao().get(account.ownerId, scheduled.firestoreId)?.active == false)
                 return@withTransaction null
-            val remoteId = "completed_${scheduled.firestoreId}"
+            val remoteId = completedTransactionId(scheduled.firestoreId)
             val existing = database.transactionDao().getTransactionByFirestoreId(remoteId)
             if (existing != null) return@withTransaction null
             val transaction = Transaction(

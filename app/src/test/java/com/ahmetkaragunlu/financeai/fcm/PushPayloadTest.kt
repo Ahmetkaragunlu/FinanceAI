@@ -1,6 +1,8 @@
 package com.ahmetkaragunlu.financeai.fcm
 
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class PushPayloadTest {

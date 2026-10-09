@@ -10,7 +10,11 @@ import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.Transaction
 import com.ahmetkaragunlu.financeai.notification.presentation.ReminderPresenter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ScheduledTransactionRepositoryImplTest {
@@ -37,7 +41,7 @@ class ScheduledTransactionRepositoryImplTest {
             f.activate("B", "EUR")
             assertTrue(repository.observeScheduledTransactions().first().isEmpty())
             assertNull(repository.getScheduledTransactionById(stored.id))
-            assertThrows(IllegalArgumentException::class.java) { runBlocking { repository.updateScheduledTransaction(stored.copy(amount = 100.0)) } }
+            assertThrows(IllegalArgumentException::class.java) { runBlocking { repository.insertScheduledTransaction(stored.copy(amount = 100.0)) } }
             assertThrows(IllegalArgumentException::class.java) { runBlocking { repository.deleteScheduledTransaction(stored) } }
             assertEquals(1, f.database.syncRecordDao().pending("A").size)
             f.activate()
@@ -57,7 +61,7 @@ class ScheduledTransactionRepositoryImplTest {
             repository.insertScheduledTransaction(draft())
             val stored = repository.observeScheduledTransactions().first().single()
             f.rejectSyncWrites()
-            assertThrows(SQLiteException::class.java) { runBlocking { repository.updateScheduledTransaction(stored.copy(note = "edited")) } }
+            assertThrows(SQLiteException::class.java) { runBlocking { repository.insertScheduledTransaction(stored.copy(note = "edited")) } }
             assertThrows(SQLiteException::class.java) { runBlocking { repository.deleteScheduledTransaction(stored) } }
             assertEquals(stored, repository.observeScheduledTransactions().first().single())
             f.allowSyncWrites()

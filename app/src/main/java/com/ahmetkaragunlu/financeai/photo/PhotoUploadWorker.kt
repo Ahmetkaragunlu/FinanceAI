@@ -1,19 +1,20 @@
 package com.ahmetkaragunlu.financeai.photo
 
-import com.ahmetkaragunlu.financeai.core.firebase.FirestoreCollections
-import com.ahmetkaragunlu.financeai.core.sync.contract.SyncFields
-import com.ahmetkaragunlu.financeai.core.media.PhotoFields
-
-import com.ahmetkaragunlu.financeai.core.media.remote.PhotoStorageManager
 import android.content.Context
-import com.ahmetkaragunlu.financeai.feature.schedule.domain.reminder.ScheduleCommandType
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.ahmetkaragunlu.financeai.core.database.FinanceDatabase
+import com.ahmetkaragunlu.financeai.core.firebase.FirestoreCollections
+import com.ahmetkaragunlu.financeai.core.media.PhotoFields
+import com.ahmetkaragunlu.financeai.core.media.PhotoRecordType
 import com.ahmetkaragunlu.financeai.core.media.local.PhotoLocalStore
+import com.ahmetkaragunlu.financeai.core.media.remote.PhotoStorageManager
 import com.ahmetkaragunlu.financeai.core.session.SessionCoordinator
 import com.ahmetkaragunlu.financeai.core.sync.SyncScheduler
+import com.ahmetkaragunlu.financeai.core.sync.contract.SyncFields
+import com.ahmetkaragunlu.financeai.feature.schedule.domain.model.completedTransactionId
+import com.ahmetkaragunlu.financeai.feature.schedule.domain.reminder.ScheduleCommandType
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.Source
@@ -21,8 +22,8 @@ import com.google.firebase.storage.StorageException
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import java.io.File
-import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.tasks.await
 
 /** Stable persisted Worker identity; storage is owned by core.media. */
 @HiltWorker
@@ -36,18 +37,15 @@ class PhotoUploadWorker @AssistedInject constructor(
         val owner = inputData.getString(SyncScheduler.OWNER_ID) ?: return Result.failure()
         val path = inputData.getString(KEY_LOCAL_PATH) ?: return Result.failure()
         val record = inputData.getString(KEY_FIRESTORE_ID) ?: return Result.failure()
-        val collection =
-            inputData.getString(KEY_COLLECTION_TYPE) ?: FirestoreCollections.TRANSACTIONS
-        if (collection !in setOf(
-                FirestoreCollections.TRANSACTIONS,
-                "scheduled"
-            )
-        ) return Result.failure()
+        val recordType = PhotoRecordType.fromWire(
+            inputData.getString(KEY_COLLECTION_TYPE) ?: PhotoRecordType.TRANSACTION.wireValue
+        ) ?: return Result.failure()
+        val collection = recordType.wireValue
         val version = inputData.getString(KEY_VERSION) ?: File(path).nameWithoutExtension
         val remoteCollection =
-            if (collection == "scheduled") FirestoreCollections.SCHEDULED_TRANSACTIONS else collection
+            if (recordType == PhotoRecordType.SCHEDULED) FirestoreCollections.SCHEDULED_TRANSACTIONS else collection
 
-        suspend fun localPath(): String? = if (collection == "scheduled")
+        suspend fun localPath(): String? = if (recordType == PhotoRecordType.SCHEDULED)
             database.scheduledTransactionDao()
                 .getScheduledTransactionByFirestoreId(record)?.photoUri
         else database.transactionDao().getTransactionByFirestoreId(record)?.photoUri
@@ -75,7 +73,7 @@ class PhotoUploadWorker @AssistedInject constructor(
                 val sync = database.syncRecordDao().get(owner, remoteCollection, record)
                 val commands = database.scheduleCommandDao().forAccount(owner)
                 val command =
-                    commands.firstOrNull { ScheduleCommandType.fromWire(it.type) == ScheduleCommandType.COMPLETE && "completed_${it.remoteId}" == record }
+                    commands.firstOrNull { ScheduleCommandType.fromWire(it.type) == ScheduleCommandType.COMPLETE && completedTransactionId(it.remoteId) == record }
                 if (sync?.permanentFailure == true || command?.failure != null || (sync == null && command == null)) {
                     database.photoOperationDao()
                         .fail(owner, collection, record, path, "remote_record_unavailable")
@@ -86,7 +84,7 @@ class PhotoUploadWorker @AssistedInject constructor(
             if (initial.getString(SyncFields.USER_ID) != owner || initial.getBoolean(SyncFields.DELETED) == true) return retire()
             if (initial.getString(PhotoFields.VERSION) == version) return retire()
             if (initial.getString(PhotoFields.INTENT) != null && initial.getString(PhotoFields.INTENT) != version) return Result.retry()
-            val url = storage.uploadPhoto(path, record, collection, owner, version)
+            val url = storage.uploadPhoto(path, record, recordType, owner, version)
             if (!sessions.session.isCurrent(account)) return Result.success()
             if (localPath() != path) {
                 storage.deletePhoto(url, owner); return retire()

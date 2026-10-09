@@ -1,13 +1,12 @@
 package com.ahmetkaragunlu.financeai.photo
 
-import com.ahmetkaragunlu.financeai.core.firebase.FirestoreCollections
-
-import com.ahmetkaragunlu.financeai.core.media.work.PhotoWorkScheduler
 import android.content.Context
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.ahmetkaragunlu.financeai.core.database.FinanceDatabase
+import com.ahmetkaragunlu.financeai.core.media.PhotoRecordType
+import com.ahmetkaragunlu.financeai.core.media.work.PhotoWorkScheduler
 import com.ahmetkaragunlu.financeai.core.session.SessionCoordinator
 import com.ahmetkaragunlu.financeai.core.sync.SyncScheduler
 import dagger.assisted.Assisted
@@ -27,7 +26,7 @@ class PhotoMoveWorker @AssistedInject constructor(
             sessions.prepare()
             val account = sessions.session.account.value?.takeIf { it.ownerId == owner } ?: return Result.success()
             val row = database.transactionDao().getTransactionByFirestoreId(record) ?: return Result.success()
-            if (sessions.session.isCurrent(account)) photos.upload(owner, FirestoreCollections.TRANSACTIONS, record, row.photoUri)
+            if (sessions.session.isCurrent(account)) photos.upload(owner, PhotoRecordType.TRANSACTION, record, row.photoUri)
             Result.success()
         } catch (e: CancellationException) { throw e }
         catch (_: Exception) { Result.retry() }

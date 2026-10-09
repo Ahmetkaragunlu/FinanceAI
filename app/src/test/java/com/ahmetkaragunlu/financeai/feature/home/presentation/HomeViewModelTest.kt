@@ -8,7 +8,11 @@ import com.ahmetkaragunlu.financeai.core.time.FinanceCalendar
 import com.ahmetkaragunlu.financeai.core.time.FinancePeriods
 import com.ahmetkaragunlu.financeai.feature.budget.domain.model.Budget
 import com.ahmetkaragunlu.financeai.feature.budget.domain.repository.BudgetRepository
-import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.*
+import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryExpense
+import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
+import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.FinancialSummary
+import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.Transaction
+import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.repository.TransactionRepository
 import java.time.Clock
 import java.time.Instant
@@ -22,7 +26,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -67,7 +72,6 @@ class HomeViewModelTest {
         override suspend fun getBudgetByCategory(category: CategoryType): Budget? = unused()
         override suspend fun getAllBudgetsOneShot(): List<Budget> = unused()
         override suspend fun insertBudget(budget: Budget): Long = unused()
-        override suspend fun updateBudget(budget: Budget): Unit = unused()
         override suspend fun deleteBudget(budget: Budget): Unit = unused()
         private fun unused(): Nothing = error("Unexpected home budget call")
     }

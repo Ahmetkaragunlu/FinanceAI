@@ -1,15 +1,14 @@
 package com.ahmetkaragunlu.financeai.app
 
-import com.ahmetkaragunlu.financeai.core.firebase.FirestoreCollections
-
 import com.ahmetkaragunlu.financeai.core.database.FinanceDatabase
+import com.ahmetkaragunlu.financeai.core.media.PhotoRecordType
+import com.ahmetkaragunlu.financeai.core.media.local.PhotoLocalStore
+import com.ahmetkaragunlu.financeai.core.media.work.PhotoWorkScheduler
 import com.ahmetkaragunlu.financeai.core.session.AccountSession
 import com.ahmetkaragunlu.financeai.core.session.ActiveAccount
 import com.ahmetkaragunlu.financeai.core.session.SessionWorkRestorer
-import com.ahmetkaragunlu.financeai.feature.schedule.data.reminder.ReminderScheduler
-import com.ahmetkaragunlu.financeai.core.media.work.PhotoWorkScheduler
-import com.ahmetkaragunlu.financeai.core.media.local.PhotoLocalStore
 import com.ahmetkaragunlu.financeai.fcm.FCMTokenManager
+import com.ahmetkaragunlu.financeai.feature.schedule.data.reminder.ReminderScheduler
 import java.io.File
 import javax.inject.Inject
 import kotlinx.coroutines.flow.first
@@ -27,10 +26,10 @@ class AccountWorkRestorer @Inject constructor(
         val transactions = database.transactionDao().getAllTransactionsOneShot()
         val schedules = database.scheduledTransactionDao().observeScheduledTransactions().first()
         transactions.filter { it.ownerId == account.ownerId }.forEach {
-            upload(account, FirestoreCollections.TRANSACTIONS, it.firestoreId, it.photoUri)
+            upload(account, PhotoRecordType.TRANSACTION, it.firestoreId, it.photoUri)
         }
         schedules.filter { it.ownerId == account.ownerId }.forEach {
-            upload(account, "scheduled", it.firestoreId, it.photoUri)
+            upload(account, PhotoRecordType.SCHEDULED, it.firestoreId, it.photoUri)
             if (session.isCurrent(account)) reminders.wake(account.ownerId, it.firestoreId)
         }
         for (operation in database.photoOperationDao().forAccount(account.ownerId)
@@ -46,10 +45,10 @@ class AccountWorkRestorer @Inject constructor(
     }
 
     private suspend fun upload(
-        account: ActiveAccount, collection: String, remoteId: String, path: String?
+        account: ActiveAccount, recordType: PhotoRecordType, remoteId: String, path: String?
     ) {
         if (session.isCurrent(account) && path != null && File(path).isFile) photos.upload(
-            account.ownerId, collection, remoteId, path
+            account.ownerId, recordType, remoteId, path
         )
     }
 }

@@ -21,6 +21,7 @@ import com.ahmetkaragunlu.financeai.app.navigation.main.MainNavigation
 import com.ahmetkaragunlu.financeai.app.presentation.AccountViewModel
 import com.ahmetkaragunlu.financeai.app.presentation.splash.SplashRoute
 import com.ahmetkaragunlu.financeai.app.presentation.sync.SyncConflictDialog
+import com.ahmetkaragunlu.financeai.core.money.UNSPECIFIED_CURRENCY
 import com.ahmetkaragunlu.financeai.core.ui.component.LocalAccountCurrency
 import com.ahmetkaragunlu.financeai.feature.auth.navigation.PasswordResetDestination
 import com.ahmetkaragunlu.financeai.feature.auth.navigation.SignInDestination
@@ -55,7 +56,7 @@ fun FinanceNavigation(
             onDeepLinkConsumed(deepLink.id)
         }
     }
-    CompositionLocalProvider(LocalAccountCurrency provides (account?.currencyCode ?: "XXX")) {
+    CompositionLocalProvider(LocalAccountCurrency provides (account?.currencyCode ?: UNSPECIFIED_CURRENCY)) {
         NavHost(navController = navController, startDestination = SplashDestination) {
             composable<SplashDestination> {
                 SplashRoute(

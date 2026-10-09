@@ -5,18 +5,22 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.core.error.DataAccessException
 import com.ahmetkaragunlu.financeai.core.session.AccountSession
+import com.ahmetkaragunlu.financeai.core.time.DateRange
 import com.ahmetkaragunlu.financeai.core.time.FinanceCalendar
+import com.ahmetkaragunlu.financeai.core.time.FinancePeriods
 import com.ahmetkaragunlu.financeai.feature.budget.domain.error.BudgetException
 import com.ahmetkaragunlu.financeai.feature.budget.domain.model.Budget
 import com.ahmetkaragunlu.financeai.feature.budget.domain.model.BudgetType
 import com.ahmetkaragunlu.financeai.feature.budget.domain.repository.BudgetRepository
-import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.*
+import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryExpense
+import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
+import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.FinancialSummary
+import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.Transaction
+import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.repository.TransactionRepository
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneId
-import com.ahmetkaragunlu.financeai.core.time.DateRange
-import com.ahmetkaragunlu.financeai.core.time.FinancePeriods
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -28,13 +32,16 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.After
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class BudgetViewModelTest {
@@ -121,7 +128,6 @@ class BudgetViewModelTest {
         override fun observeGeneralBudget() = observed.map { rows -> rows.firstOrNull { it.budgetType == BudgetType.GENERAL_MONTHLY } }
         override suspend fun getBudgetByCategory(category: CategoryType) = rules.firstOrNull { it.category == category }
         override suspend fun getAllBudgetsOneShot() = rules
-        override suspend fun updateBudget(budget: Budget): Unit = error("Unexpected update")
     }
 
     private class FinanceQueries : TransactionRepository {

@@ -3,16 +3,25 @@ package com.ahmetkaragunlu.financeai.feature.location.presentation
 import android.content.Context
 import androidx.lifecycle.ViewModelStore
 import androidx.test.core.app.ApplicationProvider
+import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.feature.location.domain.AddressResolver
 import com.ahmetkaragunlu.financeai.feature.location.domain.Coordinates
 import com.ahmetkaragunlu.financeai.feature.location.domain.LocationGateway
 import com.ahmetkaragunlu.financeai.feature.location.domain.error.LocationFailure
-import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.feature.location.domain.model.LocationData
 import com.google.android.gms.maps.model.LatLng
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.first
-import org.junit.Assert.*
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.yield
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LocationPickerViewModelTest {

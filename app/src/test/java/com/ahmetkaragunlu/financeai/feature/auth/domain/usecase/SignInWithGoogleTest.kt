@@ -6,7 +6,11 @@ import com.ahmetkaragunlu.financeai.feature.auth.domain.repository.AuthRepositor
 import com.ahmetkaragunlu.financeai.feature.auth.testing.FakeAuthRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.test.runTest
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Test
 
 class SignInWithGoogleTest {

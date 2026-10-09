@@ -2,7 +2,7 @@
 
 const { initialState, transition, tick } = require('./reminder-policy');
 const { reconcilePlan, completedPlanNeedsChoice } = require('./plan-reconciliation');
-const { ScheduleCommandType, ScheduleStatus, CommandOutcome, ScheduleCollections, PlanFields } = require('./schedule-contract');
+const { ScheduleCommandType, ScheduleStatus, CommandOutcome, ScheduleCollections, PlanFields, completedTransactionId } = require('./schedule-contract');
 const { DateTime } = require('luxon');
 
 function validZone(zone) { return typeof zone === 'string' && DateTime.now().setZone(zone).isValid; }
@@ -53,7 +53,7 @@ function scheduleService(db, now = Date.now) {
                 return;
             }
             const planRef = db.collection(ScheduleCollections.PLANS).doc(command.transactionId);
-            const completionRef = db.collection(ScheduleCollections.FINANCIAL).doc('completed_' + command.transactionId);
+            const completionRef = db.collection(ScheduleCollections.FINANCIAL).doc(completedTransactionId(command.transactionId));
             const sharedRef = stateRef(command.transactionId);
             const [planDoc, sharedDoc, userDoc, completedDoc] = await Promise.all([
                 tx.get(planRef), tx.get(sharedRef), tx.get(db.collection('users').doc(command.userId)),

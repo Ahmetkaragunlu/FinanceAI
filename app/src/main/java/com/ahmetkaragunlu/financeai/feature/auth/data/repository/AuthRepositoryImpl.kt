@@ -2,6 +2,7 @@ package com.ahmetkaragunlu.financeai.feature.auth.data.repository
 
 import android.util.Log
 import com.ahmetkaragunlu.financeai.core.firebase.FirestoreCollections
+import com.ahmetkaragunlu.financeai.core.firebase.UserFields
 import com.ahmetkaragunlu.financeai.core.firebase.error.toDataAccessFailure
 import com.ahmetkaragunlu.financeai.core.session.SessionCoordinator
 import com.ahmetkaragunlu.financeai.fcm.FCMTokenManager
@@ -178,7 +179,7 @@ constructor(
         return try {
             val document =
                 firestore.collection(FirestoreCollections.USERS).document(uid).get().await()
-            if (auth.currentUser?.uid == uid) document.getString("firstName") else null
+            if (auth.currentUser?.uid == uid) document.getString(UserFields.FIRST_NAME) else null
         } catch (e: Exception) {
             if (e is CancellationException) throw e
             null

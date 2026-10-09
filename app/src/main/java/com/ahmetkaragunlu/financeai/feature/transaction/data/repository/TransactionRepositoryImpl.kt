@@ -1,14 +1,15 @@
 package com.ahmetkaragunlu.financeai.feature.transaction.data.repository
 
+import androidx.room.withTransaction
+import com.ahmetkaragunlu.financeai.core.database.FinanceDatabase
+import com.ahmetkaragunlu.financeai.core.error.DataAccessException
 import com.ahmetkaragunlu.financeai.core.firebase.FirestoreCollections
 import com.ahmetkaragunlu.financeai.core.media.PhotoFields
-import androidx.room.withTransaction
-import com.ahmetkaragunlu.financeai.core.error.DataAccessException
-import com.ahmetkaragunlu.financeai.core.database.FinanceDatabase
 import com.ahmetkaragunlu.financeai.core.money.MoneyAmounts
+import com.ahmetkaragunlu.financeai.core.money.UNSPECIFIED_CURRENCY
 import com.ahmetkaragunlu.financeai.core.session.AccountSession
-import com.ahmetkaragunlu.financeai.core.sync.local.PendingChanges
 import com.ahmetkaragunlu.financeai.core.sync.SyncScheduler
+import com.ahmetkaragunlu.financeai.core.sync.local.PendingChanges
 import com.ahmetkaragunlu.financeai.feature.transaction.data.local.dao.TransactionDao
 import com.ahmetkaragunlu.financeai.feature.transaction.data.local.entity.TransactionEntity
 import com.ahmetkaragunlu.financeai.feature.transaction.data.mapper.toDomain
@@ -20,8 +21,8 @@ import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.FinancialSu
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.Transaction
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.repository.TransactionRepository
-import java.util.UUID
 import java.io.File
+import java.util.UUID
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -38,7 +39,7 @@ class TransactionRepositoryImpl @Inject constructor(
 
     private suspend fun save(value: Transaction): Long = session.withAccount { account ->
         require(value.ownerId.isEmpty() || value.ownerId == account.ownerId)
-        require(value.currencyCode == "XXX" || value.currencyCode == account.currencyCode)
+        require(value.currencyCode == UNSPECIFIED_CURRENCY || value.currencyCode == account.currencyCode)
         require(MoneyAmounts.toMinor(value.amount, account.currencyCode) > 0)
         val prepared = value.copy(ownerId = account.ownerId, currencyCode = account.currencyCode,
             firestoreId = value.firestoreId.ifBlank { UUID.randomUUID().toString() }, syncedToFirebase = false)
@@ -105,7 +106,7 @@ class TransactionRepositoryImpl @Inject constructor(
     }
 
     override fun observeTransactions(): Flow<List<Transaction>> =
-        session.observe<List<Transaction>>(emptyList<Transaction>()) { account ->
+        session.observe(emptyList()) { _ ->
             transactionDao.observeTransactions()
                 .map { rows -> rows.map { it.toDomain() } }
                 .distinctUntilChanged()
@@ -116,14 +117,14 @@ class TransactionRepositoryImpl @Inject constructor(
         startDate: Long,
         endDate: Long
     ): Flow<List<Transaction>> =
-        session.observe<List<Transaction>>(emptyList<Transaction>()) { account ->
+        session.observe(emptyList()) { _ ->
             transactionDao.observeTransactionsByTypeAndDate(transactionType, startDate, endDate)
                 .map { rows -> rows.map { it.toDomain() } }
                 .distinctUntilChanged()
         }
 
     override fun observeTransactionsByDateRange(startDate: Long, endDate: Long): Flow<List<Transaction>> =
-        session.observe<List<Transaction>>(emptyList<Transaction>()) { account ->
+        session.observe(emptyList()) { _ ->
             transactionDao.observeTransactionsByDateRange(startDate, endDate)
                 .map { rows -> rows.map { it.toDomain() } }
                 .distinctUntilChanged()
@@ -134,7 +135,7 @@ class TransactionRepositoryImpl @Inject constructor(
         startDate: Long,
         endDate: Long
     ): Flow<List<Transaction>> =
-        session.observe<List<Transaction>>(emptyList<Transaction>()) { account ->
+        session.observe(emptyList()) { _ ->
             transactionDao.observeTransactionsByCategoryAndDate(category, startDate, endDate)
                 .map { rows -> rows.map { it.toDomain() } }
                 .distinctUntilChanged()
@@ -157,7 +158,7 @@ class TransactionRepositoryImpl @Inject constructor(
         }
 
     override fun observeTransactionById(id: Int): Flow<Transaction?> =
-        session.observe<Transaction?>(null) { account ->
+        session.observe<Transaction?>(null) { _ ->
             transactionDao.observeTransactionById(id)
                 .map { it?.toDomain() }
                 .distinctUntilChanged()
@@ -168,7 +169,7 @@ class TransactionRepositoryImpl @Inject constructor(
         startDate: Long,
         endDate: Long
     ): Flow<List<CategoryExpense>> =
-        session.observe<List<CategoryExpense>>(emptyList<CategoryExpense>()) { account ->
+        session.observe(emptyList()) { account ->
             transactionDao.observeCategoryExpensesByTypeAndDateRange(transactionType, startDate, endDate)
                 .map { rows -> rows.map { CategoryExpense(it.category, MoneyAmounts.toMajor(it.totalMinor, account.currencyCode)) } }
                 .distinctUntilChanged()

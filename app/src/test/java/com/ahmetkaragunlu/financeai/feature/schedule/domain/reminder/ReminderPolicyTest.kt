@@ -2,7 +2,7 @@ package com.ahmetkaragunlu.financeai.feature.schedule.domain.reminder
 
 import java.time.LocalDate
 import java.time.ZoneId
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class ReminderPolicyTest {

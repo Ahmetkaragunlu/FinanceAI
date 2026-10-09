@@ -3,7 +3,8 @@ package com.ahmetkaragunlu.financeai.feature.aichat.data.remote
 import com.ahmetkaragunlu.financeai.feature.aichat.domain.error.AiException
 import java.io.IOException
 import kotlinx.coroutines.CancellationException
-import org.junit.Assert.*
+import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class AiFailureMapperTest {

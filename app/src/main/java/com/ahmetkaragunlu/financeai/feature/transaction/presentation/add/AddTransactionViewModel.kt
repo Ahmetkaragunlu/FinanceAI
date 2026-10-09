@@ -9,7 +9,9 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ahmetkaragunlu.financeai.R
+import com.ahmetkaragunlu.financeai.core.media.PhotoRecordType
 import com.ahmetkaragunlu.financeai.core.media.local.PhotoLocalStore
+import com.ahmetkaragunlu.financeai.core.media.work.PhotoWorkScheduler
 import com.ahmetkaragunlu.financeai.core.money.MoneyAmounts
 import com.ahmetkaragunlu.financeai.core.session.AccountSession
 import com.ahmetkaragunlu.financeai.core.time.FinancePeriods
@@ -24,7 +26,6 @@ import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.Transaction
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.repository.TransactionRepository
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.TransactionActionResult
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.transactionFailure
-import com.ahmetkaragunlu.financeai.core.media.work.PhotoWorkScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
@@ -311,7 +312,7 @@ constructor(
                 if (session.isCurrent(account))
                     photoWork.upload(
                         account.ownerId,
-                        if (isScheduled) "scheduled" else "transactions",
+                        if (isScheduled) PhotoRecordType.SCHEDULED else PhotoRecordType.TRANSACTION,
                         firestoreId,
                         savedPhotoPath,
                     )

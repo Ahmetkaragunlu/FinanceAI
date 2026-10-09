@@ -1,7 +1,9 @@
 package com.ahmetkaragunlu.financeai.core.session
 
 import kotlinx.coroutines.test.runTest
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertThrows
 import org.junit.Test
 
 class AccountSessionTest {

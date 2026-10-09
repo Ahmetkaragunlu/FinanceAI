@@ -1,8 +1,9 @@
 package com.ahmetkaragunlu.financeai.feature.schedule.data.sync
 
-import com.ahmetkaragunlu.financeai.core.sync.reconciliation.Reconciliation
 import com.ahmetkaragunlu.financeai.core.sync.contract.SyncPayload
-import org.junit.Assert.*
+import com.ahmetkaragunlu.financeai.core.sync.reconciliation.Reconciliation
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Test
 
 class CompletedPlanEditsTest {

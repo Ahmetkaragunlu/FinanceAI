@@ -1,7 +1,9 @@
 package com.ahmetkaragunlu.financeai.core.money
 
 import java.util.Locale
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Test
 
 class MoneyAmountsTest {

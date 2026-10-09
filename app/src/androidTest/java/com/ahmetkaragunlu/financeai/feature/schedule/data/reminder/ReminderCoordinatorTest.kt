@@ -1,20 +1,25 @@
 package com.ahmetkaragunlu.financeai.feature.schedule.data.reminder
 
-import com.ahmetkaragunlu.financeai.core.sync.local.PendingChanges
-import com.ahmetkaragunlu.financeai.feature.schedule.data.sync.ScheduleCommandQueue
-import com.ahmetkaragunlu.financeai.core.session.local.entity.AccountPreferences
-import com.ahmetkaragunlu.financeai.core.session.local.entity.ActiveAccountRow
 import android.content.Context
 import androidx.room.Room
 import androidx.room.withTransaction
 import androidx.test.core.app.ApplicationProvider
-import androidx.work.*
+import androidx.work.Configuration
+import androidx.work.ListenableWorker
+import androidx.work.WorkManager
+import androidx.work.Worker
+import androidx.work.WorkerFactory
+import androidx.work.WorkerParameters
 import androidx.work.testing.WorkManagerTestInitHelper
 import com.ahmetkaragunlu.financeai.core.database.FinanceDatabase
-import com.ahmetkaragunlu.financeai.core.session.*
-import com.ahmetkaragunlu.financeai.core.sync.*
+import com.ahmetkaragunlu.financeai.core.session.AccountSession
+import com.ahmetkaragunlu.financeai.core.session.local.entity.AccountPreferences
+import com.ahmetkaragunlu.financeai.core.session.local.entity.ActiveAccountRow
+import com.ahmetkaragunlu.financeai.core.sync.SyncScheduler
+import com.ahmetkaragunlu.financeai.core.sync.local.PendingChanges
 import com.ahmetkaragunlu.financeai.feature.schedule.data.remote.SharedReminderRemoteStore
 import com.ahmetkaragunlu.financeai.feature.schedule.data.repository.ScheduledTransactionRepositoryImpl
+import com.ahmetkaragunlu.financeai.feature.schedule.data.sync.ScheduleCommandQueue
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.model.ScheduledTransaction
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.reminder.ReminderKind
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
@@ -24,8 +29,14 @@ import java.time.Clock
 import java.time.Instant
 import java.time.ZoneId
 import kotlinx.coroutines.runBlocking
-import org.junit.*
-import org.junit.Assert.*
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Test
 
 class ReminderCoordinatorTest {
     private lateinit var database: FinanceDatabase

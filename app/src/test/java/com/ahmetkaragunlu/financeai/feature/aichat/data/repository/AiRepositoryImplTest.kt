@@ -5,19 +5,21 @@ import com.ahmetkaragunlu.financeai.core.session.ActiveAccount
 import com.ahmetkaragunlu.financeai.feature.aichat.data.local.AiConversationStore
 import com.ahmetkaragunlu.financeai.feature.aichat.data.report.FinancialSnapshotSource
 import com.ahmetkaragunlu.financeai.feature.aichat.domain.error.AiException
+import com.ahmetkaragunlu.financeai.feature.aichat.domain.generation.AiTextGenerator
 import com.ahmetkaragunlu.financeai.feature.aichat.domain.model.AiMessage
 import com.ahmetkaragunlu.financeai.feature.aichat.domain.model.AiRequest
-import com.ahmetkaragunlu.financeai.feature.aichat.domain.generation.AiTextGenerator
 import com.ahmetkaragunlu.financeai.feature.aichat.domain.model.FinancialSnapshot
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.fail
 import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)

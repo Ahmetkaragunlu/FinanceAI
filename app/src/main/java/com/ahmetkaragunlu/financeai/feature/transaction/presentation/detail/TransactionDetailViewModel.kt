@@ -9,7 +9,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import com.ahmetkaragunlu.financeai.R
+import com.ahmetkaragunlu.financeai.core.media.PhotoRecordType
 import com.ahmetkaragunlu.financeai.core.media.local.PhotoLocalStore
+import com.ahmetkaragunlu.financeai.core.media.work.PhotoWorkScheduler
 import com.ahmetkaragunlu.financeai.core.money.MoneyAmounts
 import com.ahmetkaragunlu.financeai.core.session.AccountSession
 import com.ahmetkaragunlu.financeai.core.ui.error.dataErrorMessageRes
@@ -19,13 +21,18 @@ import com.ahmetkaragunlu.financeai.feature.transaction.domain.repository.Transa
 import com.ahmetkaragunlu.financeai.feature.transaction.navigation.TransactionDetailDestination
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.TransactionActionResult
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.transactionFailure
-import com.ahmetkaragunlu.financeai.core.media.work.PhotoWorkScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.io.File
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -147,7 +154,7 @@ constructor(
                     photoStore.delete(previousPhoto)
                     photoWork.upload(
                         currentTx.ownerId,
-                        "transactions",
+                        PhotoRecordType.TRANSACTION,
                         currentTx.firestoreId,
                         saved,
                     )

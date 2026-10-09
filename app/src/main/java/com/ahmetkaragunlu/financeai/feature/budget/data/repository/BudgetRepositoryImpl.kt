@@ -1,18 +1,19 @@
 package com.ahmetkaragunlu.financeai.feature.budget.data.repository
 
-import com.ahmetkaragunlu.financeai.core.firebase.FirestoreCollections
 import androidx.room.withTransaction
-import com.ahmetkaragunlu.financeai.core.error.DataAccessException
-import com.ahmetkaragunlu.financeai.feature.budget.domain.error.BudgetException
 import com.ahmetkaragunlu.financeai.core.database.FinanceDatabase
+import com.ahmetkaragunlu.financeai.core.error.DataAccessException
+import com.ahmetkaragunlu.financeai.core.firebase.FirestoreCollections
 import com.ahmetkaragunlu.financeai.core.money.MoneyAmounts
+import com.ahmetkaragunlu.financeai.core.money.UNSPECIFIED_CURRENCY
 import com.ahmetkaragunlu.financeai.core.session.AccountSession
-import com.ahmetkaragunlu.financeai.core.sync.local.PendingChanges
 import com.ahmetkaragunlu.financeai.core.sync.SyncScheduler
+import com.ahmetkaragunlu.financeai.core.sync.local.PendingChanges
 import com.ahmetkaragunlu.financeai.feature.budget.data.local.dao.BudgetDao
 import com.ahmetkaragunlu.financeai.feature.budget.data.mapper.toDomain
 import com.ahmetkaragunlu.financeai.feature.budget.data.mapper.toEntity
 import com.ahmetkaragunlu.financeai.feature.budget.data.remote.toFirebaseMap
+import com.ahmetkaragunlu.financeai.feature.budget.domain.error.BudgetException
 import com.ahmetkaragunlu.financeai.feature.budget.domain.model.Budget
 import com.ahmetkaragunlu.financeai.feature.budget.domain.model.BudgetType
 import com.ahmetkaragunlu.financeai.feature.budget.domain.repository.BudgetRepository
@@ -34,7 +35,7 @@ class BudgetRepositoryImpl @Inject constructor(
 
     private suspend fun save(value: Budget): Long = session.withAccount { account ->
         require(value.ownerId.isEmpty() || value.ownerId == account.ownerId)
-        require(value.currencyCode == "XXX" || value.currencyCode == account.currencyCode)
+        require(value.currencyCode == UNSPECIFIED_CURRENCY || value.currencyCode == account.currencyCode)
         if (value.budgetType == BudgetType.CATEGORY_PERCENTAGE) {
             require(value.limitPercentage?.let { it.isFinite() && it > 0 } == true)
         } else require(MoneyAmounts.toMinor(value.amount, account.currencyCode) > 0)
@@ -56,7 +57,6 @@ class BudgetRepositoryImpl @Inject constructor(
         id
     }
 
-    override suspend fun updateBudget(budget: Budget) { save(budget) }
 
     override suspend fun deleteBudget(budget: Budget) {
         session.withAccount { account ->
@@ -71,14 +71,14 @@ class BudgetRepositoryImpl @Inject constructor(
     }
 
     override fun observeBudgets(): Flow<List<Budget>> =
-        session.observe<List<Budget>>(emptyList<Budget>()) { account ->
+        session.observe(emptyList()) { _ ->
             budgetDao.observeBudgets()
                 .map { rows -> rows.map { it.toDomain() } }
                 .distinctUntilChanged()
         }
 
     override fun observeGeneralBudget(): Flow<Budget?> =
-        session.observe<Budget?>(null) { account ->
+        session.observe<Budget?>(null) { _ ->
             budgetDao.observeGeneralBudget()
                 .map { it?.toDomain() }
                 .distinctUntilChanged()

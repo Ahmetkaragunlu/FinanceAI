@@ -2,7 +2,10 @@ package com.ahmetkaragunlu.financeai.feature.schedule.data.sync
 
 import com.ahmetkaragunlu.financeai.core.sync.contract.SyncPayload
 import com.ahmetkaragunlu.financeai.core.sync.local.entity.SyncRecord
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class CompletionAcknowledgementTest {

@@ -1,6 +1,6 @@
 package com.ahmetkaragunlu.financeai.core.media
 
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class PhotoDimensionsTest {

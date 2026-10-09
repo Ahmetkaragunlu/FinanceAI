@@ -14,7 +14,10 @@ import com.ahmetkaragunlu.financeai.notification.presentation.ReminderPresenter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -50,7 +53,8 @@ class RoomScheduledCompletionTest {
         val id = schedules.insertScheduledTransaction(ScheduledTransaction(firestoreId = "plan", amount = 50.25,
             type = TransactionType.EXPENSE, category = CategoryType.FOOD, note = "Plan", scheduledDate = 100))
         val plan = checkNotNull(schedules.getScheduledTransactionById(id))
-        assertNotNull(complete(plan))
+        val completed = checkNotNull(complete(plan))
+        assertEquals("completed_plan", completed.firestoreId)
         assertNull(complete(plan))
         assertEquals(1, transactions.observeTransactions().first().size)
         assertTrue(schedules.observeScheduledTransactions().first().isEmpty())
