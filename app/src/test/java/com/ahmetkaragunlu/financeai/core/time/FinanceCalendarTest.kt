@@ -50,6 +50,6 @@ class FinanceCalendarTest {
     private class MutableClock(var now: Instant, private val zone: ZoneId) : Clock() {
         override fun instant(): Instant = now
         override fun getZone(): ZoneId = zone
-        override fun withZone(zone: ZoneId): Clock = Clock.fixed(now, zone)
+        override fun withZone(zone: ZoneId): Clock = fixed(now, zone)
     }
 }

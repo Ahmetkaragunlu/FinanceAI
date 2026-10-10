@@ -5,24 +5,43 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class ReconciliationTest {
-    private fun values(amount: Int, note: String = "old") = SyncPayload.encode(mapOf("amountMinor" to amount, "note" to note))
-    @Test fun `only local edit is written`() {
-        assertEquals(Reconciliation.Write(values(150)), reconcile(values(100), values(150), values(100)))
+    private fun values(amount: Int, note: String = "old") =
+        SyncPayload.encode(mapOf("amountMinor" to amount, "note" to note))
+
+    @Test
+    fun `only local edit is written`() {
+        assertEquals(
+            Reconciliation.Write(values(150)),
+            reconcile(values(100), values(150), values(100))
+        )
     }
-    @Test fun `same result does not ask a question`() {
+
+    @Test
+    fun `same result does not ask a question`() {
         assertEquals(Reconciliation.Equal, reconcile(values(100), values(150), values(150)))
     }
-    @Test fun `different changes to same field require explicit resolution`() {
+
+    @Test
+    fun `different changes to same field require explicit resolution`() {
         assertEquals(Reconciliation.Conflict, reconcile(values(100), values(150), values(200)))
     }
-    @Test fun `different fields can merge without data loss`() {
-        assertEquals(Reconciliation.Write(values(150, "remote")), reconcile(values(100), values(150), values(100, "remote")))
+
+    @Test
+    fun `different fields can merge without data loss`() {
+        assertEquals(
+            Reconciliation.Write(values(150, "remote")),
+            reconcile(values(100), values(150), values(100, "remote"))
+        )
     }
-    @Test fun `remote delete against local edit does not resurrect silently`() {
+
+    @Test
+    fun `remote delete against local edit does not resurrect silently`() {
         assertEquals(Reconciliation.Conflict, reconcile(values(100), values(150), null))
         assertEquals(Reconciliation.Conflict, reconcile(values(100), null, values(150)))
     }
-    @Test fun `retry and unchanged delete remain idempotent`() {
+
+    @Test
+    fun `retry and unchanged delete remain idempotent`() {
         assertEquals(Reconciliation.Write(null), reconcile(values(100), null, values(100)))
         assertEquals(Reconciliation.Equal, reconcile(values(100), null, null))
     }

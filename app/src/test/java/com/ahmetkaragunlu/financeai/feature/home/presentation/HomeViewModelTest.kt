@@ -60,7 +60,7 @@ class HomeViewModelTest {
     private class MutableClock(var now: Instant) : Clock() {
         override fun instant() = now
         override fun getZone(): ZoneId = ZoneId.systemDefault()
-        override fun withZone(zone: ZoneId): Clock = Clock.fixed(now, zone)
+        override fun withZone(zone: ZoneId): Clock = fixed(now, zone)
     }
     private class Finance : TransactionRepository {
         val summary = MutableStateFlow(FinancialSummary())
@@ -84,14 +84,14 @@ class HomeViewModelTest {
         override fun observeTransactionsByTypeAndDate(transactionType: TransactionType, startDate: Long, endDate: Long): Flow<List<Transaction>> = unused()
         override suspend fun insertTransaction(transaction: Transaction): Long = unused()
         override suspend fun updateDetails(target: Transaction, amount: Double, note: String, category: CategoryType): Unit = unused()
-        override suspend fun updatePhoto(target: Transaction, photoUri: String?): String? = unused()
+        override suspend fun updatePhoto(target: Transaction, photoUri: String?): String = unused()
         override suspend fun deleteTransaction(transaction: Transaction): Unit = unused()
         private fun unused(): Nothing = error("Unexpected home repository call")
     }
     private class Budgets : BudgetRepository {
         override fun observeBudgets() = flowOf(emptyList<Budget>())
         override fun observeGeneralBudget(): Flow<Budget?> = unused()
-        override suspend fun getBudgetByCategory(category: CategoryType): Budget? = unused()
+        override suspend fun getBudgetByCategory(category: CategoryType): Budget = unused()
         override suspend fun getAllBudgetsOneShot(): List<Budget> = unused()
         override suspend fun insertBudget(budget: Budget): Long = unused()
         override suspend fun deleteBudget(budget: Budget): Unit = unused()

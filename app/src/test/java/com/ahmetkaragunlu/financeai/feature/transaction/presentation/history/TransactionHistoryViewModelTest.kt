@@ -32,10 +32,12 @@ import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class TransactionHistoryViewModelTest {
-    @get:Rule val main = MainDispatcherRule()
+    @get:Rule
+    val main = MainDispatcherRule()
     private val clock = Clock.fixed(Instant.parse("2026-10-08T12:00:00Z"), ZoneOffset.UTC)
 
-    @Test fun reselectingTheSameTypeKeepsCategoryPriorityAndItsCurrentDateRange() = runTest {
+    @Test
+    fun reselectingTheSameTypeKeepsCategoryPriorityAndItsCurrentDateRange() = runTest {
         val repository = RecordingRepository()
         val model = TransactionHistoryViewModel(repository, FinanceCalendar(clock))
         val store = ViewModelStore().apply { put("history", model) }
@@ -54,7 +56,9 @@ class TransactionHistoryViewModelTest {
             assertEquals(TransactionType.EXPENSE, repository.last.type)
             assertEquals(original.start, repository.last.start)
             assertEquals(original.end, repository.last.end)
-        } finally { store.clear() }
+        } finally {
+            store.clear()
+        }
     }
 
     @Test
@@ -160,8 +164,15 @@ class TransactionHistoryViewModelTest {
 
         override suspend fun insertTransaction(transaction: Transaction) = error("Not a query")
 
-        override suspend fun updateDetails(target: Transaction, amount: Double, note: String, category: CategoryType) = error("Not a query")
-        override suspend fun updatePhoto(target: Transaction, photoUri: String?): String? = error("Not a query")
+        override suspend fun updateDetails(
+            target: Transaction,
+            amount: Double,
+            note: String,
+            category: CategoryType
+        ) = error("Not a query")
+
+        override suspend fun updatePhoto(target: Transaction, photoUri: String?): String? =
+            error("Not a query")
 
         override suspend fun deleteTransaction(transaction: Transaction) = error("Not a query")
     }

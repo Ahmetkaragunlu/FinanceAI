@@ -11,23 +11,36 @@ class FinanceBackupPhotosTest {
         val root = Files.createTempDirectory("financeai-backup-photos-").toFile()
         val photos = File(root, "transaction_photos").apply { mkdirs() }
         val owner = File(photos, "synthetic-owner").apply { mkdirs() }
-        try { test(root, photos, owner) } finally { root.deleteRecursively() }
+        try {
+            test(root, photos, owner)
+        } finally {
+            root.deleteRecursively()
+        }
     }
 
-    @Test fun backupIncludesOnlyPermanentAndCacheJpegsAtTheOriginalOwnerDepth() = withPhotos { _, photos, owner ->
-        for (name in listOf("IMG_receipt.jpg", "SYNC_receipt.jpg")) {
-            val file = File(owner, name).apply { writeText("synthetic image") }
-            assertTrue(isBackupPhoto(file, owner, photos))
+    @Test
+    fun backupIncludesOnlyPermanentAndCacheJpegsAtTheOriginalOwnerDepth() =
+        withPhotos { _, photos, owner ->
+            for (name in listOf("IMG_receipt.jpg", "SYNC_receipt.jpg")) {
+                val file = File(owner, name).apply { writeText("synthetic image") }
+                assertTrue(isBackupPhoto(file, owner, photos))
+            }
+            for (name in listOf(
+                "TEMP_camera.jpg",
+                "PREP_decode.jpg",
+                "IMG_receipt.png",
+                "IMG_upper.JPG",
+                "unknown.jpg"
+            )) {
+                val file = File(owner, name).apply { writeText("synthetic image") }
+                assertFalse(isBackupPhoto(file, owner, photos))
+            }
+            val directory = File(owner, "IMG_folder.jpg").apply { mkdirs() }
+            assertFalse(isBackupPhoto(directory, owner, photos))
         }
-        for (name in listOf("TEMP_camera.jpg", "PREP_decode.jpg", "IMG_receipt.png", "IMG_upper.JPG", "unknown.jpg")) {
-            val file = File(owner, name).apply { writeText("synthetic image") }
-            assertFalse(isBackupPhoto(file, owner, photos))
-        }
-        val directory = File(owner, "IMG_folder.jpg").apply { mkdirs() }
-        assertFalse(isBackupPhoto(directory, owner, photos))
-    }
 
-    @Test fun flatNestedAndCanonicalEscapingPhotosRemainExcluded() = withPhotos { root, photos, owner ->
+    @Test
+    fun flatNestedAndCanonicalEscapingPhotosRemainExcluded() = withPhotos { root, photos, owner ->
         val flat = File(photos, "IMG_flat.jpg").apply { writeText("flat") }
         assertFalse(isBackupPhoto(flat, owner, photos))
         val nestedOwner = File(owner, "nested").apply { mkdirs() }

@@ -18,28 +18,39 @@ import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SignUpViewModelTest {
-    @get:Rule val mainDispatcher = MainDispatcherRule()
+    @get:Rule
+    val mainDispatcher = MainDispatcherRule()
 
     @Test
-    fun `incomplete registration shows the retry explanation and keeps the original form`() = runTest {
-        val repository = FakeAuthRepository().apply { registrationFailure = AuthException.RegistrationIncomplete() }
-        val viewModel = SignUpViewModel(repository)
-        viewModel.updateEmail("user@example.com")
-        viewModel.updatePassword("password")
-        viewModel.updateFirstName("First")
-        viewModel.updateLastName("Last")
-        assertTrue(viewModel.submitRegistration())
-        advanceUntilIdle()
-        assertEquals(AuthState.FAILURE, viewModel.authState.value)
-        assertEquals(R.string.registration_incomplete_retry, viewModel.failureMessageRes.value)
-        viewModel.resetAuthState()
-        repository.registrationFailure = null
-        assertTrue(viewModel.submitRegistration())
-        advanceUntilIdle()
-        assertEquals(2, repository.registrationCalls)
-        assertEquals(FakeAuthRepository.Registration("user@example.com", "password", "First", "Last"), repository.registration)
-        assertEquals(AuthState.VERIFICATION_EMAIL_SENT, viewModel.authState.value)
-    }
+    fun `incomplete registration shows the retry explanation and keeps the original form`() =
+        runTest {
+            val repository = FakeAuthRepository().apply {
+                registrationFailure = AuthException.RegistrationIncomplete()
+            }
+            val viewModel = SignUpViewModel(repository)
+            viewModel.updateEmail("user@example.com")
+            viewModel.updatePassword("password")
+            viewModel.updateFirstName("First")
+            viewModel.updateLastName("Last")
+            assertTrue(viewModel.submitRegistration())
+            advanceUntilIdle()
+            assertEquals(AuthState.FAILURE, viewModel.authState.value)
+            assertEquals(R.string.registration_incomplete_retry, viewModel.failureMessageRes.value)
+            viewModel.resetAuthState()
+            repository.registrationFailure = null
+            assertTrue(viewModel.submitRegistration())
+            advanceUntilIdle()
+            assertEquals(2, repository.registrationCalls)
+            assertEquals(
+                FakeAuthRepository.Registration(
+                    "user@example.com",
+                    "password",
+                    "First",
+                    "Last"
+                ), repository.registration
+            )
+            assertEquals(AuthState.VERIFICATION_EMAIL_SENT, viewModel.authState.value)
+        }
 
     @Test
     fun `repeated submission is ignored while original form snapshot is registering`() = runTest {
@@ -63,7 +74,8 @@ class SignUpViewModelTest {
 
     @Test
     fun `failed or cancelled registration releases the submission guard`() = runTest {
-        val repository = FakeAuthRepository().apply { registrationFailure = AuthException.EmailExists() }
+        val repository =
+            FakeAuthRepository().apply { registrationFailure = AuthException.EmailExists() }
         val viewModel = SignUpViewModel(repository)
         viewModel.registerUser()
         advanceUntilIdle()
@@ -78,24 +90,33 @@ class SignUpViewModelTest {
     }
 
     @Test
-    fun `registration sends all form fields and keeps verification pending rather than logged in`() = runTest {
-        val repository = FakeAuthRepository()
-        val viewModel = SignUpViewModel(repository)
-        viewModel.updateEmail("user@example.com")
-        viewModel.updatePassword("password")
-        viewModel.updateFirstName("Ahmet")
-        viewModel.updateLastName("Karagunlu")
+    fun `registration sends all form fields and keeps verification pending rather than logged in`() =
+        runTest {
+            val repository = FakeAuthRepository()
+            val viewModel = SignUpViewModel(repository)
+            viewModel.updateEmail("user@example.com")
+            viewModel.updatePassword("password")
+            viewModel.updateFirstName("Ahmet")
+            viewModel.updateLastName("Karagunlu")
 
-        viewModel.registerUser()
-        advanceUntilIdle()
+            viewModel.registerUser()
+            advanceUntilIdle()
 
-        assertEquals(FakeAuthRepository.Registration("user@example.com", "password", "Ahmet", "Karagunlu"), repository.registration)
-        assertEquals(AuthState.VERIFICATION_EMAIL_SENT, viewModel.authState.value)
-    }
+            assertEquals(
+                FakeAuthRepository.Registration(
+                    "user@example.com",
+                    "password",
+                    "Ahmet",
+                    "Karagunlu"
+                ), repository.registration
+            )
+            assertEquals(AuthState.VERIFICATION_EMAIL_SENT, viewModel.authState.value)
+        }
 
     @Test
     fun `existing account retains its specific result`() = runTest {
-        val repository = FakeAuthRepository().apply { registrationFailure = AuthException.EmailExists() }
+        val repository =
+            FakeAuthRepository().apply { registrationFailure = AuthException.EmailExists() }
         val viewModel = SignUpViewModel(repository)
         viewModel.registerUser()
         advanceUntilIdle()
@@ -104,7 +125,9 @@ class SignUpViewModelTest {
 
     @Test
     fun `verification email failure is not treated as registration success`() = runTest {
-        val repository = FakeAuthRepository().apply { registrationFailure = AuthException.VerificationEmailFailed() }
+        val repository = FakeAuthRepository().apply {
+            registrationFailure = AuthException.VerificationEmailFailed()
+        }
         val viewModel = SignUpViewModel(repository)
         viewModel.registerUser()
         advanceUntilIdle()
@@ -113,7 +136,8 @@ class SignUpViewModelTest {
 
     @Test
     fun `unexpected registration failure retains generic failure`() = runTest {
-        val repository = FakeAuthRepository().apply { registrationFailure = IllegalStateException("failed") }
+        val repository =
+            FakeAuthRepository().apply { registrationFailure = IllegalStateException("failed") }
         val viewModel = SignUpViewModel(repository)
         viewModel.registerUser()
         advanceUntilIdle()

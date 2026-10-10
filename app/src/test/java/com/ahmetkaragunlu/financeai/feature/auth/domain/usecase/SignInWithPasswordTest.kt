@@ -94,7 +94,7 @@ class SignInWithPasswordTest {
         override suspend fun signInWithGoogle(idToken: String?): Unit = unused()
         override suspend fun isUserRegistered(email: String): Boolean = unused()
         override suspend fun signOut(): Unit = unused()
-        override suspend fun getUserName(): String? = unused()
+        override suspend fun getUserName(): String = unused()
 
         private fun unused(): Nothing = error("Unexpected repository call")
     }
