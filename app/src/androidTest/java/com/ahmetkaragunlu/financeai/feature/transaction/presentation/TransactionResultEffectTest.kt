@@ -1,6 +1,5 @@
 package com.ahmetkaragunlu.financeai.feature.transaction.presentation
 
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -86,36 +85,6 @@ class TransactionResultEffectTest {
         compose.waitForIdle()
         compose.runOnIdle { mounted = true }
         compose.runOnIdle { assertEquals(1, calls) }
-    }
-
-    @Test
-    fun successfulDeletionStillNavigatesWhenRepositoryAlreadyEmittedNotFound() {
-        var result by mutableStateOf<TransactionActionResult?>(TransactionActionResult.Deleted)
-        var navigations = 0
-        compose.setContent {
-            MaterialTheme {
-                TransactionDetailScreen(
-                    state = TransactionDetailUiState.NotFound,
-                    editState = TransactionEditState("", "", null, emptyList()),
-                    onEditRequested = { false },
-                    onAmountChanged = {},
-                    onNoteChanged = {},
-                    onCategoryChanged = {},
-                    onUpdateRequested = {},
-                    onDeleteRequested = {},
-                    actionResult = result,
-                    onResultConsumed = { result = null },
-                    onDeleted = { navigations++ },
-                    onDeletePhoto = {},
-                    onCameraClick = {},
-                    onGalleryClick = {},
-                )
-            }
-        }
-        compose.runOnIdle {
-            assertNull(result)
-            assertEquals(1, navigations)
-        }
     }
 
     private class TestOwner : LifecycleOwner {

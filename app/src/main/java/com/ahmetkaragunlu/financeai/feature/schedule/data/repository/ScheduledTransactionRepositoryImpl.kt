@@ -34,23 +34,37 @@ class ScheduledTransactionRepositoryImpl @Inject constructor(
     private val reminders: ReminderScheduler,
     private val presenter: ReminderPresenter
 ) : ScheduledTransactionRepository {
-    override suspend fun insertScheduledTransaction(transaction: ScheduledTransaction): Long = save(transaction)
+    override suspend fun insertScheduledTransaction(transaction: ScheduledTransaction): Long =
+        save(transaction)
 
     private suspend fun save(value: ScheduledTransaction): Long = session.withAccount { account ->
         require(value.ownerId.isEmpty() || value.ownerId == account.ownerId)
         require(value.currencyCode == UNSPECIFIED_CURRENCY || value.currencyCode == account.currencyCode)
         require(MoneyAmounts.toMinor(value.amount, account.currencyCode) > 0)
-        val prepared = value.copy(ownerId = account.ownerId, currencyCode = account.currencyCode,
-            firestoreId = value.firestoreId.ifBlank { UUID.randomUUID().toString() }, syncedToFirebase = false)
+        val prepared = value.copy(
+            ownerId = account.ownerId,
+            currencyCode = account.currencyCode,
+            firestoreId = value.firestoreId.ifBlank { UUID.randomUUID().toString() },
+            syncedToFirebase = false
+        )
         val id = database.withTransaction {
-            val existing = scheduledTransactionDao.getScheduledTransactionByFirestoreId(prepared.firestoreId)
+            val existing =
+                scheduledTransactionDao.getScheduledTransactionByFirestoreId(prepared.firestoreId)
             if (prepared.id != 0L && existing?.id != prepared.id) throw DataAccessException.StaleRecord()
             val row = prepared.toEntity().copy(id = existing?.id ?: 0L)
             val result = scheduledTransactionDao.insertScheduledTransaction(row)
             val payload = prepared.toFirebaseMap().toMutableMap()
-            if (row.photoUri != null && row.photoUri != existing?.photoUri && !row.photoUri.startsWith("http"))
+            if (row.photoUri != null && row.photoUri != existing?.photoUri && !row.photoUri.startsWith(
+                    "http"
+                )
+            )
                 payload[PhotoFields.INTENT] = File(row.photoUri).nameWithoutExtension
-            pendingChanges.record(account.ownerId, FirestoreCollections.SCHEDULED_TRANSACTIONS, row.firestoreId, payload)
+            pendingChanges.record(
+                account.ownerId,
+                FirestoreCollections.SCHEDULED_TRANSACTIONS,
+                row.firestoreId,
+                payload
+            )
             result
         }
         scheduler.enqueue(account.ownerId)
@@ -63,9 +77,16 @@ class ScheduledTransactionRepositoryImpl @Inject constructor(
         session.withAccount { account ->
             require(transaction.ownerId.isEmpty() || transaction.ownerId == account.ownerId)
             database.withTransaction {
-                val existing = scheduledTransactionDao.getScheduledTransactionByFirestoreId(transaction.firestoreId) ?: return@withTransaction
+                val existing =
+                    scheduledTransactionDao.getScheduledTransactionByFirestoreId(transaction.firestoreId)
+                        ?: return@withTransaction
                 scheduledTransactionDao.deleteScheduledTransaction(existing)
-                pendingChanges.record(account.ownerId, FirestoreCollections.SCHEDULED_TRANSACTIONS, existing.firestoreId, null)
+                pendingChanges.record(
+                    account.ownerId,
+                    FirestoreCollections.SCHEDULED_TRANSACTIONS,
+                    existing.firestoreId,
+                    null
+                )
                 reminders.cancel(account.ownerId, existing.firestoreId, existing.id)
                 presenter.cancel(account.ownerId, existing.firestoreId)
             }

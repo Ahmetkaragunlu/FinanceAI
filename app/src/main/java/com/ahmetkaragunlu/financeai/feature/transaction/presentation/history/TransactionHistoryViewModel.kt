@@ -50,8 +50,10 @@ constructor(private val repository: TransactionRepository, private val calendar:
                                     start,
                                     end,
                                 )
+
                             filter.type != null ->
                                 repository.observeTransactionsByTypeAndDate(filter.type, start, end)
+
                             allDates -> repository.observeTransactions()
                             else -> repository.observeTransactionsByDateRange(start, end)
                         }

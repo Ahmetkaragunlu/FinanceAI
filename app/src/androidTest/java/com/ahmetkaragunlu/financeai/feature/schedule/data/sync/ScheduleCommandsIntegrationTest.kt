@@ -1,6 +1,7 @@
 package com.ahmetkaragunlu.financeai.feature.schedule.data.sync
 
 import android.database.sqlite.SQLiteException
+import androidx.room.withTransaction
 import com.ahmetkaragunlu.financeai.core.media.remote.PhotoRemoteCache
 import com.ahmetkaragunlu.financeai.core.media.work.PhotoWorkScheduler
 import com.ahmetkaragunlu.financeai.core.sync.contract.SyncPayload
@@ -23,8 +24,10 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.mockito.Mockito.mock
 
@@ -171,5 +174,161 @@ class ScheduleCommandsIntegrationTest {
             assertThrows(CancellationException::class.java) { runBlocking { f.commands.synchronize(account) } }
             assertNotNull(f.sdk.local.database.scheduleCommandDao().forAccount(f.owner).first { it.operationId == f.operation }.failure)
         } } finally { f.close() }
+    }
+
+    @Test
+    fun rejectedCommandsDoNotPreventFollowingCommandAcknowledgement(): Unit = runBlocking {
+        val f = Fixture()
+        try {
+            withTimeout(25_000) {
+                f.start("unsupported")
+                f.receipt("applied")
+                val rejected = "${f.operation}-rejected"
+                val accepted = "${f.operation}-accepted"
+                for ((id, requestedAt, outcome) in listOf(
+                    Triple(rejected, 101L, "unknown_server_outcome"),
+                    Triple(accepted, 102L, "applied")
+                )) {
+                    f.sdk.local.database.scheduleCommandDao().insert(
+                        ScheduleCommand(id, f.owner, f.plan, 100, "snooze", requestedAt)
+                    )
+                    f.sdk.firestore.collection("schedule_commands").document(id).set(
+                        mapOf("userId" to f.owner, "processed" to true, "outcome" to outcome)
+                    ).await()
+                }
+
+                f.commands.synchronize(f.account)
+
+                val remaining = f.sdk.local.database.scheduleCommandDao().forAccount(f.owner)
+                assertEquals(listOf(f.operation, rejected), remaining.map { it.operationId })
+                assertEquals(
+                    listOf("invalid_command", "unknown_server_outcome"),
+                    remaining.map { it.failure }
+                )
+            }
+        } finally {
+            f.close()
+        }
+    }
+
+    @Test
+    fun financialConflictChoicesKeepOneCompletedIdentityAndItsCanonicalDate(): Unit = runBlocking {
+        for (keepLocal in listOf(true, false)) {
+            val f = Fixture()
+            try {
+                f.start()
+                val account = f.account
+                val local = f.transactions.normalize(
+                    f.raw(financial = true, amount = 2000) + ("note" to "local"), account
+                )
+                val remote = f.transactions.normalize(
+                    f.raw(financial = true) + ("date" to 200L), account
+                )
+                f.transactions.apply(account, f.financial, local)
+                f.schedules.apply(account, f.plan, f.schedules.normalize(f.raw(), account))
+                val original = checkNotNull(
+                    f.sdk.local.database.transactionDao().getTransactionByFirestoreId(f.financial)
+                )
+                val conflict = SyncRecord(
+                    f.owner, "transactions", f.financial,
+                    pendingPayload = SyncPayload.encode(local), mutationId = "local-edit",
+                    conflictPayload = SyncPayload.encode(remote), conflictRevision = 8
+                )
+                f.sdk.local.database.syncRecordDao().save(conflict)
+                f.sdk.local.database.scheduleCommandDao().fail(f.operation, "conflict")
+
+                f.sdk.local.session.withAccount { current ->
+                    f.sdk.local.database.withTransaction {
+                        assertTrue(f.commands.resolve(
+                            current, conflict, keepLocal, SyncPayload.encode(remote), remote, 8
+                        ))
+                    }
+                }
+
+                val row = f.sdk.local.database.transactionDao().getAllTransactionsOneShot().single()
+                assertEquals(original.id, row.id)
+                assertEquals(200L, row.date)
+                assertEquals(if (keepLocal) 2000L else 1000L, row.amountMinor)
+                assertEquals(if (keepLocal) "local" else "remote", row.note)
+                val record = checkNotNull(
+                    f.sdk.local.database.syncRecordDao().get(f.owner, "transactions", f.financial)
+                )
+                assertEquals(SyncPayload.encode(remote), record.basePayload)
+                assertEquals(8L, record.baseRevision)
+                assertNull(record.conflictRevision)
+                if (keepLocal) {
+                    assertEquals("local-edit", record.mutationId)
+                    assertEquals(200L, SyncPayload.decode(checkNotNull(record.pendingPayload))["date"])
+                } else {
+                    assertNull(record.pendingPayload)
+                    assertNull(record.mutationId)
+                }
+                assertNull(f.sdk.local.database.scheduledTransactionDao()
+                    .getScheduledTransactionByFirestoreId(f.plan))
+                assertTrue(f.sdk.local.database.scheduleCommandDao().forAccount(f.owner).isEmpty())
+            } finally {
+                f.close()
+            }
+        }
+    }
+
+    @Test
+    fun planConflictChoicesRetryLocalCompletionOrRestoreTheRemotePlan(): Unit = runBlocking {
+        for (keepLocal in listOf(true, false)) {
+            val f = Fixture()
+            try {
+                f.start()
+                val account = f.account
+                val local = f.schedules.normalize(f.raw(amount = 2000), account)
+                val remote = f.schedules.normalize(f.raw() + ("scheduledDate" to 200L), account)
+                f.schedules.apply(account, f.plan, local)
+                f.transactions.apply(account, f.financial,
+                    f.transactions.normalize(f.raw(financial = true, amount = 2000), account))
+                val conflict = SyncRecord(
+                    f.owner, "scheduled_transactions", f.plan,
+                    pendingPayload = SyncPayload.encode(local), mutationId = "local-completion",
+                    conflictPayload = SyncPayload.encode(remote), conflictRevision = 8
+                )
+                f.sdk.local.database.syncRecordDao().save(conflict)
+                f.sdk.local.database.scheduleCommandDao().fail(f.operation, "conflict")
+
+                f.sdk.local.session.withAccount { current ->
+                    f.sdk.local.database.withTransaction {
+                        assertTrue(f.commands.resolve(
+                            current, conflict, keepLocal, SyncPayload.encode(remote), remote, 8
+                        ))
+                    }
+                }
+
+                val record = checkNotNull(f.sdk.local.database.syncRecordDao()
+                    .get(f.owner, "scheduled_transactions", f.plan))
+                assertEquals(SyncPayload.encode(remote), record.basePayload)
+                assertEquals(8L, record.baseRevision)
+                assertNull(record.conflictRevision)
+                val commands = f.sdk.local.database.scheduleCommandDao().forAccount(f.owner)
+                if (keepLocal) {
+                    val retry = commands.single()
+                    assertNotEquals(f.operation, retry.operationId)
+                    assertEquals(200L, retry.scheduledDate)
+                    assertEquals(f.sdk.local.clock.millis(), retry.requestedAt)
+                    assertEquals(SyncPayload.encode(remote), retry.planBasePayload)
+                    assertNull(retry.failure)
+                    assertEquals("local-completion", record.mutationId)
+                    assertNotNull(f.sdk.local.database.transactionDao()
+                        .getTransactionByFirestoreId(f.financial))
+                } else {
+                    assertTrue(commands.isEmpty())
+                    assertNull(record.pendingPayload)
+                    assertNull(f.sdk.local.database.transactionDao()
+                        .getTransactionByFirestoreId(f.financial))
+                    val plan = checkNotNull(f.sdk.local.database.scheduledTransactionDao()
+                        .getScheduledTransactionByFirestoreId(f.plan))
+                    assertEquals(1000L, plan.amountMinor)
+                    assertEquals(200L, plan.scheduledDate)
+                }
+            } finally {
+                f.close()
+            }
+        }
     }
 }

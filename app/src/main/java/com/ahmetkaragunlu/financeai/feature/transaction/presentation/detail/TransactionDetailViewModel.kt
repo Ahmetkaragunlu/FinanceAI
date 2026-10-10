@@ -16,7 +16,6 @@ import com.ahmetkaragunlu.financeai.core.money.MoneyAmounts
 import com.ahmetkaragunlu.financeai.core.session.AccountSession
 import com.ahmetkaragunlu.financeai.core.ui.error.dataErrorMessageRes
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
-import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.Transaction
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.repository.TransactionRepository
 import com.ahmetkaragunlu.financeai.feature.transaction.destination.TransactionDetailDestination
 import com.ahmetkaragunlu.financeai.feature.transaction.presentation.TransactionActionResult

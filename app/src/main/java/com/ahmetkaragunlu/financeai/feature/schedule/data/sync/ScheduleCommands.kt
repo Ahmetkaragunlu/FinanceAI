@@ -23,6 +23,7 @@ import com.ahmetkaragunlu.financeai.feature.schedule.domain.reminder.ScheduleCom
 import com.ahmetkaragunlu.financeai.feature.transaction.data.remote.TransactionFields
 import com.ahmetkaragunlu.financeai.feature.transaction.data.remote.TransactionRemoteStore
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Source
 import java.time.Clock
@@ -86,52 +87,69 @@ class ScheduleCommands @Inject constructor(
         for (command in database.scheduleCommandDao().forAccount(account.ownerId)
             .filter { it.failure == null }) {
             ensureCurrent(account)
-            val ref = firestore.collection(FirestoreCollections.SCHEDULE_COMMANDS)
-                .document(command.operationId)
-            firestore.runTransaction { transaction ->
-                val existing = transaction.get(ref)
-                if (!existing.exists()) {
-                    transaction.set(
-                        ref, mapOf(
-                            SyncFields.USER_ID to command.ownerId,
-                            ScheduleCommandFields.TRANSACTION_ID to command.remoteId,
-                            ScheduleFields.DATE to command.scheduledDate,
-                            ScheduleCommandFields.TYPE to command.type,
-                            ScheduleCommandFields.REQUESTED_AT to command.requestedAt,
-                            ScheduleCommandFields.PROCESSED to false,
-                            ScheduleCommandFields.PLAN to command.planPayload?.let(SyncPayload::decode),
-                            ScheduleCommandFields.BASE to command.planBasePayload?.let(SyncPayload::decode)
-                        )
-                    )
-                } else require(existing.getString(SyncFields.USER_ID) == account.ownerId)
-            }.await()
-            val receipt = ref.get(Source.SERVER).await()
+            val receipt = submitCommand(account, command)
             ensureCurrent(account)
-            if (receipt.getBoolean(ScheduleCommandFields.PROCESSED) != true) throw ScheduleException.AwaitingAcknowledgement()
-            val rawOutcome = receipt.getString(ScheduleCommandFields.OUTCOME) ?: "invalid"
-            val outcome = CommandOutcome.fromWire(rawOutcome)
-            val type = ScheduleCommandType.fromWire(command.type)
-            if (type == null) {
-                database.scheduleCommandDao().fail(command.operationId, "invalid_command")
-                continue
-            }
-            if (outcome == CommandOutcome.CONFLICT && type == ScheduleCommandType.COMPLETE) {
-                if (receipt.getString(ScheduleCommandFields.CONFLICT_TARGET) == FirestoreCollections.TRANSACTIONS) markFinancialConflict(
-                    account,
-                    command
+            processReceipt(account, command, receipt)
+        }
+    }
+
+    private suspend fun submitCommand(
+        account: ActiveAccount,
+        command: ScheduleCommand
+    ): DocumentSnapshot {
+        val ref = firestore.collection(FirestoreCollections.SCHEDULE_COMMANDS)
+            .document(command.operationId)
+        firestore.runTransaction { transaction ->
+            val existing = transaction.get(ref)
+            if (!existing.exists()) {
+                transaction.set(
+                    ref, mapOf(
+                        SyncFields.USER_ID to command.ownerId,
+                        ScheduleCommandFields.TRANSACTION_ID to command.remoteId,
+                        ScheduleFields.DATE to command.scheduledDate,
+                        ScheduleCommandFields.TYPE to command.type,
+                        ScheduleCommandFields.REQUESTED_AT to command.requestedAt,
+                        ScheduleCommandFields.PROCESSED to false,
+                        ScheduleCommandFields.PLAN to command.planPayload?.let(SyncPayload::decode),
+                        ScheduleCommandFields.BASE to command.planBasePayload?.let(SyncPayload::decode)
+                    )
                 )
-                else markConflict(account, command)
-                continue
+            } else require(existing.getString(SyncFields.USER_ID) == account.ownerId)
+        }.await()
+        return ref.get(Source.SERVER).await()
+    }
+
+    private suspend fun processReceipt(
+        account: ActiveAccount,
+        command: ScheduleCommand,
+        receipt: DocumentSnapshot
+    ) {
+        if (receipt.getBoolean(ScheduleCommandFields.PROCESSED) != true) {
+            throw ScheduleException.AwaitingAcknowledgement()
+        }
+        val rawOutcome = receipt.getString(ScheduleCommandFields.OUTCOME) ?: "invalid"
+        val outcome = CommandOutcome.fromWire(rawOutcome)
+        val type = ScheduleCommandType.fromWire(command.type)
+        if (type == null) {
+            database.scheduleCommandDao().fail(command.operationId, "invalid_command")
+            return
+        }
+        if (outcome == CommandOutcome.CONFLICT && type == ScheduleCommandType.COMPLETE) {
+            if (receipt.getString(ScheduleCommandFields.CONFLICT_TARGET) == FirestoreCollections.TRANSACTIONS) {
+                markFinancialConflict(account, command)
+            } else {
+                markConflict(account, command)
             }
-            if (outcome?.acknowledgesCommand != true) {
-                database.scheduleCommandDao().fail(command.operationId, rawOutcome)
-                continue
-            }
-            if (type == ScheduleCommandType.COMPLETE) acknowledgeCompletion(account, command)
-            else session.withAccount { current ->
-                check(current == account)
-                database.scheduleCommandDao().acknowledge(command.operationId)
-            }
+            return
+        }
+        if (outcome?.acknowledgesCommand != true) {
+            database.scheduleCommandDao().fail(command.operationId, rawOutcome)
+            return
+        }
+        if (type == ScheduleCommandType.COMPLETE) acknowledgeCompletion(account, command)
+        else session.withAccount { current ->
+            check(current == account)
+            database.scheduleCommandDao().acknowledge(command.operationId)
         }
     }
 
@@ -239,60 +257,78 @@ class ScheduleCommands @Inject constructor(
     ): Boolean {
         val planId = planIdOf(conflict.remoteId)
         if (conflict.collection == FirestoreCollections.TRANSACTIONS && planId != null) {
-            val command = database.scheduleCommandDao().forRecord(account.ownerId, planId)
-                .firstOrNull {
-                    ScheduleCommandType.fromWire(it.type) == ScheduleCommandType.COMPLETE && CommandOutcome.fromWire(
-                        it.failure
-                    ) == CommandOutcome.CONFLICT
-                } ?: return false
-            if (keepLocal) {
-                val canonical =
-                    checkNotNull(remotePayload) { "Completed transaction is unavailable" }
-                val wanted = conflict.pendingPayload?.let(SyncPayload::decode)?.toMutableMap()
-                if (!conflict.pendingDelete && wanted != null) {
-                    wanted[TransactionFields.DATE] =
-                        SyncPayload.decode(canonical)[TransactionFields.DATE]
-                    val row =
-                        database.transactionDao().getTransactionByFirestoreId(conflict.remoteId)
-                    transactions.apply(
-                        account,
-                        conflict.remoteId,
-                        wanted + mapOf(PhotoFields.LOCAL_URI to row?.photoUri)
-                    )
-                }
-                database.syncRecordDao().save(
-                    conflict.copy(
-                        basePayload = canonical,
-                        baseRevision = revision,
-                        pendingPayload = wanted?.let(SyncPayload::encode),
-                        conflictPayload = null,
-                        conflictRevision = null
-                    )
-                )
-            } else {
-                transactions.apply(account, conflict.remoteId, prepared)
-                database.syncRecordDao().save(
-                    SyncRecord(
-                        account.ownerId,
-                        FirestoreCollections.TRANSACTIONS,
-                        conflict.remoteId,
-                        remotePayload,
-                        revision
-                    )
+            return resolveFinancialConflict(
+                account, conflict, planId, keepLocal, remotePayload, prepared, revision
+            )
+        }
+        if (conflict.collection != FirestoreCollections.SCHEDULED_TRANSACTIONS) return false
+        return resolvePlanConflict(account, conflict, keepLocal, remotePayload, prepared, revision)
+    }
+
+    private suspend fun resolveFinancialConflict(
+        account: ActiveAccount,
+        conflict: SyncRecord,
+        planId: String,
+        keepLocal: Boolean,
+        remotePayload: String?,
+        prepared: Map<String, Any?>?,
+        revision: Long
+    ): Boolean {
+        val command = database.scheduleCommandDao().forRecord(account.ownerId, planId)
+            .firstOrNull {
+                ScheduleCommandType.fromWire(it.type) == ScheduleCommandType.COMPLETE && CommandOutcome.fromWire(
+                    it.failure
+                ) == CommandOutcome.CONFLICT
+            } ?: return false
+        if (keepLocal) {
+            val canonical = checkNotNull(remotePayload) { "Completed transaction is unavailable" }
+            val wanted = conflict.pendingPayload?.let(SyncPayload::decode)?.toMutableMap()
+            if (!conflict.pendingDelete && wanted != null) {
+                wanted[TransactionFields.DATE] = SyncPayload.decode(canonical)[TransactionFields.DATE]
+                val row = database.transactionDao().getTransactionByFirestoreId(conflict.remoteId)
+                transactions.apply(
+                    account,
+                    conflict.remoteId,
+                    wanted + mapOf(PhotoFields.LOCAL_URI to row?.photoUri)
                 )
             }
-            schedules.apply(account, planId, null)
+            database.syncRecordDao().save(
+                conflict.copy(
+                    basePayload = canonical,
+                    baseRevision = revision,
+                    pendingPayload = wanted?.let(SyncPayload::encode),
+                    conflictPayload = null,
+                    conflictRevision = null
+                )
+            )
+        } else {
+            transactions.apply(account, conflict.remoteId, prepared)
             database.syncRecordDao().save(
                 SyncRecord(
                     account.ownerId,
-                    FirestoreCollections.SCHEDULED_TRANSACTIONS,
-                    planId
+                    FirestoreCollections.TRANSACTIONS,
+                    conflict.remoteId,
+                    remotePayload,
+                    revision
                 )
             )
-            database.scheduleCommandDao().acknowledge(command.operationId)
-            return true
         }
-        if (conflict.collection != FirestoreCollections.SCHEDULED_TRANSACTIONS) return false
+        schedules.apply(account, planId, null)
+        database.syncRecordDao().save(
+            SyncRecord(account.ownerId, FirestoreCollections.SCHEDULED_TRANSACTIONS, planId)
+        )
+        database.scheduleCommandDao().acknowledge(command.operationId)
+        return true
+    }
+
+    private suspend fun resolvePlanConflict(
+        account: ActiveAccount,
+        conflict: SyncRecord,
+        keepLocal: Boolean,
+        remotePayload: String?,
+        prepared: Map<String, Any?>?,
+        revision: Long
+    ): Boolean {
         val dao = database.scheduleCommandDao()
         val command = dao.forRecord(account.ownerId, conflict.remoteId)
             .firstOrNull {

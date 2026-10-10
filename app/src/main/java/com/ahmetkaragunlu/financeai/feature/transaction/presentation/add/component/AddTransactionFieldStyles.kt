@@ -1,11 +1,11 @@
-package com.ahmetkaragunlu.financeai.feature.transaction.presentation.add
+package com.ahmetkaragunlu.financeai.feature.transaction.presentation.add.component
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.runtime.Composable
 import com.ahmetkaragunlu.financeai.core.ui.theme.FinanceColors
 
-object AddTransactionScreenTextFieldStyles {
+object AddTransactionFieldStyles {
     @Composable
     fun textFieldColors() =
         OutlinedTextFieldDefaults.colors(

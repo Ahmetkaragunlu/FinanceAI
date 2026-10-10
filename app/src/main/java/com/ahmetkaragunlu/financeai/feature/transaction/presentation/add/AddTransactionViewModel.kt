@@ -14,6 +14,7 @@ import com.ahmetkaragunlu.financeai.core.media.local.PhotoLocalStore
 import com.ahmetkaragunlu.financeai.core.media.work.PhotoWorkScheduler
 import com.ahmetkaragunlu.financeai.core.money.MoneyAmounts
 import com.ahmetkaragunlu.financeai.core.session.AccountSession
+import com.ahmetkaragunlu.financeai.core.session.ActiveAccount
 import com.ahmetkaragunlu.financeai.core.time.FinancePeriods
 import com.ahmetkaragunlu.financeai.feature.location.domain.AddressResolver
 import com.ahmetkaragunlu.financeai.feature.location.domain.Coordinates
@@ -233,7 +234,8 @@ constructor(
     fun saveTransaction() {
         if (isSaving || actionResult == TransactionActionResult.Saved) return
         val account = session.account.value ?: return
-        if (MoneyAmounts.parse(inputAmount, account.currencyCode) == null) {
+        val amount = MoneyAmounts.parse(inputAmount, account.currencyCode)
+        if (amount == null) {
             actionResult = TransactionActionResult.Failure(R.string.error_invalid_amount)
             return
         }
@@ -241,8 +243,6 @@ constructor(
             actionResult = TransactionActionResult.Failure(R.string.error_select_category)
             return
         }
-        val amount = MoneyAmounts.parse(inputAmount, account.currencyCode) ?: return
-
         val category = selectedCategory ?: return
         val type = selectedTransactionType
         val note = inputNote
@@ -266,43 +266,17 @@ constructor(
                 val firestoreId = UUID.randomUUID().toString()
                 if (isScheduled) {
                     val scheduledTransaction =
-                        ScheduledTransaction(
-                            ownerId = account.ownerId,
-                            currencyCode = account.currencyCode,
-                            amount = amount,
-                            type = type,
-                            category = category,
-                            note = note,
-                            scheduledDate = date,
-                            notificationSent = false,
-                            expirationNotificationSent = false,
-                            photoUri = savedPhotoPath,
-                            locationFull = location?.addressFull,
-                            locationShort = location?.addressShort,
-                            latitude = location?.latitude,
-                            longitude = location?.longitude,
-                            syncedToFirebase = false,
-                            firestoreId = firestoreId,
+                        createScheduledTransaction(
+                            account, amount, type, category, note, date, location,
+                            savedPhotoPath, firestoreId,
                         )
                     scheduledTransactionRepository.insertScheduledTransaction(scheduledTransaction)
                     committed = true
                 } else {
                     val transaction =
-                        Transaction(
-                            ownerId = account.ownerId,
-                            currencyCode = account.currencyCode,
-                            amount = amount,
-                            transaction = type,
-                            note = note,
-                            date = date,
-                            category = category,
-                            photoUri = savedPhotoPath,
-                            locationFull = location?.addressFull,
-                            locationShort = location?.addressShort,
-                            latitude = location?.latitude,
-                            longitude = location?.longitude,
-                            syncedToFirebase = false,
-                            firestoreId = firestoreId,
+                        createTransaction(
+                            account, amount, type, category, note, date, location,
+                            savedPhotoPath, firestoreId,
                         )
                     repo.insertTransaction(transaction)
                     committed = true
@@ -331,6 +305,64 @@ constructor(
             }
         }
     }
+
+    private fun createScheduledTransaction(
+        account: ActiveAccount,
+        amount: Double,
+        type: TransactionType,
+        category: CategoryType,
+        note: String,
+        date: Long,
+        location: LocationData?,
+        savedPhotoPath: String?,
+        firestoreId: String,
+    ): ScheduledTransaction =
+        ScheduledTransaction(
+            ownerId = account.ownerId,
+            currencyCode = account.currencyCode,
+            amount = amount,
+            type = type,
+            category = category,
+            note = note,
+            scheduledDate = date,
+            notificationSent = false,
+            expirationNotificationSent = false,
+            photoUri = savedPhotoPath,
+            locationFull = location?.addressFull,
+            locationShort = location?.addressShort,
+            latitude = location?.latitude,
+            longitude = location?.longitude,
+            syncedToFirebase = false,
+            firestoreId = firestoreId,
+        )
+
+    private fun createTransaction(
+        account: ActiveAccount,
+        amount: Double,
+        type: TransactionType,
+        category: CategoryType,
+        note: String,
+        date: Long,
+        location: LocationData?,
+        savedPhotoPath: String?,
+        firestoreId: String,
+    ): Transaction =
+        Transaction(
+            ownerId = account.ownerId,
+            currencyCode = account.currencyCode,
+            amount = amount,
+            transaction = type,
+            note = note,
+            date = date,
+            category = category,
+            photoUri = savedPhotoPath,
+            locationFull = location?.addressFull,
+            locationShort = location?.addressShort,
+            latitude = location?.latitude,
+            longitude = location?.longitude,
+            syncedToFirebase = false,
+            firestoreId = firestoreId,
+        )
 
     private fun clearForm() {
         inputAmount = ""

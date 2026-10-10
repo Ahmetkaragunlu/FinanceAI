@@ -78,6 +78,12 @@ class AccountSyncEngine @Inject constructor(
 
     suspend fun synchronize(account: ActiveAccount) = syncMutex.withLock {
         ensureCurrent(account)
+        pushPendingRecords(account)
+        participants.forEach { it.synchronize(account) }
+        stores.values.forEach { store -> pullCollection(account, store) }
+    }
+
+    private suspend fun pushPendingRecords(account: ActiveAccount) {
         val held = participants.flatMap { it.heldRecords(account) }.toSet()
         // Push against server transactions first; a pull can never overwrite a pending local intention.
         for (pending in database.syncRecordDao().pending(account.ownerId)) {
@@ -95,25 +101,25 @@ class AccountSyncEngine @Inject constructor(
                 )
             }
         }
-        participants.forEach { it.synchronize(account) }
-        stores.values.forEach { store ->
-            val snapshot = firestore.collection(store.collection)
-                .whereEqualTo(SyncFields.USER_ID, account.ownerId)
-                .get(Source.SERVER).await()
-            for (document in snapshot.documents) receiveSafely(account, store, document)
-            val visible = snapshot.documents.map { it.id }.toSet()
-            database.syncRecordDao().forAccount(account.ownerId)
-                .filter {
-                    it.collection == store.collection &&
-                    it.remoteId !in visible &&
-                    it.basePayload != null
-                }
-                .forEach { known ->
-                    val fresh = firestore.collection(store.collection).document(known.remoteId)
-                        .get(Source.SERVER).await()
-                    if (!fresh.exists()) receiveSafely(account, store, fresh)
-                }
-        }
+    }
+
+    private suspend fun pullCollection(account: ActiveAccount, store: RemoteRecordStore) {
+        val snapshot = firestore.collection(store.collection)
+            .whereEqualTo(SyncFields.USER_ID, account.ownerId)
+            .get(Source.SERVER).await()
+        for (document in snapshot.documents) receiveSafely(account, store, document)
+        val visible = snapshot.documents.map { it.id }.toSet()
+        database.syncRecordDao().forAccount(account.ownerId)
+            .filter {
+                it.collection == store.collection &&
+                it.remoteId !in visible &&
+                it.basePayload != null
+            }
+            .forEach { known ->
+                val fresh = firestore.collection(store.collection).document(known.remoteId)
+                    .get(Source.SERVER).await()
+                if (!fresh.exists()) receiveSafely(account, store, fresh)
+            }
     }
 
     private fun isPermanentSyncFailure(error: Exception): Boolean =
@@ -284,6 +290,16 @@ class AccountSyncEngine @Inject constructor(
                 SyncPayload.decode(it)
             )
         }
+        applyPushAcknowledgement(account, pending, store, outcome, prepared)
+    }
+
+    private suspend fun applyPushAcknowledgement(
+        account: ActiveAccount,
+        pending: SyncRecord,
+        store: RemoteRecordStore,
+        outcome: RemoteOutcome,
+        prepared: Map<String, Any?>?
+    ) {
         session.withStateLock {
             ensureCurrent(account)
             database.withTransaction {
@@ -356,29 +372,42 @@ class AccountSyncEngine @Inject constructor(
                         )
                     })
                     return@withTransaction
-                val store = stores.getValue(current.collection)
-                if (keepLocal) dao.save(
-                    current.copy(
-                        basePayload = current.conflictPayload,
-                        baseRevision = current.conflictRevision,
-                        conflictPayload = null,
-                        conflictRevision = null
-                    )
+                applyDefaultResolution(
+                    account, current, keepLocal, prepared, current.conflictRevision
                 )
-                else {
-                    store.apply(account, current.remoteId, prepared)
-                    dao.save(
-                        SyncRecord(
-                            account.ownerId,
-                            current.collection,
-                            current.remoteId,
-                            current.conflictPayload,
-                            current.conflictRevision
-                        )
-                    )
-                }
             }
             scheduler.enqueue(account.ownerId)
+        }
+    }
+
+    private suspend fun applyDefaultResolution(
+        account: ActiveAccount,
+        current: SyncRecord,
+        keepLocal: Boolean,
+        prepared: Map<String, Any?>?,
+        revision: Long
+    ) {
+        val dao = database.syncRecordDao()
+        val store = stores.getValue(current.collection)
+        if (keepLocal) dao.save(
+            current.copy(
+                basePayload = current.conflictPayload,
+                baseRevision = revision,
+                conflictPayload = null,
+                conflictRevision = null
+            )
+        )
+        else {
+            store.apply(account, current.remoteId, prepared)
+            dao.save(
+                SyncRecord(
+                    account.ownerId,
+                    current.collection,
+                    current.remoteId,
+                    current.conflictPayload,
+                    revision
+                )
+            )
         }
     }
 

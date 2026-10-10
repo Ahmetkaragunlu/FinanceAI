@@ -41,8 +41,12 @@ class TransactionRepositoryImpl @Inject constructor(
         require(value.ownerId.isEmpty() || value.ownerId == account.ownerId)
         require(value.currencyCode == UNSPECIFIED_CURRENCY || value.currencyCode == account.currencyCode)
         require(MoneyAmounts.toMinor(value.amount, account.currencyCode) > 0)
-        val prepared = value.copy(ownerId = account.ownerId, currencyCode = account.currencyCode,
-            firestoreId = value.firestoreId.ifBlank { UUID.randomUUID().toString() }, syncedToFirebase = false)
+        val prepared = value.copy(
+            ownerId = account.ownerId,
+            currencyCode = account.currencyCode,
+            firestoreId = value.firestoreId.ifBlank { UUID.randomUUID().toString() },
+            syncedToFirebase = false
+        )
         val id = database.withTransaction {
             val existing = transactionDao.getTransactionByFirestoreId(prepared.firestoreId)
             if (prepared.id != 0 && existing?.id != prepared.id) throw DataAccessException.StaleRecord()
@@ -56,22 +60,42 @@ class TransactionRepositoryImpl @Inject constructor(
         session.withAccount { account ->
             require(transaction.ownerId.isEmpty() || transaction.ownerId == account.ownerId)
             database.withTransaction {
-                val existing = transactionDao.getTransactionByFirestoreId(transaction.firestoreId) ?: return@withTransaction
+                val existing = transactionDao.getTransactionByFirestoreId(transaction.firestoreId)
+                    ?: return@withTransaction
                 transactionDao.deleteTransaction(existing)
-                pendingChanges.record(account.ownerId, FirestoreCollections.TRANSACTIONS, existing.firestoreId, null)
+                pendingChanges.record(
+                    account.ownerId,
+                    FirestoreCollections.TRANSACTIONS,
+                    existing.firestoreId,
+                    null
+                )
             }
             scheduler.enqueue(account.ownerId)
         }
     }
 
-    override suspend fun updateDetails(target: Transaction, amount: Double, note: String, category: CategoryType) {
-        mutate(target) { current -> current.copy(amount = amount, note = note, category = category) }
+    override suspend fun updateDetails(
+        target: Transaction,
+        amount: Double,
+        note: String,
+        category: CategoryType
+    ) {
+        mutate(target) { current ->
+            current.copy(
+                amount = amount,
+                note = note,
+                category = category
+            )
+        }
     }
 
     override suspend fun updatePhoto(target: Transaction, photoUri: String?): String? =
         mutate(target) { current -> current.copy(photoUri = photoUri) }.photoUri
 
-    private suspend fun mutate(target: Transaction, change: (Transaction) -> Transaction): Transaction =
+    private suspend fun mutate(
+        target: Transaction,
+        change: (Transaction) -> Transaction
+    ): Transaction =
         session.withAccount { account ->
             require(target.ownerId == account.ownerId)
             require(target.currencyCode == account.currencyCode)
@@ -99,9 +123,15 @@ class TransactionRepositoryImpl @Inject constructor(
             payload[PhotoFields.REMOVED] = true
         } else if (row.photoUri != null && row.photoUri != existing?.photoUri) {
             payload[PhotoFields.REMOVED] = false
-            if (!row.photoUri.startsWith("http")) payload[PhotoFields.INTENT] = File(row.photoUri).nameWithoutExtension
+            if (!row.photoUri.startsWith("http")) payload[PhotoFields.INTENT] =
+                File(row.photoUri).nameWithoutExtension
         }
-        pendingChanges.record(value.ownerId, FirestoreCollections.TRANSACTIONS, row.firestoreId, payload)
+        pendingChanges.record(
+            value.ownerId,
+            FirestoreCollections.TRANSACTIONS,
+            row.firestoreId,
+            payload
+        )
         return result
     }
 
@@ -123,7 +153,10 @@ class TransactionRepositoryImpl @Inject constructor(
                 .distinctUntilChanged()
         }
 
-    override fun observeTransactionsByDateRange(startDate: Long, endDate: Long): Flow<List<Transaction>> =
+    override fun observeTransactionsByDateRange(
+        startDate: Long,
+        endDate: Long
+    ): Flow<List<Transaction>> =
         session.observe(emptyList()) { _ ->
             transactionDao.observeTransactionsByDateRange(startDate, endDate)
                 .map { rows -> rows.map { it.toDomain() } }
@@ -146,7 +179,8 @@ class TransactionRepositoryImpl @Inject constructor(
             transactionDao.observeFinancialSummary(startDate, endDate).map { row ->
                 FinancialSummary(
                     MoneyAmounts.toMajor(row.incomeMinor, account.currencyCode),
-                    MoneyAmounts.toMajor(row.expenseMinor, account.currencyCode))
+                    MoneyAmounts.toMajor(row.expenseMinor, account.currencyCode)
+                )
             }.distinctUntilChanged()
         }
 
@@ -170,7 +204,11 @@ class TransactionRepositoryImpl @Inject constructor(
         endDate: Long
     ): Flow<List<CategoryExpense>> =
         session.observe(emptyList()) { account ->
-            transactionDao.observeCategoryExpensesByTypeAndDateRange(transactionType, startDate, endDate)
+            transactionDao.observeCategoryExpensesByTypeAndDateRange(
+                transactionType,
+                startDate,
+                endDate
+            )
                 .map { rows -> rows.map { it.toDomain(account.currencyCode) } }
                 .distinctUntilChanged()
         }

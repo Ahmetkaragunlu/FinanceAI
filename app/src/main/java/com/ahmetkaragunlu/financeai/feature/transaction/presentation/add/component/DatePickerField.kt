@@ -1,4 +1,4 @@
-package com.ahmetkaragunlu.financeai.feature.transaction.presentation.add
+package com.ahmetkaragunlu.financeai.feature.transaction.presentation.add.component
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape

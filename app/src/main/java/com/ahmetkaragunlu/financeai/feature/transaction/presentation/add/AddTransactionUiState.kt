@@ -6,7 +6,7 @@ import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryTyp
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
 import java.time.ZoneId
 
-data class TransactionDraftState(
+data class AddTransactionUiState(
     val type: TransactionType,
     val category: CategoryType?,
     val amount: String,
