@@ -227,7 +227,7 @@ fun TransactionDetailScreen(
         )
         return
     }
-    transaction?.let { tx ->
+    transaction.let { tx ->
         Column(
             modifier =
                 modifier

@@ -4,7 +4,6 @@ import com.ahmetkaragunlu.financeai.core.error.DataAccessException
 import com.ahmetkaragunlu.financeai.core.session.SessionCoordinator
 import com.ahmetkaragunlu.financeai.core.sync.testing.EmulatorAccountFixture
 import com.ahmetkaragunlu.financeai.fcm.FCMTokenManager
-import com.ahmetkaragunlu.financeai.feature.auth.data.local.session.CredentialSessionCleaner
 import com.ahmetkaragunlu.financeai.feature.auth.data.remote.AuthLookupRemote
 import com.google.android.gms.tasks.Tasks
 import com.google.firebase.auth.AuthResult
@@ -31,11 +30,12 @@ class AuthRegistrationProfileIntegrationTest {
         `when`(result.user).thenReturn(user)
         `when`(f.auth.createUserWithEmailAndPassword(anyString(), anyString())).thenReturn(Tasks.forResult(result))
         val coordinator = mock(SessionCoordinator::class.java)
-        doAnswer { Unit }.`when`(coordinator).prepare()
+        doAnswer { }.`when`(coordinator).prepare()
         val tokens = mock(FCMTokenManager::class.java)
-        doAnswer { Unit }.`when`(tokens).updateFCMToken()
+        doAnswer { }.`when`(tokens).updateFCMToken()
         return AuthRepositoryImpl(f.auth, f.firestore, coordinator, tokens,
-            mock(AuthLookupRemote::class.java), CredentialSessionCleaner {})
+            mock(AuthLookupRemote::class.java)
+        ) {}
     }
 
     @Test fun profileTransactionFillsMissingFieldsWithoutReplacingExistingIdentityTokensOrPreferences() = runBlocking {

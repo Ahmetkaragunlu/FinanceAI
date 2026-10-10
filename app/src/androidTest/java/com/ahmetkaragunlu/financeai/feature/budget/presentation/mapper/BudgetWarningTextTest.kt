@@ -27,7 +27,7 @@ class BudgetWarningTextTest {
             BudgetWarning.GeneralAndCategoryExceeded(CategoryType.FOOD) to context.getString(R.string.warning_budget_and_category_exceeded, food),
             BudgetWarning.GeneralAndCategoriesExceeded(2) to context.getString(R.string.warning_budget_and_multiple_categories, 2),
         )
-        val warning = mutableStateOf<BudgetWarning>(cases.first().first)
+        val warning = mutableStateOf(cases.first().first)
         compose.setContent { Text(warning.value.localizedText()) }
         for ((value, expected) in cases) {
             compose.runOnIdle { warning.value = value }

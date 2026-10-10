@@ -24,7 +24,7 @@ import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.Transaction
 import com.ahmetkaragunlu.financeai.feature.transaction.localization.toLabelResId
 import com.ahmetkaragunlu.financeai.notification.NotificationChannels
 import com.ahmetkaragunlu.financeai.notification.action.NotificationActionReceiver
-import com.ahmetkaragunlu.financeai.notification.action.NotificationActions
+import com.ahmetkaragunlu.financeai.notification.action.NotificationAction
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.ZoneId
@@ -43,8 +43,8 @@ constructor(
         if (auth.currentUser?.uid != account.ownerId) return false
         if (
             !NotificationManagerCompat.from(context).areNotificationsEnabled() ||
-                manager.getNotificationChannel(NotificationChannels.SCHEDULED_TRANSACTIONS)?.importance ==
-                    NotificationManager.IMPORTANCE_NONE
+            manager.getNotificationChannel(NotificationChannels.SCHEDULED_TRANSACTIONS)?.importance ==
+            NotificationManager.IMPORTANCE_NONE
         )
             return false
         val expired = kind == ReminderKind.EXPIRED
@@ -52,8 +52,8 @@ constructor(
         if (
             manager.activeNotifications.any {
                 it.tag == tag(plan.ownerId, plan.firestoreId) &&
-                    it.id == notificationId &&
-                    it.notification.extras.getString(EVENT_KEY) == eventId
+                        it.id == notificationId &&
+                        it.notification.extras.getString(EVENT_KEY) == eventId
             }
         )
             return true
@@ -114,16 +114,16 @@ constructor(
         if (!expired) {
             builder
                 .setOngoing(false)
-                .setDeleteIntent(action(plan, NotificationActions.ACTION_DISMISS))
+                .setDeleteIntent(action(plan, NotificationAction.DISMISS))
                 .addAction(
                     R.drawable.ic_notification,
                     context.getString(R.string.notification_action_yes),
-                    action(plan, NotificationActions.ACTION_CONFIRM),
+                    action(plan, NotificationAction.CONFIRM),
                 )
                 .addAction(
                     R.drawable.ic_notification,
                     context.getString(R.string.notification_action_no),
-                    action(plan, NotificationActions.ACTION_SNOOZE),
+                    action(plan, NotificationAction.SNOOZE),
                 )
         }
         return try {
@@ -135,10 +135,11 @@ constructor(
         }
     }
 
-    private fun action(plan: ScheduledTransaction, action: String): PendingIntent {
+    private fun action(plan: ScheduledTransaction, action: NotificationAction): PendingIntent {
+        val intentAction = action.intentAction
         val intent =
             Intent(context, NotificationActionReceiver::class.java).apply {
-                this.action = action
+                this.action = intentAction
                 // URI identity avoids PendingIntent collisions between accounts/records/actions.
                 data =
                     Uri.Builder()
@@ -146,7 +147,7 @@ constructor(
                         .authority("reminder")
                         .appendPath(plan.ownerId)
                         .appendPath(plan.firestoreId)
-                        .appendPath(action)
+                        .appendPath(intentAction)
                         .build()
                 putExtra(AccountWork.OWNER_ID, plan.ownerId)
                 putExtra(ReminderKeys.REMOTE_ID, plan.firestoreId)

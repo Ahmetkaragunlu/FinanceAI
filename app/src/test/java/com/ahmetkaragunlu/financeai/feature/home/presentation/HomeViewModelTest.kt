@@ -1,5 +1,7 @@
 package com.ahmetkaragunlu.financeai.feature.home.presentation
 
+import com.ahmetkaragunlu.financeai.feature.home.presentation.suggestion.AiSuggestionState
+
 import androidx.lifecycle.ViewModelStore
 import com.ahmetkaragunlu.financeai.core.coroutines.testing.MainDispatcherRule
 import com.ahmetkaragunlu.financeai.core.format.formatAsCurrency

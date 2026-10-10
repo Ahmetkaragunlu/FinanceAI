@@ -151,14 +151,14 @@ class TransactionRepositoryImpl @Inject constructor(
         }
 
     override fun observeTotalExpenseByDateRange(startDate: Long, endDate: Long): Flow<Double?> =
-        session.observe<Double?>(null) { account ->
+        session.observe(null) { account ->
             transactionDao.observeTotalExpenseByDateRange(startDate, endDate)
                 .map { it?.let { total -> MoneyAmounts.toMajor(total, account.currencyCode) } }
                 .distinctUntilChanged()
         }
 
     override fun observeTransactionById(id: Int): Flow<Transaction?> =
-        session.observe<Transaction?>(null) { _ ->
+        session.observe(null) { _ ->
             transactionDao.observeTransactionById(id)
                 .map { it?.toDomain() }
                 .distinctUntilChanged()

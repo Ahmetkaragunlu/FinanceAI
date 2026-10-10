@@ -64,7 +64,7 @@ class MainViewModelTest {
         object : Clock() {
             override fun getZone(): ZoneId = ZoneId.systemDefault()
 
-            override fun withZone(zone: ZoneId): Clock = Clock.fixed(now, zone)
+            override fun withZone(zone: ZoneId): Clock = fixed(now, zone)
 
             override fun instant(): Instant = now
         }
@@ -260,7 +260,7 @@ class MainViewModelTest {
 
     // Simulate values supplied by SavedStateHandle restoration, without coupling to private keys.
     private fun snapshot(handle: SavedStateHandle): SavedStateHandle =
-        SavedStateHandle(handle.keys().associateWith { handle.get<Any?>(it) })
+        SavedStateHandle(handle.keys().associateWith { handle[it] })
 
     private class StateOwner(saved: Bundle? = null) : SavedStateRegistryOwner, ViewModelStoreOwner {
         override val lifecycle = LifecycleRegistry(this)

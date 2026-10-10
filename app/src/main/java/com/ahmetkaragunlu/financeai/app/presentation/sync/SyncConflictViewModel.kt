@@ -15,9 +15,14 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 @HiltViewModel
-class SyncConflictViewModel @Inject constructor(database: FinanceDatabase, private val engine: AccountSyncEngine) : ViewModel() {
-    val conflicts = database.syncRecordDao().observeConflicts().stateIn(viewModelScope,
-        SharingStarted.WhileSubscribed(5_000, replayExpirationMillis = 0), emptyList())
+class SyncConflictViewModel @Inject constructor(
+    database: FinanceDatabase,
+    private val engine: AccountSyncEngine
+) : ViewModel() {
+    val conflicts = database.syncRecordDao().observeConflicts().stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5_000, replayExpirationMillis = 0), emptyList()
+    )
     private val mutableBusy = MutableStateFlow(false)
     val busy = mutableBusy.asStateFlow()
     private val mutableError = MutableStateFlow(false)
@@ -28,10 +33,15 @@ class SyncConflictViewModel @Inject constructor(database: FinanceDatabase, priva
         mutableBusy.value = true
         mutableError.value = false
         viewModelScope.launch {
-            try { engine.resolve(record, keepLocal) }
-            catch (e: CancellationException) { throw e }
-            catch (_: Exception) { mutableError.value = true }
-            finally { mutableBusy.value = false }
+            try {
+                engine.resolve(record, keepLocal)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                mutableError.value = true
+            } finally {
+                mutableBusy.value = false
+            }
         }
     }
 }

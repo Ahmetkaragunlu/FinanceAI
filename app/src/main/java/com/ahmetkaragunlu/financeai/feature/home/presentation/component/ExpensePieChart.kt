@@ -130,7 +130,6 @@ fun ExpensePieChart(categoryExpenses: List<CategoryExpense>, modifier: Modifier 
                 val categoryName = categoryDisplayStrings[categoryEnum] ?: categoryEnum.name
 
                 drawContext.canvas.nativeCanvas.apply {
-                    val paint = labelPaint
 
                     val isLeftSide = labelX < centerX
                     val categoryColor = categoryData[index].third
@@ -139,7 +138,7 @@ fun ExpensePieChart(categoryExpenses: List<CategoryExpense>, modifier: Modifier 
                     val squareLeft = if (isLeftSide) labelX + 30f else labelX - 30f
                     val squareTop = labelY - 8f
 
-                    paint.color =
+                    labelPaint.color =
                         AndroidColor.argb(
                             (categoryColor.alpha * 255).toInt(),
                             (categoryColor.red * 255).toInt(),
@@ -152,19 +151,21 @@ fun ExpensePieChart(categoryExpenses: List<CategoryExpense>, modifier: Modifier 
                         squareTop,
                         squareLeft + squareSize,
                         squareTop + squareSize,
-                        paint,
+                        labelPaint,
                     )
 
-                    paint.color = AndroidColor.WHITE
-                    paint.textSize = 36f
-                    paint.isFakeBoldText = false
+                    labelPaint.color = AndroidColor.WHITE
+                    labelPaint.textSize = 36f
+                    labelPaint.isFakeBoldText = false
 
                     if (isLeftSide) {
-                        paint.textAlign = Paint.Align.RIGHT
-                        drawText(categoryName, squareLeft - 8f, labelY + 6f, paint)
+                        labelPaint.textAlign = Paint.Align.RIGHT
+                        drawText(categoryName, squareLeft - 8f, labelY + 6f, labelPaint)
                     } else {
-                        paint.textAlign = Paint.Align.LEFT
-                        drawText(categoryName, squareLeft + squareSize + 8f, labelY + 6f, paint)
+                        labelPaint.textAlign = Paint.Align.LEFT
+                        drawText(categoryName, squareLeft + squareSize + 8f, labelY + 6f,
+                            labelPaint
+                        )
                     }
                 }
 

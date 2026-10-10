@@ -13,19 +13,31 @@ import com.ahmetkaragunlu.financeai.feature.budget.domain.model.BudgetType
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 import javax.inject.Inject
 
-class BudgetRemoteStore @Inject constructor(private val database: FinanceDatabase) : RemoteRecordStore {
+class BudgetRemoteStore @Inject constructor(private val database: FinanceDatabase) :
+    RemoteRecordStore {
     override val collection = FirestoreCollections.BUDGETS
     private fun model(account: ActiveAccount, remoteId: String, data: Map<String, Any?>): Budget {
         val currency = data[FinancialFields.CURRENCY_CODE] as? String ?: account.currencyCode
         if (currency != account.currencyCode) throw DataAccessException.InvalidRemoteData()
         return Budget(
-            ownerId = account.ownerId, currencyCode = currency, firestoreId = remoteId, amount = (data[FinancialFields.AMOUNT_MINOR] as? Number)?.let { MoneyAmounts.toMajor(MoneyAmounts.readMinor(it), currency) } ?: (data[FinancialFields.LEGACY_AMOUNT] as? Number)?.toDouble() ?: 0.0,
-            budgetType = BudgetType.valueOf(data[BudgetFields.TYPE] as? String ?: "CATEGORY_AMOUNT"),
+            ownerId = account.ownerId,
+            currencyCode = currency,
+            firestoreId = remoteId,
+            amount = (data[FinancialFields.AMOUNT_MINOR] as? Number)?.let {
+                MoneyAmounts.toMajor(
+                    MoneyAmounts.readMinor(it),
+                    currency
+                )
+            } ?: (data[FinancialFields.LEGACY_AMOUNT] as? Number)?.toDouble() ?: 0.0,
+            budgetType = BudgetType.valueOf(
+                data[BudgetFields.TYPE] as? String ?: "CATEGORY_AMOUNT"
+            ),
             category = (data[FinancialFields.CATEGORY] as? String)?.let(CategoryType::valueOf),
             limitPercentage = (data[BudgetFields.LIMIT_PERCENTAGE] as? Number)?.toDouble(),
             syncedToFirebase = true
         )
     }
+
     override fun normalize(data: Map<String, Any?>, account: ActiveAccount): Map<String, Any?> =
         model(account, "", data).toFirebaseMap()
 

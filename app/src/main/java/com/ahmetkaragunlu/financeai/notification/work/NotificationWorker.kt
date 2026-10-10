@@ -27,11 +27,19 @@ class NotificationWorker @AssistedInject constructor(
         return try {
             val account = sessions.activeAccountFor(ownerId) ?: return Result.success()
             val remoteId = inputData.getString(ReminderKeys.REMOTE_ID)
-                ?: repository.getScheduledTransactionById(inputData.getLong(ReminderKeys.LOCAL_ID, -1))?.firestoreId
+                ?: repository.getScheduledTransactionById(
+                    inputData.getLong(
+                        ReminderKeys.LOCAL_ID,
+                        -1
+                    )
+                )?.firestoreId
             if (remoteId != null) reminders.process(account, remoteId)
             else reminders.restoreCurrent()
             Result.success()
-        } catch (e: CancellationException) { throw e }
-        catch (_: Exception) { Result.retry() }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            Result.retry()
+        }
     }
 }

@@ -29,7 +29,14 @@ class TokenRegistrationWorker @AssistedInject constructor(
             }
         }
         Result.success()
-    } catch (e: CancellationException) { throw e }
-    catch (_: Exception) { Result.retry() }
-    companion object { const val TOKEN = "fcm_token"; const val FETCH_CURRENT = "fetch_current" }
+    } catch (e: CancellationException) {
+        throw e
+    } catch (_: Exception) {
+        Result.retry()
+    }
+
+    companion object {
+        const val TOKEN = "fcm_token"
+        const val FETCH_CURRENT = "fetch_current"
+    }
 }

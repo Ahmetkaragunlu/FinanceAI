@@ -53,10 +53,14 @@ import org.mockito.Mockito.eq
 import org.mockito.Mockito.mock
 
 class PhotoUploadWorkerTest {
-    private class Fixture(val kind: PhotoRecordType = PhotoRecordType.TRANSACTION, val record: String = "receipt") : AutoCloseable {
+    private class Fixture(
+        val kind: PhotoRecordType = PhotoRecordType.TRANSACTION,
+        val record: String = "receipt"
+    ) : AutoCloseable {
         val local = AccountDatabaseFixture()
         val owner = "upload-test-${UUID.randomUUID()}"
-        val folder = File(local.context.filesDir, "${PhotoFiles.DIRECTORY}/$owner").apply { mkdirs() }
+        val folder =
+            File(local.context.filesDir, "${PhotoFiles.DIRECTORY}/$owner").apply { mkdirs() }
         val file = File(folder, "IMG_current.jpg").apply { writeText("synthetic receipt") }
         val version = "IMG_current"
         val url = "https://example.test/uploaded/$version"
@@ -69,8 +73,10 @@ class PhotoUploadWorkerTest {
         val transaction = mock(Transaction::class.java)
         val files = PhotoLocalStore(local.context, local.database, Dispatchers.IO, local.clock)
         val readStarted = CompletableDeferred<Unit>()
-        val remote = mutableMapOf<String, Any?>("userId" to owner, "deleted" to false,
-            "photoIntent" to version, "photoVersion" to null, "revision" to 5L)
+        val remote = mutableMapOf<String, Any?>(
+            "userId" to owner, "deleted" to false,
+            "photoIntent" to version, "photoVersion" to null, "revision" to 5L
+        )
         val attached = mutableListOf<Map<String, Any?>>()
         val deletedUrls = mutableListOf<String>()
         var exists = true
@@ -81,7 +87,9 @@ class PhotoUploadWorkerTest {
         init {
             `when`(sessions.session).thenReturn(local.session)
             runBlocking { `when`(sessions.activeAccountFor(owner)).thenAnswer { local.session.account.value?.takeIf { it.ownerId == owner } } }
-            `when`(firestore.collection(if (kind == PhotoRecordType.SCHEDULED) "scheduled_transactions" else "transactions")).thenReturn(collection)
+            `when`(firestore.collection(if (kind == PhotoRecordType.SCHEDULED) "scheduled_transactions" else "transactions")).thenReturn(
+                collection
+            )
             `when`(collection.document(record)).thenReturn(reference)
             doAnswer { readStarted.complete(Unit); read }.`when`(reference).get(Source.SERVER)
             `when`(snapshot.exists()).thenAnswer { exists }
@@ -105,58 +113,112 @@ class PhotoUploadWorkerTest {
         suspend fun prepare() {
             local.activate(owner)
             setLocalPath(file.path)
-            local.database.photoOperationDao().insert(PhotoOperation(owner, kind.wireValue, record, file.path, version))
+            local.database.photoOperationDao()
+                .insert(PhotoOperation(owner, kind.wireValue, record, file.path, version))
             setUpload()
-            doAnswer { deletedUrls += url; Unit }.`when`(storage).deletePhoto(url, owner)
+            doAnswer { deletedUrls += url; }.`when`(storage).deletePhoto(url, owner)
         }
 
         suspend fun setUpload(action: () -> String = { url }) {
-            doAnswer { uploadCalls++; action() }.`when`(storage).uploadPhoto(file.path, record, kind, owner, version)
+            doAnswer { uploadCalls++; action() }.`when`(storage)
+                .uploadPhoto(file.path, record, kind, owner, version)
         }
 
         suspend fun setLocalPath(path: String?) {
             if (kind == PhotoRecordType.SCHEDULED) {
-                val previous = local.database.scheduledTransactionDao().getScheduledTransactionByFirestoreId(record)
-                local.database.scheduledTransactionDao().insertScheduledTransaction(ScheduledTransactionEntity(
-                    id = previous?.id ?: 0, ownerId = owner, firestoreId = record, currencyCode = "USD", amountMinor = 2550,
-                    type = TransactionType.EXPENSE, category = CategoryType.FOOD, note = null, scheduledDate = 100, photoUri = path))
+                val previous = local.database.scheduledTransactionDao()
+                    .getScheduledTransactionByFirestoreId(record)
+                local.database.scheduledTransactionDao().insertScheduledTransaction(
+                    ScheduledTransactionEntity(
+                        id = previous?.id ?: 0,
+                        ownerId = owner,
+                        firestoreId = record,
+                        currencyCode = "USD",
+                        amountMinor = 2550,
+                        type = TransactionType.EXPENSE,
+                        category = CategoryType.FOOD,
+                        note = null,
+                        scheduledDate = 100,
+                        photoUri = path
+                    )
+                )
             } else {
                 val previous = local.database.transactionDao().getTransactionByFirestoreId(record)
-                local.database.transactionDao().insertTransaction(TransactionEntity(id = previous?.id ?: 0,
-                    ownerId = owner, firestoreId = record, currencyCode = "USD", amountMinor = 2550,
-                    transaction = TransactionType.EXPENSE, category = CategoryType.FOOD, date = 100, photoUri = path))
+                local.database.transactionDao().insertTransaction(
+                    TransactionEntity(
+                        id = previous?.id ?: 0,
+                        ownerId = owner,
+                        firestoreId = record,
+                        currencyCode = "USD",
+                        amountMinor = 2550,
+                        transaction = TransactionType.EXPENSE,
+                        category = CategoryType.FOOD,
+                        date = 100,
+                        photoUri = path
+                    )
+                )
             }
         }
 
-        suspend fun operation() = local.database.photoOperationDao().forAccount(owner).singleOrNull()
+        suspend fun operation() =
+            local.database.photoOperationDao().forAccount(owner).singleOrNull()
 
         fun worker(): PhotoUploadWorker {
             val factory = object : WorkerFactory() {
-                override fun createWorker(context: Context, name: String, parameters: WorkerParameters): ListenableWorker =
-                    PhotoUploadWorker(context, parameters, storage, sessions, local.database, firestore, files)
+                override fun createWorker(
+                    context: Context,
+                    name: String,
+                    parameters: WorkerParameters
+                ): ListenableWorker =
+                    PhotoUploadWorker(
+                        context,
+                        parameters,
+                        storage,
+                        sessions,
+                        local.database,
+                        firestore,
+                        files
+                    )
             }
-            return TestListenableWorkerBuilder<PhotoUploadWorker>(local.context).setWorkerFactory(factory).setInputData(workDataOf(
-                "account_owner_id" to owner, "local_path" to file.path, "firestore_id" to record,
-                "collection_type" to kind.wireValue, "version" to version)).build()
+            return TestListenableWorkerBuilder<PhotoUploadWorker>(local.context).setWorkerFactory(
+                factory
+            ).setInputData(
+                workDataOf(
+                    "account_owner_id" to owner,
+                    "local_path" to file.path,
+                    "firestore_id" to record,
+                    "collection_type" to kind.wireValue,
+                    "version" to version
+                )
+            ).build()
         }
 
-        override fun close() { local.close(); folder.deleteRecursively() }
-    }
-
-    @Test fun successfulAttachmentUsesOnlyTheCorrectVersionMetadataAndKeepsAReferencedLocalFile(): Unit = runBlocking {
-        for (kind in PhotoRecordType.entries) Fixture(kind).use { f ->
-            f.prepare()
-            assertEquals(ListenableWorker.Result.success(), f.worker().doWork())
-            assertEquals(mapOf("photoStorageUrl" to f.url, "photoRemoved" to false,
-                "photoIntent" to f.version, "photoVersion" to f.version, "revision" to 6L), f.attached.single())
-            assertEquals(1, f.uploadCalls)
-            assertNull(f.operation())
-            assertTrue(f.file.isFile)
-            assertTrue(f.deletedUrls.isEmpty())
+        override fun close() {
+            local.close(); folder.deleteRecursively()
         }
     }
 
-    @Test fun oldAccountWorkDoesNotUploadRetireOrDeleteItsRetainedIntent(): Unit = runBlocking {
+    @Test
+    fun successfulAttachmentUsesOnlyTheCorrectVersionMetadataAndKeepsAReferencedLocalFile(): Unit =
+        runBlocking {
+            for (kind in PhotoRecordType.entries) Fixture(kind).use { f ->
+                f.prepare()
+                assertEquals(ListenableWorker.Result.success(), f.worker().doWork())
+                assertEquals(
+                    mapOf(
+                        "photoStorageUrl" to f.url, "photoRemoved" to false,
+                        "photoIntent" to f.version, "photoVersion" to f.version, "revision" to 6L
+                    ), f.attached.single()
+                )
+                assertEquals(1, f.uploadCalls)
+                assertNull(f.operation())
+                assertTrue(f.file.isFile)
+                assertTrue(f.deletedUrls.isEmpty())
+            }
+        }
+
+    @Test
+    fun oldAccountWorkDoesNotUploadRetireOrDeleteItsRetainedIntent(): Unit = runBlocking {
         Fixture().use { f ->
             f.prepare()
             f.local.activate("another-synthetic-account")
@@ -167,21 +229,26 @@ class PhotoUploadWorkerTest {
         }
     }
 
-    @Test fun staleLocalPathRetiresOnlyItsOperationAndHonorsOtherPhotoReferences(): Unit = runBlocking {
+    @Test
+    fun staleLocalPathRetiresOnlyItsOperationAndHonorsOtherPhotoReferences(): Unit = runBlocking {
         Fixture().use { f ->
             f.prepare()
             val next = File(f.folder, "IMG_next.jpg").apply { writeText("next") }
             f.setLocalPath(next.path)
-            f.local.database.photoOperationDao().insert(PhotoOperation(f.owner, "scheduled", "other-plan", f.file.path, "shared"))
+            f.local.database.photoOperationDao()
+                .insert(PhotoOperation(f.owner, "scheduled", "other-plan", f.file.path, "shared"))
             assertEquals(ListenableWorker.Result.success(), f.worker().doWork())
-            assertEquals(listOf("other-plan"), f.local.database.photoOperationDao().forAccount(f.owner).map { it.remoteId })
+            assertEquals(
+                listOf("other-plan"),
+                f.local.database.photoOperationDao().forAccount(f.owner).map { it.remoteId })
             assertTrue(f.file.isFile)
             assertTrue(next.isFile)
             assertEquals(0, f.uploadCalls)
         }
     }
 
-    @Test fun missingFileIsARecordedFailureRatherThanAnInfiniteRetry(): Unit = runBlocking {
+    @Test
+    fun missingFileIsARecordedFailureRatherThanAnInfiniteRetry(): Unit = runBlocking {
         Fixture().use { f ->
             f.prepare()
             check(f.file.delete())
@@ -191,11 +258,17 @@ class PhotoUploadWorkerTest {
         }
     }
 
-    @Test fun missingRemoteUpsertRetriesWhilePermanentOrAbsentIntentRecordsFailure(): Unit = runBlocking {
+    @Test
+    fun missingRemoteUpsertRetriesWhilePermanentOrAbsentIntentRecordsFailure(): Unit = runBlocking {
         Fixture().use { f ->
             f.prepare(); f.exists = false
-            val row = SyncRecord(f.owner, "transactions", f.record,
-                pendingPayload = SyncPayload.encode(mapOf("amountMinor" to 2550L)), mutationId = "pending")
+            val row = SyncRecord(
+                f.owner,
+                "transactions",
+                f.record,
+                pendingPayload = SyncPayload.encode(mapOf("amountMinor" to 2550L)),
+                mutationId = "pending"
+            )
             f.local.database.syncRecordDao().save(row)
             assertEquals(ListenableWorker.Result.retry(), f.worker().doWork())
             assertNull(f.operation()?.failure)
@@ -211,7 +284,8 @@ class PhotoUploadWorkerTest {
         }
     }
 
-    @Test fun missingCompletedRecordWaitsForItsDurableCompletionCommand(): Unit = runBlocking {
+    @Test
+    fun missingCompletedRecordWaitsForItsDurableCompletionCommand(): Unit = runBlocking {
         Fixture(record = "completed_plan").use { f ->
             f.prepare(); f.exists = false
             val command = ScheduleCommand("operation", f.owner, "plan", 100, "complete", 100)
@@ -224,39 +298,44 @@ class PhotoUploadWorkerTest {
         }
     }
 
-    @Test fun alreadyAttachedDeletedAndForeignRemoteRecordsNeverReceiveAnotherUpload(): Unit = runBlocking {
-        for (state in listOf("attached", "deleted", "foreign")) Fixture().use { f ->
-            f.prepare()
-            when (state) {
-                "attached" -> f.remote["photoVersion"] = f.version
-                "deleted" -> f.remote["deleted"] = true
-                else -> f.remote["userId"] = "other-owner"
+    @Test
+    fun alreadyAttachedDeletedAndForeignRemoteRecordsNeverReceiveAnotherUpload(): Unit =
+        runBlocking {
+            for (state in listOf("attached", "deleted", "foreign")) Fixture().use { f ->
+                f.prepare()
+                when (state) {
+                    "attached" -> f.remote["photoVersion"] = f.version
+                    "deleted" -> f.remote["deleted"] = true
+                    else -> f.remote["userId"] = "other-owner"
+                }
+                assertEquals(ListenableWorker.Result.success(), f.worker().doWork())
+                assertNull(f.operation())
+                assertEquals(0, f.uploadCalls)
+                assertTrue(f.file.isFile)
+                assertTrue(f.attached.isEmpty())
             }
-            assertEquals(ListenableWorker.Result.success(), f.worker().doWork())
-            assertNull(f.operation())
-            assertEquals(0, f.uploadCalls)
-            assertTrue(f.file.isFile)
-            assertTrue(f.attached.isEmpty())
         }
-    }
 
-    @Test fun differentIntentBeforeOrAfterUploadRetainsRetryAndCannotOverwriteNewerMetadata(): Unit = runBlocking {
-        Fixture().use { f ->
-            f.prepare(); f.remote["photoIntent"] = "newer"
-            assertEquals(ListenableWorker.Result.retry(), f.worker().doWork())
-            assertEquals(0, f.uploadCalls)
-            assertNotNull(f.operation())
-            f.remote["photoIntent"] = f.version
-            f.setUpload { f.remote["photoIntent"] = "newer"; f.url }
-            assertEquals(ListenableWorker.Result.retry(), f.worker().doWork())
-            assertTrue(f.attached.isEmpty())
-            assertEquals(listOf(f.url), f.deletedUrls)
-            assertNull(f.operation()?.failure)
-            assertTrue(f.file.isFile)
+    @Test
+    fun differentIntentBeforeOrAfterUploadRetainsRetryAndCannotOverwriteNewerMetadata(): Unit =
+        runBlocking {
+            Fixture().use { f ->
+                f.prepare(); f.remote["photoIntent"] = "newer"
+                assertEquals(ListenableWorker.Result.retry(), f.worker().doWork())
+                assertEquals(0, f.uploadCalls)
+                assertNotNull(f.operation())
+                f.remote["photoIntent"] = f.version
+                f.setUpload { f.remote["photoIntent"] = "newer"; f.url }
+                assertEquals(ListenableWorker.Result.retry(), f.worker().doWork())
+                assertTrue(f.attached.isEmpty())
+                assertEquals(listOf(f.url), f.deletedUrls)
+                assertNull(f.operation()?.failure)
+                assertTrue(f.file.isFile)
+            }
         }
-    }
 
-    @Test fun localReplacementDuringUploadDeletesOnlyTheUnusedRemoteVersion(): Unit = runBlocking {
+    @Test
+    fun localReplacementDuringUploadDeletesOnlyTheUnusedRemoteVersion(): Unit = runBlocking {
         Fixture().use { f ->
             f.prepare()
             val next = File(f.folder, "IMG_next.jpg").apply { writeText("next") }
@@ -270,7 +349,8 @@ class PhotoUploadWorkerTest {
         }
     }
 
-    @Test fun accountSwitchAfterUploadCannotAttachOrAcknowledgeAnOldAccountsPhoto(): Unit = runBlocking {
+    @Test
+    fun accountSwitchAfterUploadCannotAttachOrAcknowledgeAnOldAccountsPhoto(): Unit = runBlocking {
         Fixture().use { f ->
             f.prepare()
             f.setUpload { runBlocking { f.local.activate("another-synthetic-account") }; f.url }
@@ -282,7 +362,8 @@ class PhotoUploadWorkerTest {
         }
     }
 
-    @Test fun anotherSuccessfulAttachmentOfTheSameVersionDoesNotRewriteOrDeleteIt(): Unit = runBlocking {
+    @Test
+    fun anotherSuccessfulAttachmentOfTheSameVersionDoesNotRewriteOrDeleteIt(): Unit = runBlocking {
         Fixture().use { f ->
             f.prepare()
             f.setUpload { f.remote["photoVersion"] = f.version; f.url }
@@ -294,7 +375,8 @@ class PhotoUploadWorkerTest {
         }
     }
 
-    @Test fun accountChangeAtTheTransactionBoundaryCannotCommitOldPhotoMetadata(): Unit = runBlocking {
+    @Test
+    fun accountChangeAtTheTransactionBoundaryCannotCommitOldPhotoMetadata(): Unit = runBlocking {
         Fixture().use { f ->
             f.prepare()
             f.beforeTransaction = { runBlocking { f.local.activate("another-synthetic-account") } }
@@ -306,49 +388,64 @@ class PhotoUploadWorkerTest {
         }
     }
 
-    @Test fun firestoreFailurePoliciesKeepFailedPreconditionRetryableAndAuthorizationPermanent(): Unit = runBlocking {
-        for ((code, permanent) in listOf(FirebaseFirestoreException.Code.FAILED_PRECONDITION to false,
-            FirebaseFirestoreException.Code.UNAVAILABLE to false, FirebaseFirestoreException.Code.PERMISSION_DENIED to true,
-            FirebaseFirestoreException.Code.INVALID_ARGUMENT to true)) Fixture().use { f ->
-            f.prepare()
-            f.read = Tasks.forException(FirebaseFirestoreException("synthetic failure", code))
-            assertEquals(if (permanent) ListenableWorker.Result.failure() else ListenableWorker.Result.retry(), f.worker().doWork())
-            assertEquals(permanent, f.operation()?.failure != null)
-            assertTrue(f.file.isFile)
+    @Test
+    fun firestoreFailurePoliciesKeepFailedPreconditionRetryableAndAuthorizationPermanent(): Unit =
+        runBlocking {
+            for ((code, permanent) in listOf(
+                FirebaseFirestoreException.Code.FAILED_PRECONDITION to false,
+                FirebaseFirestoreException.Code.UNAVAILABLE to false,
+                FirebaseFirestoreException.Code.PERMISSION_DENIED to true,
+                FirebaseFirestoreException.Code.INVALID_ARGUMENT to true
+            )) Fixture().use { f ->
+                f.prepare()
+                f.read = Tasks.forException(FirebaseFirestoreException("synthetic failure", code))
+                assertEquals(
+                    if (permanent) ListenableWorker.Result.failure() else ListenableWorker.Result.retry(),
+                    f.worker().doWork()
+                )
+                assertEquals(permanent, f.operation()?.failure != null)
+                assertTrue(f.file.isFile)
+            }
         }
-    }
 
-    @Test fun storageAuthorizationAndQuotaRemainPermanentButNetworkErrorsRetainRetry(): Unit = runBlocking {
-        for (code in listOf(StorageException.ERROR_NOT_AUTHORIZED, StorageException.ERROR_QUOTA_EXCEEDED)) Fixture().use { f ->
-            f.prepare()
-            val error = mock(StorageException::class.java)
-            `when`(error.errorCode).thenReturn(code)
-            f.setUpload { throw error }
-            assertEquals(ListenableWorker.Result.failure(), f.worker().doWork())
-            assertNotNull(f.operation()?.failure)
-            assertTrue(f.file.isFile)
+    @Test
+    fun storageAuthorizationAndQuotaRemainPermanentButNetworkErrorsRetainRetry(): Unit =
+        runBlocking {
+            for (code in listOf(
+                StorageException.ERROR_NOT_AUTHORIZED,
+                StorageException.ERROR_QUOTA_EXCEEDED
+            )) Fixture().use { f ->
+                f.prepare()
+                val error = mock(StorageException::class.java)
+                `when`(error.errorCode).thenReturn(code)
+                f.setUpload { throw error }
+                assertEquals(ListenableWorker.Result.failure(), f.worker().doWork())
+                assertNotNull(f.operation()?.failure)
+                assertTrue(f.file.isFile)
+            }
+            Fixture().use { f ->
+                f.prepare(); f.setUpload { throw IOException("synthetic offline") }
+                assertEquals(ListenableWorker.Result.retry(), f.worker().doWork())
+                assertNull(f.operation()?.failure)
+                assertTrue(f.file.isFile)
+            }
         }
-        Fixture().use { f ->
-            f.prepare(); f.setUpload { throw IOException("synthetic offline") }
-            assertEquals(ListenableWorker.Result.retry(), f.worker().doWork())
-            assertNull(f.operation()?.failure)
-            assertTrue(f.file.isFile)
-        }
-    }
 
-    @Test fun cancellationDuringRemoteLookupKeepsPendingIntentAndNeverBecomesRetryOrFailure(): Unit = runBlocking {
-        Fixture().use { f ->
-            f.prepare()
-            val gate = TaskCompletionSource<DocumentSnapshot>()
-            f.read = gate.task
-            val job = async { f.worker().doWork() }
-            withTimeout(5_000) { f.readStarted.await() }
-            job.cancelAndJoin()
-            assertTrue(job.isCancelled)
-            assertNull(f.operation()?.failure)
-            assertTrue(f.file.isFile)
-            assertTrue(f.attached.isEmpty())
-            assertEquals(0, f.uploadCalls)
+    @Test
+    fun cancellationDuringRemoteLookupKeepsPendingIntentAndNeverBecomesRetryOrFailure(): Unit =
+        runBlocking {
+            Fixture().use { f ->
+                f.prepare()
+                val gate = TaskCompletionSource<DocumentSnapshot>()
+                f.read = gate.task
+                val job = async { f.worker().doWork() }
+                withTimeout(5_000) { f.readStarted.await() }
+                job.cancelAndJoin()
+                assertTrue(job.isCancelled)
+                assertNull(f.operation()?.failure)
+                assertTrue(f.file.isFile)
+                assertTrue(f.attached.isEmpty())
+                assertEquals(0, f.uploadCalls)
+            }
         }
-    }
 }

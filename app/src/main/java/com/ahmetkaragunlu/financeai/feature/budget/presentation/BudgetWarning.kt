@@ -12,7 +12,10 @@ sealed interface BudgetWarning {
     data class GeneralAndCategoriesExceeded(val count: Int) : BudgetWarning
 }
 
-internal fun budgetWarning(categories: List<CategoryBudgetState>, general: GeneralBudgetState?): BudgetWarning? {
+internal fun budgetWarning(
+    categories: List<CategoryBudgetState>,
+    general: GeneralBudgetState?
+): BudgetWarning? {
     val generalOver = general != null && general.remainingAmount < 0
     val over = categories.filter { it.isOverBudget }
     return when {

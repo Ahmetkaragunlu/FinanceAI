@@ -48,7 +48,7 @@ class ReminderCoordinatorTest {
     private var now = day + 9 * 3_600_000
     private val clock = object : Clock() {
         override fun getZone(): ZoneId = ZoneId.of("UTC")
-        override fun withZone(zone: ZoneId): Clock = Clock.fixed(instant(), zone)
+        override fun withZone(zone: ZoneId): Clock = fixed(instant(), zone)
         override fun instant(): Instant = Instant.ofEpochMilli(now)
     }
     private var permission = true

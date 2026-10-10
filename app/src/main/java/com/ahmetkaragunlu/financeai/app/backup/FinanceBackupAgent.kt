@@ -42,7 +42,7 @@ class FinanceBackupAgent : BackupAgentHelper() {
             val destination = getDatabasePath(DATABASE_NAME)
             check(
                 destination.parentFile?.isDirectory == true ||
-                    destination.parentFile?.mkdirs() == true
+                        destination.parentFile?.mkdirs() == true
             )
             // Only known SQLite sidecars of the restored database are disposable.
             for (suffix in listOf("-wal", "-shm", "-journal")) File(destination.path + suffix)
@@ -64,5 +64,5 @@ class FinanceBackupAgent : BackupAgentHelper() {
 /** Backup has a JPEG/two-level boundary in addition to the shared permanent/cache file shapes. */
 internal fun isBackupPhoto(file: File, ownerDirectory: File, photos: File): Boolean =
     file.isFile && file.name.endsWith(".jpg") && PhotoFiles.isPermanentOrCache(file.name) &&
-        file.canonicalFile.parentFile == ownerDirectory.canonicalFile &&
-        ownerDirectory.canonicalFile.parentFile == photos.canonicalFile
+            file.canonicalFile.parentFile == ownerDirectory.canonicalFile &&
+            ownerDirectory.canonicalFile.parentFile == photos.canonicalFile

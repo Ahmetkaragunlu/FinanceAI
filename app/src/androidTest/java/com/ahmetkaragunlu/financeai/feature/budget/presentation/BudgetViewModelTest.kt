@@ -151,7 +151,7 @@ class BudgetViewModelTest {
         override suspend fun insertTransaction(transaction: Transaction): Long = error("Unexpected insert")
         override suspend fun deleteTransaction(transaction: Transaction): Unit = error("Unexpected delete")
         override suspend fun updateDetails(target: Transaction, amount: Double, note: String, category: CategoryType): Unit = error("Unexpected edit")
-        override suspend fun updatePhoto(target: Transaction, photoUri: String?): String? = error("Unexpected photo")
+        override suspend fun updatePhoto(target: Transaction, photoUri: String?): String = error("Unexpected photo")
     }
 
     @Test fun editingGeneralAndPercentageRulesPreservesTheirIdsAndFractionalValues() {
@@ -225,7 +225,7 @@ class BudgetViewModelTest {
         val clock = object : Clock() {
             override fun instant() = now
             override fun getZone(): ZoneId = ZoneId.systemDefault()
-            override fun withZone(zone: ZoneId): Clock = Clock.fixed(now, zone)
+            override fun withZone(zone: ZoneId): Clock = fixed(now, zone)
         }
         val calendar = FinanceCalendar(clock)
         val queries = FinanceQueries()

@@ -512,7 +512,7 @@ private fun TransactionAttachments(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = location!!.addressShort,
+                            text = location.addressShort,
                             color = MaterialTheme.colorScheme.onPrimary,
                             style = MaterialTheme.typography.bodySmall,
                             maxLines = 1,

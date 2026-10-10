@@ -7,7 +7,10 @@ import com.ahmetkaragunlu.financeai.core.money.UNSPECIFIED_CURRENCY
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
 
-@Entity(tableName = "transaction_table", indices = [Index(value = ["ownerId", "firestoreId"], unique = true)])
+@Entity(
+    tableName = "transaction_table",
+    indices = [Index(value = ["ownerId", "firestoreId"], unique = true)]
+)
 data class TransactionEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,

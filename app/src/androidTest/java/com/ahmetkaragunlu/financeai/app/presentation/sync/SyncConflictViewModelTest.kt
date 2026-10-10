@@ -32,56 +32,87 @@ import org.mockito.Mockito.doAnswer
 import org.mockito.Mockito.mock
 
 class SyncConflictViewModelTest {
-    @Test fun duplicateResolutionIsBlockedAndFailureOrCancellationReleasesTheGuardForRetry() = runBlocking {
-        val f = AccountDatabaseFixture()
-        val models = ViewModelStore()
-        try {
-            f.activate()
-            val firestore = mock(FirebaseFirestore::class.java)
-            val auth = mock(FirebaseAuth::class.java)
-            val user = mock(FirebaseUser::class.java)
-            `when`(auth.currentUser).thenReturn(user)
-            `when`(user.uid).thenReturn("A")
-            val collection = mock(CollectionReference::class.java)
-            val reference = mock(DocumentReference::class.java)
-            val document = mock(DocumentSnapshot::class.java)
-            `when`(firestore.collection("records")).thenReturn(collection)
-            `when`(collection.document("record")).thenReturn(reference)
-            `when`(document.exists()).thenReturn(false)
-            val gate = TaskCompletionSource<DocumentSnapshot>()
-            var fetch: Task<DocumentSnapshot> = gate.task
-            var requests = 0
-            doAnswer { requests++; fetch }.`when`(reference).get(Source.SERVER)
-            val store = object : RemoteRecordStore {
-                override val collection = "records"
-                override fun normalize(data: Map<String, Any?>, account: ActiveAccount) = data
-                override suspend fun apply(account: ActiveAccount, remoteId: String, data: Map<String, Any?>?) = error("Keep-local must not apply remote data")
+    @Test
+    fun duplicateResolutionIsBlockedAndFailureOrCancellationReleasesTheGuardForRetry() =
+        runBlocking {
+            val f = AccountDatabaseFixture()
+            val models = ViewModelStore()
+            try {
+                f.activate()
+                val firestore = mock(FirebaseFirestore::class.java)
+                val auth = mock(FirebaseAuth::class.java)
+                val user = mock(FirebaseUser::class.java)
+                `when`(auth.currentUser).thenReturn(user)
+                `when`(user.uid).thenReturn("A")
+                val collection = mock(CollectionReference::class.java)
+                val reference = mock(DocumentReference::class.java)
+                val document = mock(DocumentSnapshot::class.java)
+                `when`(firestore.collection("records")).thenReturn(collection)
+                `when`(collection.document("record")).thenReturn(reference)
+                `when`(document.exists()).thenReturn(false)
+                val gate = TaskCompletionSource<DocumentSnapshot>()
+                var fetch: Task<DocumentSnapshot> = gate.task
+                var requests = 0
+                doAnswer { requests++; fetch }.`when`(reference).get(Source.SERVER)
+                val store = object : RemoteRecordStore {
+                    override val collection = "records"
+                    override fun normalize(data: Map<String, Any?>, account: ActiveAccount) = data
+                    override suspend fun apply(
+                        account: ActiveAccount,
+                        remoteId: String,
+                        data: Map<String, Any?>?
+                    ) = error("Keep-local must not apply remote data")
+                }
+                val record = SyncRecord(
+                    "A",
+                    "records",
+                    "record",
+                    pendingPayload = "{}",
+                    mutationId = "local",
+                    conflictRevision = 0
+                )
+                f.database.syncRecordDao().save(record)
+                val engine = AccountSyncEngine(
+                    firestore,
+                    auth,
+                    f.database,
+                    f.session,
+                    f.scheduler,
+                    setOf(store),
+                    emptySet()
+                )
+                val vm = withContext(Dispatchers.Main) {
+                    SyncConflictViewModel(
+                        f.database,
+                        engine
+                    ).also { models.put("sync", it) }
+                }
+                withContext(Dispatchers.Main) {
+                    vm.resolve(record, true); vm.resolve(
+                    record,
+                    false
+                )
+                }
+                assertTrue(vm.busy.value)
+                assertEquals(1, requests)
+                gate.setException(FirebaseNetworkException("private"))
+                withTimeout(5_000) { while (vm.busy.value) delay(10) }
+                assertTrue(vm.error.value)
+                fetch = Tasks.forException(CancellationException())
+                withContext(Dispatchers.Main) { vm.resolve(record, true) }
+                withTimeout(5_000) { while (vm.busy.value) delay(10) }
+                assertFalse(vm.error.value)
+                fetch = Tasks.forResult(document)
+                withContext(Dispatchers.Main) { vm.resolve(record, true) }
+                withTimeout(5_000) { while (vm.busy.value) delay(10) }
+                assertFalse(vm.error.value)
+                assertEquals(3, requests)
+                val resolved = f.database.syncRecordDao().get("A", "records", "record")
+                assertEquals("local", resolved?.mutationId)
+                assertEquals(null, resolved?.conflictRevision)
+            } finally {
+                withContext(Dispatchers.Main) { models.clear() }
+                f.close()
             }
-            val record = SyncRecord("A", "records", "record", pendingPayload = "{}", mutationId = "local", conflictRevision = 0)
-            f.database.syncRecordDao().save(record)
-            val engine = AccountSyncEngine(firestore, auth, f.database, f.session, f.scheduler, setOf(store), emptySet())
-            val vm = withContext(Dispatchers.Main) { SyncConflictViewModel(f.database, engine).also { models.put("sync", it) } }
-            withContext(Dispatchers.Main) { vm.resolve(record, true); vm.resolve(record, false) }
-            assertTrue(vm.busy.value)
-            assertEquals(1, requests)
-            gate.setException(FirebaseNetworkException("private"))
-            withTimeout(5_000) { while (vm.busy.value) delay(10) }
-            assertTrue(vm.error.value)
-            fetch = Tasks.forException(CancellationException())
-            withContext(Dispatchers.Main) { vm.resolve(record, true) }
-            withTimeout(5_000) { while (vm.busy.value) delay(10) }
-            assertFalse(vm.error.value)
-            fetch = Tasks.forResult(document)
-            withContext(Dispatchers.Main) { vm.resolve(record, true) }
-            withTimeout(5_000) { while (vm.busy.value) delay(10) }
-            assertFalse(vm.error.value)
-            assertEquals(3, requests)
-            val resolved = f.database.syncRecordDao().get("A", "records", "record")
-            assertEquals("local", resolved?.mutationId)
-            assertEquals(null, resolved?.conflictRevision)
-        } finally {
-            withContext(Dispatchers.Main) { models.clear() }
-            f.close()
         }
-    }
 }

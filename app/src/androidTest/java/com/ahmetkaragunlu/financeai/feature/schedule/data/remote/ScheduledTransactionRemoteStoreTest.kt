@@ -5,7 +5,6 @@ import com.ahmetkaragunlu.financeai.core.error.DataAccessException
 import com.ahmetkaragunlu.financeai.core.media.remote.PhotoRemoteCache
 import com.ahmetkaragunlu.financeai.feature.schedule.data.reminder.ReminderScheduler
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.reminder.ReminderPresenter
-import dagger.Lazy
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -31,7 +30,8 @@ class ScheduledTransactionRemoteStoreTest {
             val reminders = spy(ReminderScheduler(f.workManager, f.clock))
             val presenter = mock(ReminderPresenter::class.java)
             val store = ScheduledTransactionRemoteStore(f.database,
-                PhotoRemoteCache(f.context, Lazy { error("No media network expected") }, f.session, Dispatchers.IO), reminders, presenter)
+                PhotoRemoteCache(f.context,
+                    { error("No media network expected") }, f.session, Dispatchers.IO), reminders, presenter)
             val account = f.session.requireAccount()
             val first = store.normalize(legacy, account)
             assertEquals(1250L, first["amountMinor"])
@@ -62,7 +62,8 @@ class ScheduledTransactionRemoteStoreTest {
         AccountDatabaseFixture().use { f ->
             f.activate()
             val store = ScheduledTransactionRemoteStore(f.database,
-                PhotoRemoteCache(f.context, Lazy { error("No media network expected") }, f.session, Dispatchers.IO),
+                PhotoRemoteCache(f.context,
+                    { error("No media network expected") }, f.session, Dispatchers.IO),
                 ReminderScheduler(f.workManager, f.clock), mock(ReminderPresenter::class.java))
             val account = f.session.requireAccount()
             store.apply(account, "plan", store.normalize(legacy, account))

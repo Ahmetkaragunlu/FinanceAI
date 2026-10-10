@@ -7,7 +7,10 @@ import com.ahmetkaragunlu.financeai.core.money.UNSPECIFIED_CURRENCY
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
 
-@Entity(tableName = "scheduled_transactions_table", indices = [Index(value = ["ownerId", "firestoreId"], unique = true)])
+@Entity(
+    tableName = "scheduled_transactions_table",
+    indices = [Index(value = ["ownerId", "firestoreId"], unique = true)]
+)
 data class ScheduledTransactionEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,

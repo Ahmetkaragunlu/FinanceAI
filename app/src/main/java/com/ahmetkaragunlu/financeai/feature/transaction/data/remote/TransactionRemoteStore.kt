@@ -17,14 +17,31 @@ import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.Transaction
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
 import javax.inject.Inject
 
-class TransactionRemoteStore @Inject constructor(private val database: FinanceDatabase, private val photos: PhotoRemoteCache) : RemoteRecordStore {
+class TransactionRemoteStore @Inject constructor(
+    private val database: FinanceDatabase,
+    private val photos: PhotoRemoteCache
+) : RemoteRecordStore {
     override val collection = FirestoreCollections.TRANSACTIONS
-    private fun model(account: ActiveAccount, remoteId: String, data: Map<String, Any?>): Transaction {
+    private fun model(
+        account: ActiveAccount,
+        remoteId: String,
+        data: Map<String, Any?>
+    ): Transaction {
         val currency = data[FinancialFields.CURRENCY_CODE] as? String ?: account.currencyCode
         if (currency != account.currencyCode) throw DataAccessException.InvalidRemoteData()
         return Transaction(
-            ownerId = account.ownerId, currencyCode = currency, firestoreId = remoteId, amount = (data[FinancialFields.AMOUNT_MINOR] as? Number)?.let { MoneyAmounts.toMajor(MoneyAmounts.readMinor(it), currency) } ?: (data[FinancialFields.LEGACY_AMOUNT] as? Number)?.toDouble() ?: 0.0,
-            transaction = TransactionType.valueOf(data[TransactionFields.TYPE] as? String ?: "EXPENSE"),
+            ownerId = account.ownerId,
+            currencyCode = currency,
+            firestoreId = remoteId,
+            amount = (data[FinancialFields.AMOUNT_MINOR] as? Number)?.let {
+                MoneyAmounts.toMajor(
+                    MoneyAmounts.readMinor(it),
+                    currency
+                )
+            } ?: (data[FinancialFields.LEGACY_AMOUNT] as? Number)?.toDouble() ?: 0.0,
+            transaction = TransactionType.valueOf(
+                data[TransactionFields.TYPE] as? String ?: "EXPENSE"
+            ),
             category = CategoryType.valueOf(data[FinancialFields.CATEGORY] as? String ?: "OTHER"),
             note = data[FinancialFields.NOTE] as? String ?: "",
             date = (data[TransactionFields.DATE] as? Number)?.toLong() ?: 0L,
@@ -35,14 +52,29 @@ class TransactionRemoteStore @Inject constructor(private val database: FinanceDa
             syncedToFirebase = true
         )
     }
+
     override fun normalize(data: Map<String, Any?>, account: ActiveAccount): Map<String, Any?> =
         model(account, "", data).toFirebaseMap() + PhotoRemotePolicy.normalize(data)
 
-    override suspend fun prepare(account: ActiveAccount, remoteId: String, data: Map<String, Any?>): Map<String, Any?> {
+    override suspend fun prepare(
+        account: ActiveAccount,
+        remoteId: String,
+        data: Map<String, Any?>
+    ): Map<String, Any?> {
         if (data[PhotoFields.REMOVED] == true) return data
         val existing = database.transactionDao().getTransactionByFirestoreId(remoteId)
-        val baseline = database.syncRecordDao().get(account.ownerId, collection, remoteId)?.basePayload?.let(SyncPayload::decode).orEmpty()
-        return PhotoRemotePolicy.prepare(photos, account, remoteId, data, existing?.photoUri, baseline)
+        val baseline =
+            database.syncRecordDao().get(account.ownerId, collection, remoteId)?.basePayload?.let(
+                SyncPayload::decode
+            ).orEmpty()
+        return PhotoRemotePolicy.prepare(
+            photos,
+            account,
+            remoteId,
+            data,
+            existing?.photoUri,
+            baseline
+        )
     }
 
     override suspend fun apply(account: ActiveAccount, remoteId: String, data: Map<String, Any?>?) {
@@ -52,9 +84,13 @@ class TransactionRemoteStore @Inject constructor(private val database: FinanceDa
             if (existing != null) dao.deleteTransaction(existing)
             return
         }
-        val previousUrl = database.syncRecordDao().get(account.ownerId, collection, remoteId)?.basePayload?.let(SyncPayload::decode)?.get(PhotoFields.STORAGE_URL)
+        val previousUrl =
+            database.syncRecordDao().get(account.ownerId, collection, remoteId)?.basePayload?.let(
+                SyncPayload::decode
+            )?.get(PhotoFields.STORAGE_URL)
         val photo = PhotoRemotePolicy.select(data, existing?.photoUri, previousUrl)
-        val next = model(account, remoteId, data).toEntity().copy(id = existing?.id ?: 0, photoUri = photo)
+        val next =
+            model(account, remoteId, data).toEntity().copy(id = existing?.id ?: 0, photoUri = photo)
         dao.insertTransaction(next)
     }
 }

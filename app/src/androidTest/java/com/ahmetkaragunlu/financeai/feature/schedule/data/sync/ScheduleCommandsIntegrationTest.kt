@@ -15,7 +15,6 @@ import com.ahmetkaragunlu.financeai.feature.transaction.data.local.entity.Transa
 import com.ahmetkaragunlu.financeai.feature.transaction.data.remote.TransactionRemoteStore
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
-import dagger.Lazy
 import java.util.UUID
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -37,7 +36,8 @@ class ScheduleCommandsIntegrationTest {
         val operation = "operation-${UUID.randomUUID()}"
         val financial = "completed_$plan"
         val account get() = sdk.local.session.requireAccount()
-        private val cache = PhotoRemoteCache(sdk.local.context, Lazy { error("No media network expected") }, sdk.local.session, Dispatchers.IO)
+        private val cache = PhotoRemoteCache(sdk.local.context,
+            { error("No media network expected") }, sdk.local.session, Dispatchers.IO)
         val transactions = TransactionRemoteStore(sdk.local.database, cache)
         val schedules = ScheduledTransactionRemoteStore(sdk.local.database, cache,
             ReminderScheduler(sdk.local.workManager, sdk.local.clock), mock(ReminderPresenter::class.java))

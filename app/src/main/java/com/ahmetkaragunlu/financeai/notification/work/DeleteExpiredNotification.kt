@@ -26,11 +26,15 @@ class DeleteExpiredNotification @AssistedInject constructor(
         val ownerId = inputData.getString(AccountWork.OWNER_ID) ?: return Result.failure()
         return try {
             val account = sessions.activeAccountFor(ownerId) ?: return Result.success()
-            val plan = repository.getScheduledTransactionById(inputData.getLong(ReminderKeys.LOCAL_ID, -1))
-                ?: return Result.success()
+            val plan =
+                repository.getScheduledTransactionById(inputData.getLong(ReminderKeys.LOCAL_ID, -1))
+                    ?: return Result.success()
             reminders.process(account, plan.firestoreId)
             Result.success()
-        } catch (e: CancellationException) { throw e }
-        catch (_: Exception) { Result.retry() }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            Result.retry()
+        }
     }
 }

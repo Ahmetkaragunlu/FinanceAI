@@ -1,6 +1,5 @@
 package com.ahmetkaragunlu.financeai.core.media.remote
 
-import android.content.Context
 import android.net.Uri
 import androidx.test.core.app.ApplicationProvider
 import com.ahmetkaragunlu.financeai.core.media.PhotoRecordType
@@ -50,7 +49,7 @@ class PhotoStorageManagerTest {
 
     @Test fun uploadKeepsBothImmutableVersionPathsAndCannotReturnAFormerAccountsUrl(): Unit = runBlocking {
         val f = Fixture()
-        ReceiptImage(ApplicationProvider.getApplicationContext<Context>()).use { image ->
+        ReceiptImage(ApplicationProvider.getApplicationContext()).use { image ->
             assertEquals("https://example.test/photo", f.manager.uploadPhoto(image.file.path, "record", PhotoRecordType.TRANSACTION, "A", "version"))
             assertEquals("https://example.test/photo", f.manager.uploadPhoto(image.file.path, "record", PhotoRecordType.SCHEDULED, "A", "version"))
             verify(f.root).child("users/A/transactions/record/version.jpg")

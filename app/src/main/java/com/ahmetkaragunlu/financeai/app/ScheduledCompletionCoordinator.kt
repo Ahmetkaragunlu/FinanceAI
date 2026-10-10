@@ -19,13 +19,19 @@ class ScheduledCompletionCoordinator @Inject constructor(
     private val presenter: ReminderPresenter,
     private val photos: PhotoWorkScheduler
 ) : CompleteScheduledTransaction {
+
     override suspend fun invoke(value: ScheduledTransaction): Transaction? {
         val account = session.requireAccount()
         val completed = completeLocally(value) ?: return null
         if (session.isCurrent(account)) {
             reminders.cancel(account.ownerId, value.firestoreId, value.id)
             presenter.cancel(account.ownerId, value.firestoreId)
-            photos.upload(completed.ownerId, PhotoRecordType.TRANSACTION, completed.firestoreId, completed.photoUri)
+            photos.upload(
+                completed.ownerId,
+                PhotoRecordType.TRANSACTION,
+                completed.firestoreId,
+                completed.photoUri
+            )
         }
         return completed
     }

@@ -32,13 +32,16 @@ class FCMTokenManager @Inject constructor(
         val token = messaging.token.await()
         if (auth.currentUser?.uid == owner) queue(owner, token, false)
     }
+
     suspend fun suppliedToken(token: String) {
         val owner = auth.currentUser?.uid ?: return
         queue(owner, token, false)
     }
+
     suspend fun removeFCMToken() {
         val owner = auth.currentUser?.uid ?: return
-        val token = database.tokenOperationDao().latestRegistered(owner)?.token ?: messaging.token.await()
+        val token =
+            database.tokenOperationDao().latestRegistered(owner)?.token ?: messaging.token.await()
         if (auth.currentUser?.uid != owner) return
         queue(owner, token, true)
         // Rotation also prevents a former account from continuing to target this installation.
@@ -46,33 +49,55 @@ class FCMTokenManager @Inject constructor(
         // Revoke while credentials remain available; an outage keeps the durable intention.
         flush(owner)
     }
+
     fun restore(owner: String) {
         val work = OneTimeWorkRequestBuilder<TokenRegistrationWorker>()
-            .setInputData(workDataOf(AccountWork.OWNER_ID to owner, TokenRegistrationWorker.FETCH_CURRENT to true))
-            .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+            .setInputData(
+                workDataOf(
+                    AccountWork.OWNER_ID to owner,
+                    TokenRegistrationWorker.FETCH_CURRENT to true
+                )
+            )
+            .setConstraints(
+                Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
+            )
             .addTag(AccountWork.tag(owner)).build()
         workManager.enqueueUniqueWork("token_restore_$owner", ExistingWorkPolicy.KEEP, work)
     }
+
     suspend fun registeredDeviceToken(owner: String): String? {
         if (auth.currentUser?.uid != owner || auth.currentUser?.isEmailVerified != true) return null
         return database.tokenOperationDao().latestRegistered(owner)?.token
     }
+
     private suspend fun queue(owner: String, token: String, remove: Boolean) {
         require(token.isNotBlank())
         database.tokenOperationDao().save(TokenOperation(owner, token, remove, clock.millis()))
         val work = OneTimeWorkRequestBuilder<TokenRegistrationWorker>()
             .setInputData(workDataOf(AccountWork.OWNER_ID to owner))
-            .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+            .setConstraints(
+                Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
+            )
             .addTag(AccountWork.tag(owner)).build()
-        workManager.enqueueUniqueWork("token_registration_$owner", ExistingWorkPolicy.APPEND_OR_REPLACE, work)
+        workManager.enqueueUniqueWork(
+            "token_registration_$owner",
+            ExistingWorkPolicy.APPEND_OR_REPLACE,
+            work
+        )
     }
+
     suspend fun flush(owner: String) {
         for (operation in database.tokenOperationDao().pending(owner)) {
             if (auth.currentUser?.uid != owner) return
-            firestore.collection(FirestoreCollections.USERS).document(owner).update(UserFields.FCM_TOKENS,
-                if (operation.remove) FieldValue.arrayRemove(operation.token) else FieldValue.arrayUnion(operation.token)).await()
+            firestore.collection(FirestoreCollections.USERS).document(owner).update(
+                UserFields.FCM_TOKENS,
+                if (operation.remove) FieldValue.arrayRemove(operation.token) else FieldValue.arrayUnion(
+                    operation.token
+                )
+            ).await()
             if (auth.currentUser?.uid != owner) return
-            database.tokenOperationDao().acknowledge(owner, operation.token, operation.createdAt, operation.remove)
+            database.tokenOperationDao()
+                .acknowledge(owner, operation.token, operation.createdAt, operation.remove)
         }
     }
 }

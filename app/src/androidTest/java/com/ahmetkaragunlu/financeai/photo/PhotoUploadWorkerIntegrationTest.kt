@@ -71,7 +71,7 @@ class PhotoUploadWorkerIntegrationTest {
                     }
                     url
                 }.`when`(storage).uploadPhoto(file.path, record, PhotoRecordType.TRANSACTION, owner, version)
-                doAnswer { deleted += url; Unit }.`when`(storage).deletePhoto(url, owner)
+                doAnswer { deleted += url; }.`when`(storage).deletePhoto(url, owner)
                 val files = PhotoLocalStore(f.local.context, f.local.database, Dispatchers.IO, f.local.clock)
                 val factory = object : WorkerFactory() {
                     override fun createWorker(context: Context, name: String, parameters: WorkerParameters): ListenableWorker =

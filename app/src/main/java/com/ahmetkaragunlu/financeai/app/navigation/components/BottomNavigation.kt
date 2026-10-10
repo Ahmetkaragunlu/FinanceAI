@@ -48,7 +48,8 @@ fun BottomBar(
                     icon = {
                         Box(
                             modifier =
-                                Modifier.offset(y = (-4).dp)
+                                Modifier
+                                    .offset(y = (-4).dp)
                                     .background(
                                         brush =
                                             Brush.linearGradient(

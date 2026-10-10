@@ -15,19 +15,25 @@ import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 
 class RoomFinancialSnapshotSource @Inject constructor(
-    private val database: FinanceDatabase, private val session: AccountSession, private val clock: Clock
+    private val database: FinanceDatabase,
+    private val session: AccountSession,
+    private val clock: Clock
 ) : FinancialSnapshotSource {
-    override suspend fun read(account: ActiveAccount): FinancialSnapshot = session.withAccount { current ->
-        if (current != account) throw CancellationException("Stale account")
-        val at = clock.millis()
-        val zone = ZoneId.systemDefault()
-        // Same device-zone calendar month as Home/Budget; reminder account zone is a separate policy.
-        val month = FinancePeriods.month(Clock.fixed(Instant.ofEpochMilli(at), zone))
-        database.withTransaction {
-            FinancialSnapshot(account.currencyCode, at, month.start, month.endExclusive,
-                database.transactionDao().getTransactionsByDateRangeOneShot(month.start, month.endExclusive)
-                    .map { it.toDomain() },
-                database.budgetDao().getAllBudgetsOneShot().map { it.toDomain() }, zone.id)
+    override suspend fun read(account: ActiveAccount): FinancialSnapshot =
+        session.withAccount { current ->
+            if (current != account) throw CancellationException("Stale account")
+            val at = clock.millis()
+            val zone = ZoneId.systemDefault()
+            // Same device-zone calendar month as Home/Budget; reminder account zone is a separate policy.
+            val month = FinancePeriods.month(Clock.fixed(Instant.ofEpochMilli(at), zone))
+            database.withTransaction {
+                FinancialSnapshot(
+                    account.currencyCode, at, month.start, month.endExclusive,
+                    database.transactionDao()
+                        .getTransactionsByDateRangeOneShot(month.start, month.endExclusive)
+                        .map { it.toDomain() },
+                    database.budgetDao().getAllBudgetsOneShot().map { it.toDomain() }, zone.id
+                )
+            }
         }
-    }
 }

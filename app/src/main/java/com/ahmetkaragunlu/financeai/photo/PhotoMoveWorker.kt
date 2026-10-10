@@ -16,19 +16,34 @@ import kotlinx.coroutines.CancellationException
 /** Persisted legacy identity. Restore the current intent; never delete a potentially referenced remote photo. */
 @HiltWorker
 class PhotoMoveWorker @AssistedInject constructor(
-    @Assisted context: Context, @Assisted parameters: WorkerParameters,
-    private val sessions: SessionCoordinator, private val database: FinanceDatabase, private val photos: PhotoWorkScheduler
+    @Assisted context: Context,
+    @Assisted parameters: WorkerParameters,
+    private val sessions: SessionCoordinator,
+    private val database: FinanceDatabase,
+    private val photos: PhotoWorkScheduler
 ) : CoroutineWorker(context, parameters) {
     override suspend fun doWork(): Result {
         val owner = inputData.getString(AccountWork.OWNER_ID) ?: return Result.failure()
         val record = inputData.getString(KEY_TRANSACTION_ID) ?: return Result.failure()
         return try {
             val account = sessions.activeAccountFor(owner) ?: return Result.success()
-            val row = database.transactionDao().getTransactionByFirestoreId(record) ?: return Result.success()
-            if (sessions.session.isCurrent(account)) photos.upload(owner, PhotoRecordType.TRANSACTION, record, row.photoUri)
+            val row = database.transactionDao().getTransactionByFirestoreId(record)
+                ?: return Result.success()
+            if (sessions.session.isCurrent(account)) photos.upload(
+                owner,
+                PhotoRecordType.TRANSACTION,
+                record,
+                row.photoUri
+            )
             Result.success()
-        } catch (e: CancellationException) { throw e }
-        catch (_: Exception) { Result.retry() }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            Result.retry()
+        }
     }
-    companion object { const val KEY_TRANSACTION_ID = "transaction_id" }
+
+    companion object {
+        const val KEY_TRANSACTION_ID = "transaction_id"
+    }
 }

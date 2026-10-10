@@ -12,7 +12,12 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-data class ActiveAccount(val ownerId: String, val currencyCode: String, val generation: Long, val timeZoneId: String = "UTC")
+data class ActiveAccount(
+    val ownerId: String,
+    val currencyCode: String,
+    val generation: Long,
+    val timeZoneId: String = "UTC"
+)
 
 @Singleton
 class AccountSession @Inject constructor() {
@@ -26,7 +31,10 @@ class AccountSession @Inject constructor() {
     internal fun activate(ownerId: String, currencyCode: String, timeZoneId: String = "UTC") {
         mutableAccount.value = ActiveAccount(ownerId, currencyCode, ++generation, timeZoneId)
     }
-    internal fun deactivate() { generation++; mutableAccount.value = null }
+
+    internal fun deactivate() {
+        generation++; mutableAccount.value = null
+    }
 
     /** Preparation/logout may use the same guard while no active account exists. */
     internal suspend fun <T> withStateLock(block: suspend () -> T): T = mutex.withLock { block() }

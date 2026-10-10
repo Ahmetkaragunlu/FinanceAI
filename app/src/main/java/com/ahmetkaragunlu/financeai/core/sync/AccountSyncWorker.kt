@@ -24,12 +24,19 @@ class AccountSyncWorker @AssistedInject constructor(
             val account = coordinator.activeAccountFor(ownerId) ?: return Result.success()
             engine.synchronize(account)
             Result.success()
-        } catch (e: CancellationException) { throw e }
-        catch (e: FirebaseFirestoreException) {
-            if (e.code in setOf(FirebaseFirestoreException.Code.PERMISSION_DENIED,
-                    FirebaseFirestoreException.Code.INVALID_ARGUMENT, FirebaseFirestoreException.Code.FAILED_PRECONDITION)) {
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: FirebaseFirestoreException) {
+            if (e.code in setOf(
+                    FirebaseFirestoreException.Code.PERMISSION_DENIED,
+                    FirebaseFirestoreException.Code.INVALID_ARGUMENT,
+                    FirebaseFirestoreException.Code.FAILED_PRECONDITION
+                )
+            ) {
                 Result.failure()
             } else Result.retry()
-        } catch (_: Exception) { Result.retry() }
+        } catch (_: Exception) {
+            Result.retry()
+        }
     }
 }

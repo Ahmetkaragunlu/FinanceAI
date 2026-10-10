@@ -4,7 +4,7 @@ import com.ahmetkaragunlu.financeai.feature.aichat.data.repository.AiRepositoryI
 import com.ahmetkaragunlu.financeai.feature.aichat.domain.repository.AiRepository
 import com.ahmetkaragunlu.financeai.feature.aichat.data.local.AiConversationStore
 import com.ahmetkaragunlu.financeai.feature.aichat.data.local.RoomAiConversationStore
-import com.ahmetkaragunlu.financeai.feature.aichat.data.remote.FirebaseAiTextGenerator
+import com.ahmetkaragunlu.financeai.feature.aichat.data.remote.generation.FirebaseAiTextGenerator
 import com.ahmetkaragunlu.financeai.feature.aichat.data.report.FinancialSnapshotSource
 import com.ahmetkaragunlu.financeai.feature.aichat.data.report.RoomFinancialSnapshotSource
 import com.ahmetkaragunlu.financeai.feature.aichat.domain.generation.AiTextGenerator
@@ -21,7 +21,10 @@ abstract class AiRepositoryModule {
     @Singleton
     abstract fun bindAiRepository(implementation: AiRepositoryImpl): AiRepository
 
-    @Binds abstract fun bindGenerator(implementation: FirebaseAiTextGenerator): AiTextGenerator
-    @Binds abstract fun bindConversations(implementation: RoomAiConversationStore): AiConversationStore
-    @Binds abstract fun bindSnapshots(implementation: RoomFinancialSnapshotSource): FinancialSnapshotSource
+    @Binds
+    abstract fun bindGenerator(implementation: FirebaseAiTextGenerator): AiTextGenerator
+    @Binds
+    abstract fun bindConversations(implementation: RoomAiConversationStore): AiConversationStore
+    @Binds
+    abstract fun bindSnapshots(implementation: RoomFinancialSnapshotSource): FinancialSnapshotSource
 }

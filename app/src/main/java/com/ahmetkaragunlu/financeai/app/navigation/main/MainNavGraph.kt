@@ -48,18 +48,22 @@ fun NavGraphBuilder.mainNavGraph(navController: NavHostController) {
     }
     composable<AiChatDestination> { entry ->
         val pendingPrompt by
-            entry.savedStateHandle
-                .getStateFlow<String?>(AI_SUGGESTION_PROMPT, null)
-                .collectAsStateWithLifecycle()
+        entry.savedStateHandle
+            .getStateFlow<String?>(AI_SUGGESTION_PROMPT, null)
+            .collectAsStateWithLifecycle()
         AiChatRoute(
             initialPrompt = pendingPrompt,
             onPromptConsumed = { entry.savedStateHandle[AI_SUGGESTION_PROMPT] = null },
         )
     }
-    composable<BudgetDestination> { BudgetRoute() }
+    composable<BudgetDestination> {
+          BudgetRoute()
+    }
     composable<AddTransactionDestination> {
         AddTransactionRoute(onSaved = { navController.navigateSingleTopClear(HomeDestination) })
     }
     // External intents pass through account-aware FinanceDeepLink validation before navigation.
-    composable<ScheduledTransactionsDestination> { ScheduledTransactionRoute() }
+    composable<ScheduledTransactionsDestination> {
+        ScheduledTransactionRoute()
+    }
 }

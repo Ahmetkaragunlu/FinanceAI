@@ -18,20 +18,36 @@ import javax.inject.Inject
 /** Callbacks hand off durable work; no network coroutine is tied to the service lifetime. */
 @AndroidEntryPoint
 class FinanceMessagingService : FirebaseMessagingService() {
-    @Inject lateinit var workManager: WorkManager
+    @Inject
+    lateinit var workManager: WorkManager
     override fun onNewToken(token: String) {
         if (token.isBlank()) return
         val work = OneTimeWorkRequestBuilder<TokenRegistrationWorker>()
             .setInputData(workDataOf(TokenRegistrationWorker.TOKEN to token)).build()
-        workManager.enqueueUniqueWork("fcm_supplied_token", ExistingWorkPolicy.APPEND_OR_REPLACE, work)
+        workManager.enqueueUniqueWork(
+            "fcm_supplied_token",
+            ExistingWorkPolicy.APPEND_OR_REPLACE,
+            work
+        )
     }
+
     override fun onMessageReceived(message: RemoteMessage) {
         val payload = PushPayload.parse(message.data, message.messageId) ?: return
-        val work = OneTimeWorkRequestBuilder<PushEventWorker>().setInputData(workDataOf(
-            AccountWork.OWNER_ID to payload.ownerId, PushEventWorker.RECORD to payload.remoteId,
-            PushEventWorker.EVENT to payload.eventId, PushEventWorker.TYPE to payload.type))
-            .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+        val work = OneTimeWorkRequestBuilder<PushEventWorker>().setInputData(
+            workDataOf(
+                AccountWork.OWNER_ID to payload.ownerId, PushEventWorker.RECORD to payload.remoteId,
+                PushEventWorker.EVENT to payload.eventId,
+                PushEventWorker.TYPE to payload.type.wireValue
+            )
+        )
+            .setConstraints(
+                Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
+            )
             .addTag(AccountWork.tag(payload.ownerId)).build()
-        workManager.enqueueUniqueWork("fcm_${payload.ownerId}_${payload.eventId}", ExistingWorkPolicy.KEEP, work)
+        workManager.enqueueUniqueWork(
+            "fcm_${payload.ownerId}_${payload.eventId}",
+            ExistingWorkPolicy.KEEP,
+            work
+        )
     }
 }

@@ -22,8 +22,7 @@ object DateFormatter {
     }
 
     fun formatScheduleDate(context: Context, timestamp: Long, zone: ZoneId = ZoneId.systemDefault()): String {
-        val date = Instant.ofEpochMilli(timestamp).atZone(zone).toLocalDate()
-        return when (date) {
+        return when (val date = Instant.ofEpochMilli(timestamp).atZone(zone).toLocalDate()) {
             LocalDate.now(zone) -> context.getString(R.string.today)
             LocalDate.now(zone).plusDays(1) -> context.getString(R.string.tomorrow)
             else -> date.format(DateTimeFormatter.ofPattern("dd MMM", Locale.getDefault()))

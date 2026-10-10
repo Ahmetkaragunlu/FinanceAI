@@ -1,5 +1,9 @@
 package com.ahmetkaragunlu.financeai.feature.home.presentation
 
+import com.ahmetkaragunlu.financeai.feature.home.presentation.suggestion.AiSuggestionState
+import com.ahmetkaragunlu.financeai.feature.home.presentation.suggestion.AiSuggestionText
+import com.ahmetkaragunlu.financeai.feature.home.presentation.suggestion.localizedText
+
 import android.annotation.SuppressLint
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background

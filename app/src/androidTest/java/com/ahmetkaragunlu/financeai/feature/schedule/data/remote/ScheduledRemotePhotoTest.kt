@@ -9,7 +9,6 @@ import com.ahmetkaragunlu.financeai.feature.schedule.data.reminder.ReminderSched
 import com.ahmetkaragunlu.financeai.feature.schedule.domain.reminder.ReminderPresenter
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
-import dagger.Lazy
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
@@ -36,7 +35,8 @@ class ScheduledRemotePhotoTest {
                 f.database.syncRecordDao().save(SyncRecord("A", "scheduled_transactions", "plan", basePayload = SyncPayload.encode(metadata)))
                 val reminders = spy(ReminderScheduler(f.workManager, f.clock))
                 val presenter = mock(ReminderPresenter::class.java)
-                val cache = PhotoRemoteCache(f.context, Lazy { error("No media download expected") }, f.session, Dispatchers.IO)
+                val cache = PhotoRemoteCache(f.context,
+                    { error("No media download expected") }, f.session, Dispatchers.IO)
                 val store = ScheduledTransactionRemoteStore(f.database, cache, reminders, presenter)
                 val account = f.session.requireAccount()
                 val normalized = store.normalize(metadata + mapOf("amountMinor" to 2550L, "currencyCode" to "USD",

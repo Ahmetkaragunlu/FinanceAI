@@ -1,20 +1,17 @@
 package com.ahmetkaragunlu.financeai.feature.auth.data.repository
 
 import android.app.NotificationManager
-import android.content.Context
 import android.content.ContextWrapper
 import com.ahmetkaragunlu.financeai.core.session.SessionCoordinator
 import com.ahmetkaragunlu.financeai.core.session.ActiveAccount
 import com.ahmetkaragunlu.financeai.core.session.SessionWorkRestorer
 import com.ahmetkaragunlu.financeai.core.sync.testing.EmulatorAccountFixture
 import com.ahmetkaragunlu.financeai.fcm.FCMTokenManager
-import com.ahmetkaragunlu.financeai.feature.auth.data.local.session.CredentialSessionCleaner
 import com.ahmetkaragunlu.financeai.feature.auth.data.remote.AuthLookupRemote
 import com.ahmetkaragunlu.financeai.feature.transaction.data.repository.TransactionRepositoryImpl
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.Transaction
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
-import dagger.Lazy
 import java.util.UUID
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -56,16 +53,17 @@ class AuthRepositorySessionIntegrationTest {
             }.`when`(notifications).cancelAll()
             val context = object : ContextWrapper(f.local.context) {
                 override fun getSystemService(name: String): Any? =
-                    if (name == Context.NOTIFICATION_SERVICE) notifications else super.getSystemService(name)
+                    if (name == NOTIFICATION_SERVICE) notifications else super.getSystemService(name)
             }
             val coordinator = SessionCoordinator(f.auth, f.firestore, f.local.database, f.local.session,
-                f.local.scheduler, Lazy { f.engine(emptySet()) }, f.local.workManager,
+                f.local.scheduler, { f.engine(emptySet()) }, f.local.workManager,
                 object : SessionWorkRestorer { override suspend fun restore(account: ActiveAccount) {} },
                 context, scope)
             val tokens = mock(FCMTokenManager::class.java)
-            doAnswer { Unit }.`when`(tokens).removeFCMToken()
+            doAnswer { }.`when`(tokens).removeFCMToken()
             val repository = AuthRepositoryImpl(f.auth, f.firestore, coordinator, tokens,
-                mock(AuthLookupRemote::class.java), CredentialSessionCleaner {})
+                mock(AuthLookupRemote::class.java)
+            ) {}
             try { repository.signOut(); fail("Expected failed cleanup") }
             catch (e: IllegalStateException) { assertSame(expected, e) }
             assertEquals(owner, f.auth.currentUser?.uid)

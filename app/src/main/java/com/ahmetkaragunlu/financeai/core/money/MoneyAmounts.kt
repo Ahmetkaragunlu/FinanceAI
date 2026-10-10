@@ -21,14 +21,21 @@ object MoneyAmounts {
     }
 
     fun sum(amounts: Iterable<Double>, currencyCode: String): Double =
-        toMajor(amounts.fold(0L) { total, amount -> Math.addExact(total, toMinor(amount, currencyCode)) }, currencyCode)
+        toMajor(amounts.fold(0L) { total, amount ->
+            Math.addExact(
+                total,
+                toMinor(amount, currencyCode)
+            )
+        }, currencyCode)
 
     fun readMinor(value: Number): Long = BigDecimal(value.toString()).longValueExact()
 
     fun toMajor(minor: Long, currencyCode: String): Double {
         val value = BigDecimal.valueOf(minor, scale(currencyCode)).toDouble()
-        require(BigDecimal.valueOf(value).movePointRight(scale(currencyCode))
-            .setScale(0, RoundingMode.HALF_UP).longValueExact() == minor) { "Amount exceeds supported precision" }
+        require(
+            BigDecimal.valueOf(value).movePointRight(scale(currencyCode))
+                .setScale(0, RoundingMode.HALF_UP).longValueExact() == minor
+        ) { "Amount exceeds supported precision" }
         return value
     }
 

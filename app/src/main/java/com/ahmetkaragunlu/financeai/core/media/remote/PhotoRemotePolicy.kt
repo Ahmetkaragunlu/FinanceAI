@@ -23,9 +23,15 @@ object PhotoRemotePolicy {
     ): Map<String, Any?> {
         val localPhoto = cache.prepare(
             account, remoteId,
-            RemotePhoto(data[PhotoFields.STORAGE_URL] as? String, data[PhotoFields.VERSION] as? String),
+            RemotePhoto(
+                data[PhotoFields.STORAGE_URL] as? String,
+                data[PhotoFields.VERSION] as? String
+            ),
             existingPath,
-            RemotePhoto(baseline[PhotoFields.STORAGE_URL] as? String, baseline[PhotoFields.VERSION] as? String),
+            RemotePhoto(
+                baseline[PhotoFields.STORAGE_URL] as? String,
+                baseline[PhotoFields.VERSION] as? String
+            ),
         )
         return data + mapOf(PhotoFields.LOCAL_URI to localPhoto)
     }
@@ -34,7 +40,8 @@ object PhotoRemotePolicy {
         if (data[PhotoFields.REMOVED] == true) return null
         (data[PhotoFields.LOCAL_URI] as? String)?.let { return it }
         val incomingUrl = data[PhotoFields.STORAGE_URL] as? String
-        val localPhoto = existingPath?.takeUnless { it.startsWith("http://") || it.startsWith("https://") }
+        val localPhoto =
+            existingPath?.takeUnless { it.startsWith("http://") || it.startsWith("https://") }
         return if (localPhoto != null && (incomingUrl == null || incomingUrl == previousUrl)) localPhoto
         else incomingUrl ?: existingPath
     }

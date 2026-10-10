@@ -17,5 +17,12 @@ data class ReminderState(
     val revision: Long = 0,
     val active: Boolean = true
 ) {
-    fun progress() = ReminderProgress(automaticSlots, snoozeAt, lastShownAt, expiredShownAt, deleteAt, consumedSnoozeAt)
+    fun progress() = ReminderProgress(
+        automaticSlots,
+        snoozeAt,
+        lastShownAt,
+        expiredShownAt,
+        deleteAt,
+        consumedSnoozeAt
+    )
 }

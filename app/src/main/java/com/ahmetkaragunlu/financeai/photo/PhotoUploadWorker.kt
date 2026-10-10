@@ -72,7 +72,11 @@ class PhotoUploadWorker @AssistedInject constructor(
                 val sync = database.syncRecordDao().get(owner, remoteCollection, record)
                 val commands = database.scheduleCommandDao().forAccount(owner)
                 val command =
-                    commands.firstOrNull { ScheduleCommandType.fromWire(it.type) == ScheduleCommandType.COMPLETE && completedTransactionId(it.remoteId) == record }
+                    commands.firstOrNull {
+                        ScheduleCommandType.fromWire(it.type) == ScheduleCommandType.COMPLETE && completedTransactionId(
+                            it.remoteId
+                        ) == record
+                    }
                 if (sync?.permanentFailure == true || command?.failure != null || (sync == null && command == null)) {
                     database.photoOperationDao()
                         .fail(owner, collection, record, path, "remote_record_unavailable")

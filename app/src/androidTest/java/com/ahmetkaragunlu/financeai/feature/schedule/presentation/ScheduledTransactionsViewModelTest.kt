@@ -64,7 +64,7 @@ class ScheduledTransactionsViewModelTest {
         override fun observeScheduledTransactions() = flowOf(emptyList<ScheduledTransaction>())
         override suspend fun insertScheduledTransaction(transaction: ScheduledTransaction): Long = error("Unexpected insert")
         override suspend fun deleteScheduledTransaction(transaction: ScheduledTransaction): Unit = error("Unexpected delete")
-        override suspend fun getScheduledTransactionByFirestoreId(firestoreId: String): ScheduledTransaction? = error("Unexpected query")
-        override suspend fun getScheduledTransactionById(localId: Long): ScheduledTransaction? = error("Unexpected query")
+        override suspend fun getScheduledTransactionByFirestoreId(firestoreId: String): ScheduledTransaction = error("Unexpected query")
+        override suspend fun getScheduledTransactionById(localId: Long): ScheduledTransaction = error("Unexpected query")
     }
 }

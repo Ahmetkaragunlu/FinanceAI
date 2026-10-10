@@ -12,22 +12,16 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.core.format.DateFormatter
-import com.ahmetkaragunlu.financeai.core.media.PhotoFields
-import com.ahmetkaragunlu.financeai.core.sync.contract.FinancialFields
-import com.ahmetkaragunlu.financeai.core.sync.contract.SyncPayload
-import com.ahmetkaragunlu.financeai.feature.aichat.data.remote.AiMessageFields
-import com.ahmetkaragunlu.financeai.feature.budget.data.remote.BudgetFields
-import com.ahmetkaragunlu.financeai.feature.schedule.data.remote.contract.ScheduleFields
-import com.ahmetkaragunlu.financeai.feature.transaction.data.remote.TransactionFields
-import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
-import com.ahmetkaragunlu.financeai.feature.transaction.localization.toLabelResId
 
 @Composable
-fun SyncConflictDialog(viewModel: SyncConflictViewModel = hiltViewModel()) {
+fun SyncConflictDialog(
+    viewModel: SyncConflictViewModel = hiltViewModel()
+) {
     val conflicts by viewModel.conflicts.collectAsStateWithLifecycle()
     val busy by viewModel.busy.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
     val conflict = conflicts.firstOrNull() ?: return
+
     AlertDialog(
         onDismissRequest = {},
         title = { Text(stringResource(R.string.sync_conflict_title)) },
@@ -41,32 +35,31 @@ fun SyncConflictDialog(viewModel: SyncConflictViewModel = hiltViewModel()) {
                 if (error) Text(stringResource(R.string.sync_conflict_error))
             }
         },
-        confirmButton = { TextButton(enabled = !busy, onClick = { viewModel.resolve(conflict, true) }) {
-            Text(stringResource(R.string.sync_keep_local))
-        } },
-        dismissButton = { TextButton(enabled = !busy, onClick = { viewModel.resolve(conflict, false) }) {
-            Text(stringResource(R.string.sync_keep_remote))
-        } }
+        confirmButton = {
+            TextButton(enabled = !busy, onClick = { viewModel.resolve(conflict, true) }) {
+                Text(stringResource(R.string.sync_keep_local))
+            }
+        },
+        dismissButton = {
+            TextButton(enabled = !busy, onClick = { viewModel.resolve(conflict, false) }) {
+                Text(stringResource(R.string.sync_keep_remote))
+            }
+        }
     )
 }
 
 @Composable
 private fun ConflictSummary(payload: String?) {
-    if (payload == null) { Text(stringResource(R.string.sync_deleted_record)); return }
-    val values = SyncPayload.decode(payload)
-    values[BudgetFields.LIMIT_PERCENTAGE]?.let { Text(stringResource(R.string.percentage_label) + ": " + it) }
-    (values[TransactionFields.DATE] ?: values[ScheduleFields.DATE])?.let { timestamp ->
-        Text(DateFormatter.formatRelativeDate(LocalContext.current, (timestamp as Number).toLong()))
-    }
-    values[FinancialFields.LOCATION_FULL]?.toString()?.let { Text(stringResource(R.string.location_with_value, it)) }
-    values[TransactionFields.TYPE]?.let { Text(stringResource(if (it == "INCOME") R.string.income else R.string.expense)) }
-    values[ScheduleFields.TYPE]?.let { Text(stringResource(if (it == "INCOME") R.string.income else R.string.expense)) }
-    if (values[PhotoFields.REMOVED] == true) Text(stringResource(R.string.sync_photo_removed))
-    else if (values[PhotoFields.STORAGE_URL] != null) Text(stringResource(R.string.sync_photo_attached))
-    values[FinancialFields.LEGACY_AMOUNT]?.let { Text("$it ${values[FinancialFields.CURRENCY_CODE] ?: ""}") }
-    (values["note"] ?: values[AiMessageFields.TEXT])?.toString()?.takeIf { it.isNotBlank() }?.let { Text(it) }
-    values["category"]?.toString()?.let { name ->
-        val category = CategoryType.valueOf(name)
-        Text(stringResource(category.toLabelResId()))
+    for (line in mapConflictSummary(payload)) {
+        when (line) {
+            is ConflictSummaryLine.Value -> Text(line.text)
+            is ConflictSummaryLine.Label -> Text(stringResource(line.resourceId))
+            is ConflictSummaryLine.FormattedLabel ->
+                Text(stringResource(line.resourceId, line.argument))
+            is ConflictSummaryLine.Date ->
+                Text(DateFormatter.formatRelativeDate(LocalContext.current, line.timestamp))
+            is ConflictSummaryLine.Percentage ->
+                Text(stringResource(R.string.percentage_label) + ": " + line.value)
+        }
     }
 }

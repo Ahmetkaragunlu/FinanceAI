@@ -3,7 +3,6 @@ package com.ahmetkaragunlu.financeai.feature.auth.data.repository
 import com.ahmetkaragunlu.financeai.core.error.DataAccessException
 import com.ahmetkaragunlu.financeai.core.session.SessionCoordinator
 import com.ahmetkaragunlu.financeai.fcm.FCMTokenManager
-import com.ahmetkaragunlu.financeai.feature.auth.data.local.session.CredentialSessionCleaner
 import com.ahmetkaragunlu.financeai.feature.auth.data.remote.AuthLookupRemote
 import com.ahmetkaragunlu.financeai.feature.auth.domain.error.AuthException
 import com.google.android.gms.tasks.Task
@@ -54,8 +53,8 @@ class AuthRepositoryImplTest {
         val lookup = mock(AuthLookupRemote::class.java)
         var credentialFailure: Exception? = null
         var credentialClears = 0
-        val repository = AuthRepositoryImpl(auth, firestore, coordinator, tokens, lookup,
-            CredentialSessionCleaner { credentialClears++; credentialFailure?.let { throw it } })
+        val repository = AuthRepositoryImpl(auth, firestore, coordinator, tokens, lookup
+        ) { credentialClears++; credentialFailure?.let { throw it } }
         val created = mock(FirebaseUser::class.java)
         val result = mock(AuthResult::class.java)
         var current: FirebaseUser? = null
@@ -110,7 +109,7 @@ class AuthRepositoryImplTest {
                 } catch (e: Exception) { Tasks.forException<Any?>(e) }
             }.`when`(firestore).runTransaction(any<Transaction.Function<Any?>>())
             doAnswer { events += "prepare"; prepareFailure?.let { throw it }; Unit }.`when`(coordinator).prepare()
-            doAnswer { events += "logout"; signOutFailure?.let { throw it }; current = null; Unit }.`when`(coordinator).signOut()
+            doAnswer { events += "logout"; signOutFailure?.let { throw it }; current = null; }.`when`(coordinator).signOut()
             doAnswer { events += "token"; tokenFailure?.let { throw it }; Unit }.`when`(tokens).updateFCMToken()
             doAnswer { events += "revoke"; tokenFailure?.let { throw it }; Unit }.`when`(tokens).removeFCMToken()
             `when`(auth.signInWithEmailAndPassword(anyString(), anyString())).thenReturn(Tasks.forResult(result))
@@ -243,7 +242,8 @@ class AuthRepositoryImplTest {
         assertEquals(0, switched.profiles.get())
         val restarted = partial()
         val newRepository = AuthRepositoryImpl(restarted.auth, restarted.firestore, restarted.coordinator,
-            restarted.tokens, restarted.lookup, CredentialSessionCleaner {})
+            restarted.tokens, restarted.lookup
+        ) {}
         assertTrue(failure { newRepository.registerUser("user@example.com", "synthetic", "First", "Last") } is AuthException.EmailExists)
         assertEquals(0, restarted.profiles.get())
     }

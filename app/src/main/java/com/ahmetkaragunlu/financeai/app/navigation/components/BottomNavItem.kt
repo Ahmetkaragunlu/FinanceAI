@@ -12,7 +12,6 @@ import com.ahmetkaragunlu.financeai.app.navigation.main.MainScreen
 
 sealed class BottomIcon {
     data class Vector(val icon: ImageVector) : BottomIcon()
-
     data class Drawable(val resId: Int) : BottomIcon()
 }
 

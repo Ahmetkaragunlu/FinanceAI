@@ -51,7 +51,16 @@ class NotificationActionWorkerTest {
     @Test fun invalidInputAndUnsupportedActionsFailWithoutDomainDispatch(): Unit = runBlocking {
         val f = Fixture()
         assertEquals(ListenableWorker.Result.failure(), f.worker(Data.EMPTY).doWork())
+        val missingAction = workDataOf("account_owner_id" to "A", "firestore_id" to "plan")
+        assertEquals(ListenableWorker.Result.failure(), f.worker(missingAction).doWork())
         assertEquals(ListenableWorker.Result.failure(), f.worker(f.input("unknown")).doWork())
+        verifyNoInteractions(f.repository, f.completion, f.reminders)
+    }
+
+    @Test fun unsupportedActionForAnotherAccountRemainsANoOpBeforeActionParsing(): Unit = runBlocking {
+        val f = Fixture()
+        f.session.activate("B", "EUR")
+        assertEquals(ListenableWorker.Result.success(), f.worker(f.input("unknown")).doWork())
         verifyNoInteractions(f.repository, f.completion, f.reminders)
     }
 

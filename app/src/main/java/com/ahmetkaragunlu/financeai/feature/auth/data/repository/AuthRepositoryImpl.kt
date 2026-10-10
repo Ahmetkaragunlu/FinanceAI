@@ -281,7 +281,7 @@ constructor(
                     "Credential session cleanup failed (${e.javaClass.simpleName})",
                 )
             }
-            Unit
+
         }
 
     private suspend fun queueToken() {

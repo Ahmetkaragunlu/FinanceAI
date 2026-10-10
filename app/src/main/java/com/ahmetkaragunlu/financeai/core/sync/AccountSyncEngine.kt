@@ -53,8 +53,13 @@ class AccountSyncEngine @Inject constructor(
                     val registration = firestore.collection(store.collection)
                         .whereEqualTo(SyncFields.USER_ID, account.ownerId)
                         .addSnapshotListener { snapshot, error ->
-                            if (error != null) close(error)
-                            else if (snapshot != null && !snapshot.metadata.isFromCache && !snapshot.metadata.hasPendingWrites()) {
+                            if (error != null) {
+                                close(error)
+                            } else if (
+                                snapshot != null &&
+                                !snapshot.metadata.isFromCache &&
+                                !snapshot.metadata.hasPendingWrites()
+                            ) {
                                 trySend(snapshot)
                             }
                         }
@@ -82,21 +87,8 @@ class AccountSyncEngine @Inject constructor(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                val permanent =
-                    e is DataAccessException.InvalidRemoteData || e is DataAccessException.AccessDenied ||
-                            e is IllegalArgumentException || e is ArithmeticException || (e is FirebaseFirestoreException && e.code in setOf(
-                        FirebaseFirestoreException.Code.PERMISSION_DENIED,
-                        FirebaseFirestoreException.Code.INVALID_ARGUMENT,
-                        FirebaseFirestoreException.Code.FAILED_PRECONDITION
-                    ))
-                if (!permanent) throw e
-                session.withAccount { current ->
-                    check(current == account)
-                    val latest = database.syncRecordDao()
-                        .get(account.ownerId, pending.collection, pending.remoteId)
-                    if (latest != null && latest.mutationId == pending.mutationId) database.syncRecordDao()
-                        .save(latest.copy(permanentFailure = true))
-                }
+                if (!isPermanentSyncFailure(e)) throw e
+                markPermanentFailure(account, pending)
                 Log.w(
                     "AccountSyncEngine",
                     "Permanent record sync failure (${e.javaClass.simpleName})"
@@ -111,7 +103,11 @@ class AccountSyncEngine @Inject constructor(
             for (document in snapshot.documents) receiveSafely(account, store, document)
             val visible = snapshot.documents.map { it.id }.toSet()
             database.syncRecordDao().forAccount(account.ownerId)
-                .filter { it.collection == store.collection && it.remoteId !in visible && it.basePayload != null }
+                .filter {
+                    it.collection == store.collection &&
+                    it.remoteId !in visible &&
+                    it.basePayload != null
+                }
                 .forEach { known ->
                     val fresh = firestore.collection(store.collection).document(known.remoteId)
                         .get(Source.SERVER).await()
@@ -120,10 +116,32 @@ class AccountSyncEngine @Inject constructor(
         }
     }
 
+    private fun isPermanentSyncFailure(error: Exception): Boolean =
+        error is DataAccessException.InvalidRemoteData ||
+        error is DataAccessException.AccessDenied ||
+        error is IllegalArgumentException ||
+        error is ArithmeticException ||
+        (error is FirebaseFirestoreException && error.code in setOf(
+            FirebaseFirestoreException.Code.PERMISSION_DENIED,
+            FirebaseFirestoreException.Code.INVALID_ARGUMENT,
+            FirebaseFirestoreException.Code.FAILED_PRECONDITION
+        ))
+
+    private suspend fun markPermanentFailure(account: ActiveAccount, pending: SyncRecord) {
+        session.withAccount { current ->
+            check(current == account)
+            val dao = database.syncRecordDao()
+            val latest = dao.get(account.ownerId, pending.collection, pending.remoteId)
+            if (latest != null && latest.mutationId == pending.mutationId) {
+                dao.save(latest.copy(permanentFailure = true))
+            }
+        }
+    }
+
     private fun ensureCurrent(account: ActiveAccount) {
-        if (!session.isCurrent(account) || auth.currentUser?.uid != account.ownerId) throw CancellationException(
-            "Stale account"
-        )
+        if (!session.isCurrent(account) || auth.currentUser?.uid != account.ownerId) {
+            throw CancellationException("Stale account")
+        }
     }
 
     private fun payload(
@@ -132,7 +150,9 @@ class AccountSyncEngine @Inject constructor(
         account: ActiveAccount
     ): String? {
         if (!document.exists()) return null
-        if (document.getString(SyncFields.USER_ID) != account.ownerId) throw DataAccessException.AccessDenied()
+        if (document.getString(SyncFields.USER_ID) != account.ownerId) {
+            throw DataAccessException.AccessDenied()
+        }
         if (document.getBoolean(SyncFields.DELETED) == true) return null
         return SyncPayload.encode(store.normalize(document.data.orEmpty(), account))
     }
@@ -170,11 +190,14 @@ class AccountSyncEngine @Inject constructor(
             database.withTransaction {
                 val dao = database.syncRecordDao()
                 val old = dao.get(account.ownerId, store.collection, document.id)
-                if (document.exists() && old != null && revision < old.baseRevision) return@withTransaction
+                if (document.exists() && old != null && revision < old.baseRevision) {
+                    return@withTransaction
+                }
                 if (old?.mutationId != null) {
                     val decision = if (acknowledgesDeletion(
                             document.getBoolean(SyncFields.DELETED) == true,
-                            document.getString(SyncFields.PREVIOUS_MUTATION_ID), old.mutationId
+                            document.getString(SyncFields.PREVIOUS_MUTATION_ID),
+                            old.mutationId
                         )
                     ) Reconciliation.Equal
                     else reconcile(
@@ -222,14 +245,13 @@ class AccountSyncEngine @Inject constructor(
             val remote = payload(store, document, account)
             val revision = document.getLong(SyncFields.REVISION) ?: 0L
             // Mutation identity acknowledges retries after remote success / local process death.
-            if (document.getString(SyncFields.MUTATION_ID) == pending.mutationId) return@runTransaction RemoteOutcome(
-                remote,
-                revision,
-                false
-            )
+            if (document.getString(SyncFields.MUTATION_ID) == pending.mutationId) {
+                return@runTransaction RemoteOutcome(remote, revision, false)
+            }
             if (acknowledgesDeletion(
                     document.getBoolean(SyncFields.DELETED) == true,
-                    document.getString(SyncFields.PREVIOUS_MUTATION_ID), pending.mutationId
+                    document.getString(SyncFields.PREVIOUS_MUTATION_ID),
+                    pending.mutationId
                 )
             ) return@runTransaction RemoteOutcome(remote, revision, false)
             when (val decision = reconcile(

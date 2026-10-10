@@ -1,5 +1,8 @@
 package com.ahmetkaragunlu.financeai.feature.home.presentation
 
+import com.ahmetkaragunlu.financeai.feature.home.presentation.suggestion.AiSuggestionState
+import com.ahmetkaragunlu.financeai.feature.home.presentation.suggestion.buildAiSuggestion
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ahmetkaragunlu.financeai.core.format.formatAsCurrency

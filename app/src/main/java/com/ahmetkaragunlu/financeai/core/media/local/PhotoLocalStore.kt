@@ -36,11 +36,13 @@ class PhotoLocalStore @Inject constructor(
         var part: File? = null
         var bitmap: Bitmap? = null
         try {
-            val camera = cameraPath?.let { File(it).canonicalFile.also { file ->
-                require(file.parentFile == folder && file.name.startsWith(PhotoFiles.CAMERA_PREFIX) && file.isFile)
-            } }
+            val camera = cameraPath?.let {
+                File(it).canonicalFile.also { file ->
+                    require(file.parentFile == folder && file.name.startsWith(PhotoFiles.CAMERA_PREFIX) && file.isFile)
+                }
+            }
             val source = if (camera != null) ImageDecoder.createSource(camera)
-                else ImageDecoder.createSource(context.contentResolver, uri)
+            else ImageDecoder.createSource(context.contentResolver, uri)
             bitmap = ImageDecoder.decodeBitmap(source) { decoder, info, _ ->
                 require(info.mimeType.startsWith("image/"))
                 val (width, height) = PhotoDimensions.target(info.size.width, info.size.height)
@@ -51,7 +53,13 @@ class PhotoLocalStore @Inject constructor(
             currentCoroutineContext().ensureActive()
             part = File.createTempFile(PhotoFiles.PREPARATION_PREFIX, ".part", folder)
             part.outputStream().use { output ->
-                check(checkNotNull(bitmap).compress(Bitmap.CompressFormat.JPEG, PhotoDimensions.JPEG_QUALITY, output))
+                check(
+                    bitmap.compress(
+                        Bitmap.CompressFormat.JPEG,
+                        PhotoDimensions.JPEG_QUALITY,
+                        output
+                    )
+                )
                 output.fd.sync()
             }
             currentCoroutineContext().ensureActive()
@@ -65,7 +73,9 @@ class PhotoLocalStore @Inject constructor(
             target.delete()
             Log.w("PhotoLocalStore", "Image preparation failed (${e.javaClass.simpleName})")
             null
-        } finally { bitmap?.recycle(); part?.delete() }
+        } finally {
+            bitmap?.recycle(); part?.delete()
+        }
     }
 
     suspend fun delete(path: String?) = withContext(io) {
@@ -75,17 +85,22 @@ class PhotoLocalStore @Inject constructor(
             val root = File(context.filesDir, PhotoFiles.DIRECTORY)
             val appPath = File(root, file.relativeTo(root.canonicalFile).path).absolutePath
             val aliases = setOf(checkNotNull(path), appPath, file.absolutePath)
-            if (aliases.any { database.photoOperationDao().isReferenced(it) }) false else file.delete()
+            if (aliases.any {
+                    database.photoOperationDao().isReferenced(it)
+                }) false else file.delete()
         }
     }
+
     /** Sweep only known permanent/cache shapes, never unknown/active camera drafts. */
     suspend fun cleanUnreferenced(ownerId: String) = withContext(io) {
         PhotoFiles.requireOwnerId(ownerId)
         val folder = File(context.filesDir, "${PhotoFiles.DIRECTORY}/$ownerId")
         val cutoff = clock.millis() - Duration.ofDays(1).toMillis()
-        folder.listFiles()?.filter { it.isFile && it.lastModified() < cutoff && PhotoFiles.isPermanentOrCache(it.name) }
+        folder.listFiles()
+            ?.filter { it.isFile && it.lastModified() < cutoff && PhotoFiles.isPermanentOrCache(it.name) }
             ?.forEach { delete(it.absolutePath) }
     }
+
     private fun ownedFile(path: String?): File? {
         if (path.isNullOrBlank() || path.startsWith("http")) return null
         val root = File(context.filesDir, PhotoFiles.DIRECTORY).canonicalFile

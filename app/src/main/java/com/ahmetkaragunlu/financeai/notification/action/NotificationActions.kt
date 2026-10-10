@@ -8,8 +8,12 @@ object NotificationActions {
     const val ACTION_SNOOZE = "com.ahmetkaragunlu.financeai.ACTION_SNOOZE"
     const val ACTION_DISMISS = "com.ahmetkaragunlu.financeai.ACTION_DISMISS"
 
-    fun isSupported(value: String): Boolean = when (value) {
-        ACTION_CONFIRM, ACTION_CANCEL, ACTION_SNOOZE, ACTION_DISMISS -> true
-        else -> false
+    fun parse(value: String?): NotificationAction? = when (value) {
+        ACTION_CONFIRM -> NotificationAction.CONFIRM
+        ACTION_CANCEL, ACTION_SNOOZE -> NotificationAction.SNOOZE
+        ACTION_DISMISS -> NotificationAction.DISMISS
+        else -> null
     }
+
+    fun isSupported(value: String): Boolean = parse(value) != null
 }

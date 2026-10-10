@@ -36,8 +36,7 @@ class EmulatorAccountFixture {
             .setApiKey("synthetic-emulator-key")
             .build()
         app = FirebaseApp.initializeApp(local.context, options, "integration-${UUID.randomUUID()}")
-        val collectAutomatically: Boolean? = false
-        app.setDataCollectionDefaultEnabled(collectAutomatically)
+        app.isDataCollectionDefaultEnabled = false
         firestore = FirebaseFirestore.getInstance(app)
         firestore.useEmulator(host, port)
         Mockito.`when`(auth.currentUser).thenAnswer { current.get() }

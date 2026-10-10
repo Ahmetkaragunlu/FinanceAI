@@ -30,7 +30,6 @@ import com.ahmetkaragunlu.financeai.feature.schedule.domain.reminder.ReminderPre
 import com.ahmetkaragunlu.financeai.feature.transaction.data.remote.TransactionRemoteStore
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
-import dagger.Lazy
 import java.time.Clock
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
@@ -63,7 +62,8 @@ class CompletedPlanEditResolutionTest {
         session = AccountSession().apply { activate("A", "USD", "UTC") }
         val work = WorkManager.getInstance(context)
         val reminderScheduler = ReminderScheduler(work, Clock.systemUTC())
-        val photos = PhotoRemoteCache(context, Lazy { error("No media network in resolution tests") }, session, Dispatchers.IO)
+        val photos = PhotoRemoteCache(context,
+            { error("No media network in resolution tests") }, session, Dispatchers.IO)
         transactionStore = TransactionRemoteStore(database, photos)
         val scheduleStore = ScheduledTransactionRemoteStore(database, photos, reminderScheduler, presenter)
         val pending = PendingChanges(database)

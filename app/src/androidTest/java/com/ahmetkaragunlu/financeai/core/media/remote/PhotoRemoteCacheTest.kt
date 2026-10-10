@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ahmetkaragunlu.financeai.core.session.AccountSession
-import dagger.Lazy
 import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.Dispatchers
@@ -22,7 +21,8 @@ class PhotoRemoteCacheTest {
         session.activate("cache-test-owner", "USD")
         val account = session.requireAccount()
         val calls = AtomicInteger()
-        val cache = PhotoRemoteCache(context, Lazy { calls.incrementAndGet(); error("offline") }, session, Dispatchers.IO)
+        val cache = PhotoRemoteCache(context,
+            { calls.incrementAndGet(); error("offline") }, session, Dispatchers.IO)
         val file = File.createTempFile("phase2-photo-", ".jpg", context.cacheDir)
         try {
             file.writeText("retained receipt")

@@ -112,7 +112,6 @@ fun PasswordResetRoute(
         onPasswordChanged = viewModel::updateNewPassword,
         onConfirmationChanged = viewModel::updateConfirmPassword,
         onSubmitClick = onSubmitClick,
-        onSignIn = onSignIn,
         showConfirmation = showDialog,
         onConfirmation = {
             showDialog = false
@@ -128,7 +127,6 @@ fun PasswordResetScreen(
     onPasswordChanged: (String) -> Unit,
     onConfirmationChanged: (String) -> Unit,
     onSubmitClick: () -> Unit,
-    onSignIn: () -> Unit,
     showConfirmation: Boolean,
     onConfirmation: () -> Unit,
     modifier: Modifier = Modifier,

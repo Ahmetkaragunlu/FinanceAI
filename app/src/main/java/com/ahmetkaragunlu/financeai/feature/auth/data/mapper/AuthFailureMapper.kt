@@ -9,7 +9,9 @@ fun Exception.toPasswordResetFailure(): Exception =
     when {
         this is FirebaseAuthException && errorCode == "ERROR_EXPIRED_ACTION_CODE" ->
             AuthException.ExpiredResetCode(this)
+
         this is FirebaseAuthException && errorCode == "ERROR_INVALID_ACTION_CODE" ->
             AuthException.InvalidResetCode(this)
+
         else -> toDataAccessFailure()
     }

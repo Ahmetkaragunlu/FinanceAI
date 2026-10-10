@@ -158,12 +158,11 @@ constructor(
                 .atStartOfDay(dateZone())
                 .toInstant()
                 .toEpochMilli()
-        val selected = timestamp
 
         return if (isReminderEnabled) {
-            selected >= today
+            timestamp >= today
         } else {
-            selected <= clock.millis()
+            timestamp <= clock.millis()
         }
     }
 

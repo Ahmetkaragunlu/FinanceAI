@@ -60,8 +60,16 @@ class SessionCoordinator @Inject constructor(
                 auth.addAuthStateListener(listener)
                 awaitClose { auth.removeAuthStateListener(listener) }
             }.collectLatest {
-                try { prepare() } catch (e: CancellationException) { throw e }
-                catch (e: Exception) { Log.w("SessionCoordinator", "Account preparation failed (${e.javaClass.simpleName})") }
+                try {
+                    prepare()
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Log.w(
+                        "SessionCoordinator",
+                        "Account preparation failed (${e.javaClass.simpleName})"
+                    )
+                }
             }
         }
     }
@@ -74,21 +82,7 @@ class SessionCoordinator @Inject constructor(
         }
         stopAccount()
         if (user == null) return@withStateLock
-        val local = database.accountDao().get(user.uid)
-        val preferences = local?.takeIf { it.timeZoneId != null } ?: withTimeout(15_000) {
-            val proposed = MoneyAmounts.currencyForRegion(Locale.getDefault())
-            val ref = firestore.collection(FirestoreCollections.USERS).document(user.uid)
-            firestore.runTransaction { transaction ->
-                val document = transaction.get(ref)
-                val currency = document.getString(FinancialFields.CURRENCY_CODE) ?: local?.currencyCode
-                    ?: checkNotNull(proposed) { "Device region has no currency" }
-                require(MoneyAmounts.scale(currency) >= 0)
-                val zone = document.getString(UserFields.TIME_ZONE_ID) ?: ZoneId.systemDefault().id
-                ZoneId.of(zone)
-                transaction.set(ref, mapOf(FinancialFields.CURRENCY_CODE to currency, UserFields.TIME_ZONE_ID to zone), SetOptions.merge())
-                AccountPreferences(user.uid, currency, zone)
-            }.await()
-        }
+        val preferences = resolveAccountPreferences(user.uid)
         check(auth.currentUser?.uid == user.uid)
         database.withTransaction {
             database.accountDao().save(preferences)
@@ -100,14 +94,42 @@ class SessionCoordinator @Inject constructor(
         startAccountJob(account)
     }
 
+    private suspend fun resolveAccountPreferences(ownerId: String): AccountPreferences {
+        val local = database.accountDao().get(ownerId)
+        return local?.takeIf { it.timeZoneId != null } ?: withTimeout(15_000) {
+            val proposed = MoneyAmounts.currencyForRegion(Locale.getDefault())
+            val ref = firestore.collection(FirestoreCollections.USERS).document(ownerId)
+            firestore.runTransaction { transaction ->
+                val document = transaction.get(ref)
+                val currency =
+                    document.getString(FinancialFields.CURRENCY_CODE) ?: local?.currencyCode
+                    ?: checkNotNull(proposed) { "Device region has no currency" }
+                require(MoneyAmounts.scale(currency) >= 0)
+                val zone = document.getString(UserFields.TIME_ZONE_ID) ?: ZoneId.systemDefault().id
+                ZoneId.of(zone)
+                transaction.set(
+                    ref,
+                    mapOf(
+                        FinancialFields.CURRENCY_CODE to currency,
+                        UserFields.TIME_ZONE_ID to zone
+                    ),
+                    SetOptions.merge()
+                )
+                AccountPreferences(ownerId, currency, zone)
+            }.await()
+        }
+    }
+
     private fun startAccountJob(account: ActiveAccount) {
         accountJob = applicationScope.launch {
             try {
                 workRestorer.restore(account)
                 engine.get().listen(account)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w("SessionCoordinator", "Account listener failed (${e.javaClass.simpleName})")
             }
-            catch (e: CancellationException) { throw e }
-            catch (e: Exception) { Log.w("SessionCoordinator", "Account listener failed (${e.javaClass.simpleName})") }
         }
     }
 

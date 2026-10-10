@@ -4,7 +4,7 @@ import android.content.Context
 import com.ahmetkaragunlu.financeai.BuildConfig
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.core.security.AppCheckInstaller
-import com.ahmetkaragunlu.financeai.feature.aichat.data.remote.AiFirebaseConfig
+import com.ahmetkaragunlu.financeai.feature.aichat.data.remote.generation.AiFirebaseConfig
 import com.google.firebase.FirebaseApp
 import com.google.firebase.appcheck.FirebaseAppCheck
 import com.google.firebase.ai.FirebaseAI
@@ -15,7 +15,7 @@ import com.google.firebase.ai.type.RequestOptions
 import com.google.firebase.ai.type.ThinkingLevel
 import com.google.firebase.ai.type.generationConfig
 import com.google.firebase.ai.type.thinkingConfig
-import com.ahmetkaragunlu.financeai.feature.aichat.data.remote.AiRequestExecutor
+import com.ahmetkaragunlu.financeai.feature.aichat.data.remote.generation.AiRequestExecutor
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -48,8 +48,7 @@ object AiModule {
             ?: FirebaseApp.initializeApp(context, options, AI_APP_NAME)
         check(app.options == options) { "Named AI app has a different Firebase configuration." }
         // AI-only app: do not enable automatic collection for unrelated SDKs such as FCM.
-        val collectAutomatically: Boolean? = false
-        app.setDataCollectionDefaultEnabled(collectAutomatically)
+        app.isDataCollectionDefaultEnabled = false
         AppCheckInstaller.install(app)
         FirebaseAppCheck.getInstance(app).setTokenAutoRefreshEnabled(true)
         return app

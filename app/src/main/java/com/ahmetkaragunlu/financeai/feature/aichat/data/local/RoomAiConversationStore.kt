@@ -9,7 +9,7 @@ import com.ahmetkaragunlu.financeai.core.sync.local.PendingChanges
 import com.ahmetkaragunlu.financeai.core.sync.SyncScheduler
 import com.ahmetkaragunlu.financeai.feature.aichat.data.local.entity.AiMessageEntity
 import com.ahmetkaragunlu.financeai.feature.aichat.data.mapper.toDomain
-import com.ahmetkaragunlu.financeai.feature.aichat.data.remote.toFirebaseMap
+import com.ahmetkaragunlu.financeai.feature.aichat.data.remote.message.toFirebaseMap
 import java.time.Clock
 import java.util.Date
 import javax.inject.Inject
@@ -33,15 +33,27 @@ class RoomAiConversationStore @Inject constructor(
             database.aiMessageDao().getMessageByFirebaseId(messageId) != null
         }
 
-    override suspend fun save(account: ActiveAccount, messageId: String, text: String, isAi: Boolean) {
+    override suspend fun save(
+        account: ActiveAccount,
+        messageId: String,
+        text: String,
+        isAi: Boolean
+    ) {
         session.withAccount { current ->
             if (current != account) throw CancellationException("Stale account")
             database.withTransaction {
                 if (database.aiMessageDao().getMessageByFirebaseId(messageId) == null) {
-                    val row = AiMessageEntity(ownerId = account.ownerId, firebaseId = messageId,
-                        text = text, isAi = isAi, timestamp = Date(clock.millis()))
+                    val row = AiMessageEntity(
+                        ownerId = account.ownerId, firebaseId = messageId,
+                        text = text, isAi = isAi, timestamp = Date(clock.millis())
+                    )
                     database.aiMessageDao().insertMessage(row)
-                    pending.record(account.ownerId, FirestoreCollections.AI_MESSAGES, messageId, row.toFirebaseMap())
+                    pending.record(
+                        account.ownerId,
+                        FirestoreCollections.AI_MESSAGES,
+                        messageId,
+                        row.toFirebaseMap()
+                    )
                 }
             }
             scheduler.enqueue(account.ownerId)

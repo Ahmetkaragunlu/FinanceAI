@@ -16,17 +16,29 @@ import javax.inject.Inject
 
 @AndroidEntryPoint
 class NotificationActionReceiver : BroadcastReceiver() {
-    @Inject lateinit var workManager: WorkManager
-    @Inject lateinit var clock: Clock
+    @Inject
+    lateinit var workManager: WorkManager
+
+    @Inject
+    lateinit var clock: Clock
     override fun onReceive(context: Context, intent: Intent) {
         val owner = intent.getStringExtra(AccountWork.OWNER_ID) ?: return
-        val record = intent.getStringExtra(ReminderKeys.REMOTE_ID)?.takeIf { it.isNotBlank() } ?: return
+        val record =
+            intent.getStringExtra(ReminderKeys.REMOTE_ID)?.takeIf { it.isNotBlank() } ?: return
         val action = intent.action?.takeIf(NotificationActions::isSupported) ?: return
+        // Keep the original string: legacy CANCEL jobs retain their input and unique work identity.
         val at = clock.millis()
-        val work = OneTimeWorkRequestBuilder<NotificationActionWorker>().setInputData(workDataOf(
-            AccountWork.OWNER_ID to owner, ReminderKeys.REMOTE_ID to record,
-            ReminderKeys.ACTION to action, ReminderKeys.REQUESTED_AT to at))
+        val work = OneTimeWorkRequestBuilder<NotificationActionWorker>().setInputData(
+            workDataOf(
+                AccountWork.OWNER_ID to owner, ReminderKeys.REMOTE_ID to record,
+                ReminderKeys.ACTION to action, ReminderKeys.REQUESTED_AT to at
+            )
+        )
             .addTag(AccountWork.tag(owner)).build()
-        workManager.enqueueUniqueWork("reminder_action_${owner}_${record}_${action}_$at", ExistingWorkPolicy.KEEP, work)
+        workManager.enqueueUniqueWork(
+            "reminder_action_${owner}_${record}_${action}_$at",
+            ExistingWorkPolicy.KEEP,
+            work
+        )
     }
 }

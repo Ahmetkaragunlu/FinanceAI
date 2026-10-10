@@ -14,9 +14,11 @@ import com.ahmetkaragunlu.financeai.feature.transaction.data.mapper.toEntity
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.Transaction
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
+import kotlinx.coroutines.Dispatchers
 import java.io.File
 import java.util.UUID
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.mockito.Mockito.doAnswer
@@ -42,7 +44,9 @@ class AccountWorkRestorerTest {
         suspend fun prepare() {
             local.activate(owner)
             folder.mkdirs()
-            image = File.createTempFile(PhotoFiles.PERMANENT_PREFIX, ".jpg", folder)
+            image = withContext(Dispatchers.IO) {
+                File.createTempFile(PhotoFiles.PERMANENT_PREFIX, ".jpg", folder)
+            }
             val row = Transaction(ownerId = owner, currencyCode = "USD", firestoreId = "receipt", amount = 10.0,
                 date = 100, transaction = TransactionType.EXPENSE, category = CategoryType.FOOD, note = "", photoUri = image.path)
             local.database.transactionDao().insertTransaction(row.toEntity())
@@ -60,9 +64,9 @@ class AccountWorkRestorerTest {
                 Unit
             }.`when`(photos).upload(owner, PhotoRecordType.TRANSACTION, "receipt", image.path)
             doAnswer { events += "plan-reminder"; null }.`when`(reminders).wake(owner, "plan", local.clock.millis())
-            doAnswer { events += "operation-photo"; Unit }.`when`(photos).upload(owner, "scheduled", "operation", image.path)
+            doAnswer { events += "operation-photo"; }.`when`(photos).upload(owner, "scheduled", "operation", image.path)
             doAnswer { events += "tokens"; null }.`when`(tokens).restore(owner)
-            doAnswer { events += "file-cleanup"; Unit }.`when`(files).cleanUnreferenced(owner)
+            doAnswer { events += "file-cleanup"; }.`when`(files).cleanUnreferenced(owner)
         }
 
         override fun close() {
@@ -74,7 +78,7 @@ class AccountWorkRestorerTest {
 
     @Test fun currentAccountRestoresOnlyLocalFilesEligibleOperationsAndItsOwnReminderAndTokenWork() = runBlocking {
         val f = Fixture()
-        try {
+        f.use { f ->
             f.prepare()
             f.restorer.restore(f.local.session.requireAccount())
             assertEquals(listOf("receipt-photo", "plan-reminder", "operation-photo", "tokens", "file-cleanup"), f.events)
@@ -84,12 +88,12 @@ class AccountWorkRestorerTest {
             verify(f.tokens).restore(f.owner)
             verify(f.files).cleanUnreferenced(f.owner)
             verifyNoMoreInteractions(f.photos, f.reminders, f.tokens, f.files)
-        } finally { f.close() }
+        }
     }
 
     @Test fun switchingAccountsDuringRestorationStopsEveryRemainingOldAccountDispatch() = runBlocking {
         val f = Fixture()
-        try {
+        f.use { f ->
             f.prepare()
             val original = f.local.session.requireAccount()
             f.switchAfterUpload = true
@@ -100,6 +104,6 @@ class AccountWorkRestorerTest {
             assertEquals(emptyList<String>(), f.events)
             verify(f.photos).upload(f.owner, PhotoRecordType.TRANSACTION, "receipt", f.image.path)
             verifyNoMoreInteractions(f.photos, f.reminders, f.tokens, f.files)
-        } finally { f.close() }
+        }
     }
 }

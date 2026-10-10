@@ -118,7 +118,6 @@ fun PasswordResetRequestRoute(
         onFirstNameChanged = viewModel::updateFirstName,
         onLastNameChanged = viewModel::updateLastName,
         onSubmitClick = onSubmitClick,
-        onSignIn = onSignIn,
         showConfirmation = showDialog,
         onConfirmation = {
             showDialog = false
@@ -135,7 +134,6 @@ fun PasswordResetRequestScreen(
     onFirstNameChanged: (String) -> Unit,
     onLastNameChanged: (String) -> Unit,
     onSubmitClick: () -> Unit,
-    onSignIn: () -> Unit,
     showConfirmation: Boolean,
     onConfirmation: () -> Unit,
     modifier: Modifier = Modifier,

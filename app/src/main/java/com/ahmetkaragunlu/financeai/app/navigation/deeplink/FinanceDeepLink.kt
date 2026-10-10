@@ -7,7 +7,6 @@ import java.nio.charset.StandardCharsets
 
 sealed interface FinanceDeepLink {
     data class PasswordReset(val code: String) : FinanceDeepLink
-
     data class Schedule(val ownerId: String? = null) : FinanceDeepLink
 }
 

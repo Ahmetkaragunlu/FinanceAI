@@ -71,7 +71,7 @@ class SignUpScreenTest {
 
         override suspend fun signOut(): Unit = unexpected()
 
-        override suspend fun getUserName(): String? = unexpected()
+        override suspend fun getUserName(): String = unexpected()
 
         private fun unexpected(): Nothing = error("Unexpected auth repository call")
     }

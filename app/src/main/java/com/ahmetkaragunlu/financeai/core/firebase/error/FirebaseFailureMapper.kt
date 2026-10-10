@@ -23,35 +23,47 @@ fun Exception.toDataAccessFailure(): Exception =
             when (code) {
                 FirebaseFunctionsException.Code.UNAVAILABLE ->
                     DataAccessException.ServiceUnavailable(this)
+
                 FirebaseFunctionsException.Code.DEADLINE_EXCEEDED ->
                     DataAccessException.TimedOut(this)
+
                 FirebaseFunctionsException.Code.PERMISSION_DENIED,
                 FirebaseFunctionsException.Code.UNAUTHENTICATED ->
                     DataAccessException.AccessDenied(this)
+
                 FirebaseFunctionsException.Code.RESOURCE_EXHAUSTED ->
                     DataAccessException.RateLimited(this)
+
                 else -> this
             }
+
         is FirebaseFirestoreException ->
             when (code) {
                 FirebaseFirestoreException.Code.DEADLINE_EXCEEDED ->
                     DataAccessException.TimedOut(this)
+
                 FirebaseFirestoreException.Code.UNAVAILABLE ->
                     DataAccessException.ServiceUnavailable(this)
+
                 FirebaseFirestoreException.Code.PERMISSION_DENIED,
                 FirebaseFirestoreException.Code.UNAUTHENTICATED ->
                     DataAccessException.AccessDenied(this)
+
                 FirebaseFirestoreException.Code.RESOURCE_EXHAUSTED ->
                     DataAccessException.RateLimited(this)
+
                 else -> this
             }
+
         is StorageException ->
             when (errorCode) {
                 StorageException.ERROR_NOT_AUTHENTICATED,
                 StorageException.ERROR_NOT_AUTHORIZED -> DataAccessException.AccessDenied(this)
+
                 StorageException.ERROR_QUOTA_EXCEEDED -> DataAccessException.RateLimited(this)
                 StorageException.ERROR_RETRY_LIMIT_EXCEEDED -> DataAccessException.TimedOut(this)
                 else -> this
             }
+
         else -> this
     }

@@ -17,9 +17,13 @@ import kotlinx.coroutines.CancellationException
 
 @HiltWorker
 class PushEventWorker @AssistedInject constructor(
-    @Assisted context: Context, @Assisted parameters: WorkerParameters,
-    private val sessions: SessionCoordinator, private val database: FinanceDatabase,
-    private val engine: AccountSyncEngine, private val reminders: ReminderCoordinator, private val clock: Clock
+    @Assisted context: Context,
+    @Assisted parameters: WorkerParameters,
+    private val sessions: SessionCoordinator,
+    private val database: FinanceDatabase,
+    private val engine: AccountSyncEngine,
+    private val reminders: ReminderCoordinator,
+    private val clock: Clock
 ) : CoroutineWorker(context, parameters) {
     override suspend fun doWork(): Result {
         val owner = inputData.getString(AccountWork.OWNER_ID) ?: return Result.failure()
@@ -31,7 +35,8 @@ class PushEventWorker @AssistedInject constructor(
             if (database.pushEventDao().get(owner, event)?.handled == true) return Result.success()
             sessions.session.withAccount { current ->
                 check(current == account)
-                database.pushEventDao().insert(PushEvent(owner, event, record, type, clock.millis()))
+                database.pushEventDao()
+                    .insert(PushEvent(owner, event, record, type, clock.millis()))
             }
             // FCM is an invalidation hint, never a financial command.
             engine.synchronize(account)
@@ -40,11 +45,20 @@ class PushEventWorker @AssistedInject constructor(
             sessions.session.withAccount { current ->
                 check(current == account)
                 database.pushEventDao().handled(owner, event)
-                database.pushEventDao().pruneHandled(owner, clock.millis() - 30L * 24 * 60 * 60 * 1000)
+                database.pushEventDao()
+                    .pruneHandled(owner, clock.millis() - 30L * 24 * 60 * 60 * 1000)
             }
             Result.success()
-        } catch (e: CancellationException) { throw e }
-        catch (_: Exception) { Result.retry() }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            Result.retry()
+        }
     }
-    companion object { const val RECORD = "record"; const val EVENT = "event"; const val TYPE = "type" }
+
+    companion object {
+        const val RECORD = "record"
+        const val EVENT = "event"
+        const val TYPE = "type"
+    }
 }

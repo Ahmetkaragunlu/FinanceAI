@@ -14,11 +14,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
 import com.ahmetkaragunlu.financeai.R
 import com.ahmetkaragunlu.financeai.app.navigation.components.BottomBar
 import com.ahmetkaragunlu.financeai.app.navigation.components.EditTopBar
 import com.ahmetkaragunlu.financeai.app.navigation.navigateSingleTopClear
-import com.ahmetkaragunlu.financeai.app.navigation.rememberFinanceNavController
 import com.ahmetkaragunlu.financeai.core.ui.component.EditAlertDialog
 import com.ahmetkaragunlu.financeai.core.ui.theme.FinanceColors
 import com.ahmetkaragunlu.financeai.feature.aichat.destination.AiChatDestination
@@ -35,7 +35,7 @@ fun MainNavigation(
     scheduleRequestId: String? = null,
     onScheduleOpened: (String) -> Unit = {},
 ) {
-    val mainNavController = rememberFinanceNavController()
+    val mainNavController = rememberNavController()
     var showLogoutDialog by rememberSaveable { mutableStateOf(false) }
     val currentEntry by mainNavController.currentBackStackEntryAsState()
     val screen = currentEntry?.destination.mainScreen()
@@ -96,11 +96,14 @@ fun MainNavigation(
                         MainScreen.HOME -> mainNavController.navigateSingleTopClear(HomeDestination)
                         MainScreen.HISTORY ->
                             mainNavController.navigateSingleTopClear(TransactionHistoryDestination)
+
                         MainScreen.ADD ->
                             mainNavController.navigateSingleTopClear(AddTransactionDestination)
+
                         MainScreen.AI -> mainNavController.navigateSingleTopClear(AiChatDestination)
                         MainScreen.BUDGET ->
                             mainNavController.navigateSingleTopClear(BudgetDestination)
+
                         else -> Unit
                     }
                 },

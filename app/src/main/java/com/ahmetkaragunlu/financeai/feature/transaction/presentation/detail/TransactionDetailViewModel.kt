@@ -31,7 +31,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -62,7 +61,7 @@ constructor(
     val uiState: StateFlow<TransactionDetailUiState> =
         repository
             .observeTransactionById(transactionId)
-            .map<Transaction?, TransactionDetailUiState> { transaction ->
+            .map { transaction ->
                 transaction?.let(TransactionDetailUiState::Content)
                     ?: TransactionDetailUiState.NotFound
             }

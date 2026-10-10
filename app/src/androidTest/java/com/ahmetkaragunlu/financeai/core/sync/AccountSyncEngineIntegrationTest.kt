@@ -12,7 +12,6 @@ import com.ahmetkaragunlu.financeai.feature.transaction.data.repository.Transact
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.Transaction
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
-import dagger.Lazy
 import java.util.UUID
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
@@ -33,7 +32,8 @@ import org.junit.Test
 
 class AccountSyncEngineIntegrationTest {
     private fun store(f: EmulatorAccountFixture) = TransactionRemoteStore(f.local.database,
-        PhotoRemoteCache(f.local.context, Lazy { error("No remote photo operation expected") }, f.local.session, Dispatchers.IO))
+        PhotoRemoteCache(f.local.context,
+            { error("No remote photo operation expected") }, f.local.session, Dispatchers.IO))
     private fun repository(f: EmulatorAccountFixture) = TransactionRepositoryImpl(
         f.local.database.transactionDao(), f.local.database, f.local.session, f.local.pending, f.local.scheduler
     )
@@ -53,10 +53,11 @@ class AccountSyncEngineIntegrationTest {
                 val initial = repository.observeTransactions().first().single()
                 val entered = CompletableDeferred<Unit>()
                 val actual = store(f)
-                var first = true
+                val first = true
                 val controlled = object : RemoteRecordStore by actual {
                     override suspend fun prepare(account: ActiveAccount, remoteId: String, data: Map<String, Any?>): Map<String, Any?> {
-                        if (first) { first = false; entered.complete(Unit); release.await() }
+                        if (first) {
+                            entered.complete(Unit); release.await() }
                         return actual.prepare(account, remoteId, data)
                     }
                 }

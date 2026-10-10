@@ -12,7 +12,8 @@ import org.mockito.Mockito.mock
 
 /** Checks the production configuration without running authenticated application startup. */
 class FinanceApplicationConfigurationTest {
-    @Test fun configurationKeepsTheInjectedHiltFactoryAndTheSharedManagerProvider() {
+    @Test
+    fun configurationKeepsTheInjectedHiltFactoryAndTheSharedManagerProvider() {
         val factory = mock(HiltWorkerFactory::class.java)
         val application = FinanceApplication().apply { workerFactory = factory }
         val configuration = application.workManagerConfiguration

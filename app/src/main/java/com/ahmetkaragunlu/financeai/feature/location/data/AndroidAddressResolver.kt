@@ -21,13 +21,16 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 
 class AndroidAddressResolver @Inject constructor(
-    @ApplicationContext private val context: Context, @IoDispatcher private val io: CoroutineDispatcher
+    @ApplicationContext private val context: Context,
+    @IoDispatcher private val io: CoroutineDispatcher
 ) : AddressResolver {
     override suspend fun resolve(coordinates: Coordinates): LocationData? {
         val addresses = request(coordinates, null)
         return addresses?.firstOrNull()?.let(::parse)
     }
-    override suspend fun search(query: String): Coordinates? = request(null, query)?.firstOrNull()?.let { Coordinates(it.latitude, it.longitude) }
+
+    override suspend fun search(query: String): Coordinates? =
+        request(null, query)?.firstOrNull()?.let { Coordinates(it.latitude, it.longitude) }
 
     private suspend fun request(coordinates: Coordinates?, query: String?): List<Address>? = try {
         withTimeoutOrNull(10_000) {
@@ -42,23 +45,39 @@ class AndroidAddressResolver @Inject constructor(
                     override fun onGeocode(addresses: MutableList<Address>) = finish(addresses)
                     override fun onError(errorMessage: String?) = finish(null)
                 }
-                if (coordinates != null) geocoder.getFromLocation(coordinates.latitude, coordinates.longitude, 1, listener)
+                if (coordinates != null) geocoder.getFromLocation(
+                    coordinates.latitude,
+                    coordinates.longitude,
+                    1,
+                    listener
+                )
                 else geocoder.getFromLocationName(checkNotNull(query), 1, listener)
             } else withContext(io) {
                 @Suppress("DEPRECATION")
-                if (coordinates != null) geocoder.getFromLocation(coordinates.latitude, coordinates.longitude, 1)
+                if (coordinates != null) geocoder.getFromLocation(
+                    coordinates.latitude,
+                    coordinates.longitude,
+                    1
+                )
                 else geocoder.getFromLocationName(checkNotNull(query), 1)
             }
         }
-    } catch (e: CancellationException) { throw e }
-    catch (_: Exception) { null }
+    } catch (e: CancellationException) {
+        throw e
+    } catch (_: Exception) {
+        null
+    }
 
     private fun parse(address: Address): LocationData {
         val full = buildString {
             address.thoroughfare?.let { append("$it ") }
             address.subThoroughfare?.let { append("No:$it ") }
             address.subLocality?.let { append(", $it") }
-            address.featureName?.let { if (it != address.thoroughfare && it != address.subLocality) append(", $it") }
+            address.featureName?.let {
+                if (it != address.thoroughfare && it != address.subLocality) append(
+                    ", $it"
+                )
+            }
             address.adminArea?.let { append(", $it") }
             address.countryName?.let { append(", $it") }
         }.trim()
@@ -68,7 +87,10 @@ class AndroidAddressResolver @Inject constructor(
             if (district != null && address.adminArea != null) append(", ")
             address.adminArea?.let { append(it) }
         }
-        return LocationData(address.latitude, address.longitude, full.ifBlank { context.getString(R.string.location_info_unavailable) },
+        return LocationData(
+            address.latitude,
+            address.longitude,
+            full.ifBlank { context.getString(R.string.location_info_unavailable) },
             short.ifBlank { context.getString(R.string.location_label) })
     }
 }

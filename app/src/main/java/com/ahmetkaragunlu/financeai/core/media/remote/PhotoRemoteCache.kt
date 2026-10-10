@@ -25,11 +25,19 @@ class PhotoRemoteCache @Inject constructor(
     private val session: AccountSession,
     @IoDispatcher private val io: CoroutineDispatcher
 ) {
-    suspend fun prepare(account: ActiveAccount, remoteId: String, photo: RemotePhoto, existingPath: String?, previous: RemotePhoto?): String? = withContext(io) {
+    suspend fun prepare(
+        account: ActiveAccount,
+        remoteId: String,
+        photo: RemotePhoto,
+        existingPath: String?,
+        previous: RemotePhoto?
+    ): String? = withContext(io) {
         val url = photo.url
         if (!session.isCurrent(account) || url.isNullOrBlank()) return@withContext null
         if (photo == previous && existingPath != null && File(existingPath).isFile) return@withContext existingPath
-        val hash = MessageDigest.getInstance("SHA-256").digest("$url|${photo.version}".toByteArray()).take(12).joinToString("") { "%02x".format(it) }
+        val hash =
+            MessageDigest.getInstance("SHA-256").digest("$url|${photo.version}".toByteArray())
+                .take(12).joinToString("") { "%02x".format(it) }
         val folder = File(context.filesDir, "${PhotoFiles.DIRECTORY}/${account.ownerId}")
         val file = File(folder, "${PhotoFiles.CACHE_PREFIX}${remoteId.hashCode()}_$hash.jpg")
         try {
@@ -38,17 +46,26 @@ class PhotoRemoteCache @Inject constructor(
                 val temporary = File.createTempFile(PhotoFiles.CACHE_PREFIX, ".part", folder)
                 try {
                     val download = storage.get().getReferenceFromUrl(url).getFile(temporary)
-                    try { download.await() }
-                    catch (e: CancellationException) { download.cancel(); throw e }
+                    try {
+                        download.await()
+                    } catch (e: CancellationException) {
+                        download.cancel(); throw e
+                    }
                     check(temporary.renameTo(file))
-                } finally { temporary.delete() }
+                } finally {
+                    temporary.delete()
+                }
             }
             if (session.isCurrent(account)) file.absolutePath else null
-        } catch (e: CancellationException) { throw e }
-        catch (_: Exception) { null }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            null
+        }
     }
 
     companion object {
-        fun isCachedPath(path: String): Boolean = File(path).name.startsWith(PhotoFiles.CACHE_PREFIX)
+        fun isCachedPath(path: String): Boolean =
+            File(path).name.startsWith(PhotoFiles.CACHE_PREFIX)
     }
 }

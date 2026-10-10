@@ -78,7 +78,7 @@ class BudgetRepositoryImpl @Inject constructor(
         }
 
     override fun observeGeneralBudget(): Flow<Budget?> =
-        session.observe<Budget?>(null) { _ ->
+        session.observe(null) { _ ->
             budgetDao.observeGeneralBudget()
                 .map { it?.toDomain() }
                 .distinctUntilChanged()

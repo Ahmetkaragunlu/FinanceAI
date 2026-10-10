@@ -7,7 +7,6 @@ import com.ahmetkaragunlu.financeai.feature.transaction.data.repository.Transact
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.CategoryType
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.Transaction
 import com.ahmetkaragunlu.financeai.feature.transaction.domain.model.TransactionType
-import dagger.Lazy
 import java.util.UUID
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlinx.coroutines.CoroutineScope
@@ -29,13 +28,14 @@ import org.junit.Test
 
 class SessionCoordinatorIntegrationTest {
     private fun coordinator(f: EmulatorAccountFixture, scope: CoroutineScope, restored: MutableList<String>): SessionCoordinator {
-        val photos = PhotoRemoteCache(f.local.context, Lazy { error("No media network expected") }, f.local.session, Dispatchers.IO)
+        val photos = PhotoRemoteCache(f.local.context,
+            { error("No media network expected") }, f.local.session, Dispatchers.IO)
         val engine = f.engine(setOf(TransactionRemoteStore(f.local.database, photos)))
         val restorer = object : SessionWorkRestorer {
             override suspend fun restore(account: ActiveAccount) { restored += account.ownerId }
         }
         return SessionCoordinator(f.auth, f.firestore, f.local.database, f.local.session,
-            f.local.scheduler, Lazy { engine }, f.local.workManager, restorer, f.local.context, scope)
+            f.local.scheduler, { engine }, f.local.workManager, restorer, f.local.context, scope)
     }
 
     @Test fun onlyVerifiedAccountsBecomeReadyAndRemotePreferencesAreStoredBeforeWorkRestoration() = runBlocking {

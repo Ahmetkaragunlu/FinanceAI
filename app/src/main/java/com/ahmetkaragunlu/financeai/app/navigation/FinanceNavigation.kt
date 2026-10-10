@@ -16,6 +16,7 @@ import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
 import com.ahmetkaragunlu.financeai.app.navigation.auth.authNavGraph
 import com.ahmetkaragunlu.financeai.app.navigation.deeplink.FinanceDeepLink
 import com.ahmetkaragunlu.financeai.app.navigation.deeplink.PendingDeepLink
@@ -36,29 +37,31 @@ fun FinanceNavigation(
 ) {
     val accountViewModel: AccountViewModel = hiltViewModel()
     val account by accountViewModel.account.collectAsStateWithLifecycle()
-    val navController = rememberFinanceNavController()
+    val navController = rememberNavController()
     val currentEntry by navController.currentBackStackEntryAsState()
     val destination = deepLink?.destination
     LaunchedEffect(deepLink, currentEntry?.destination, account) {
         if (
             destination is FinanceDeepLink.PasswordReset &&
-                currentEntry != null &&
-                currentEntry?.destination?.hasRoute<SplashDestination>() != true
+            currentEntry != null &&
+            currentEntry?.destination?.hasRoute<SplashDestination>() != true
         ) {
             navController.navigateSingleTopClear(PasswordResetDestination(destination.code))
             onDeepLinkConsumed(deepLink.id)
         } else if (
             destination is FinanceDeepLink.Schedule &&
-                account != null &&
-                destination.ownerId != null &&
-                destination.ownerId != account?.ownerId &&
-                currentEntry?.destination?.hasRoute<MainDestination>() == true
+            account != null &&
+            destination.ownerId != null &&
+            destination.ownerId != account?.ownerId &&
+            currentEntry?.destination?.hasRoute<MainDestination>() == true
         ) {
             // A notification for a previous account must not open that account's workflow.
             onDeepLinkConsumed(deepLink.id)
         }
     }
-    CompositionLocalProvider(LocalAccountCurrency provides (account?.currencyCode ?: UNSPECIFIED_CURRENCY)) {
+    CompositionLocalProvider(
+        LocalAccountCurrency provides (account?.currencyCode ?: UNSPECIFIED_CURRENCY)
+    ) {
         NavHost(navController = navController, startDestination = SplashDestination) {
             composable<SplashDestination> {
                 SplashRoute(
@@ -76,7 +79,8 @@ fun FinanceNavigation(
                 LaunchedEffect(sessionViewModel.failureMessageRes, lifecycle) {
                     sessionViewModel.failureMessageRes?.let { message ->
                         lifecycle.withStateAtLeast(Lifecycle.State.STARTED) {
-                            Toast.makeText(context, context.getString(message), Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(message), Toast.LENGTH_SHORT)
+                                .show()
                             sessionViewModel.consumeFailure()
                         }
                     }
@@ -98,8 +102,8 @@ fun FinanceNavigation(
                             scheduleRequestId =
                                 deepLink?.id.takeIf {
                                     destination is FinanceDeepLink.Schedule &&
-                                        (destination.ownerId == null ||
-                                            destination.ownerId == account?.ownerId)
+                                            (destination.ownerId == null ||
+                                                    destination.ownerId == account?.ownerId)
                                 },
                             onScheduleOpened = onDeepLinkConsumed,
                         )
